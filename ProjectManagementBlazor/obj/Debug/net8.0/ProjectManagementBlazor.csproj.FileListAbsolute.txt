@@ -1,0 +1,8 @@
+C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\ProjectManagementBlazor.csproj.AssemblyReference.cache
+C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\rpswa.dswa.cache.json
+C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\ProjectManagementBlazor.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\ProjectManagementBlazor.AssemblyInfoInputs.cache
+C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\ProjectManagementBlazor.AssemblyInfo.cs
+C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\ProjectManagementBlazor.csproj.CoreCompileInputs.cache
+C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\ProjectManagementBlazor.MvcApplicationPartsAssemblyInfo.cache
+C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\ProjectManagementBlazor.sourcelink.json
