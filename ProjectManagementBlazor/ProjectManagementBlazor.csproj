@@ -17,10 +17,4 @@
     <PackageReference Include="System.Text.Json" Version="8.0.5" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="DTO\Common\" />
-    <Folder Include="DTO\Responses\" />
-    <Folder Include="DTO\Requests\" />
-  </ItemGroup>
-
 </Project>

@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ProjectManagementBlazor")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f92cc1d9997ded9dd1cf3f033cb47abf60da23c7")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+50d8b1314ada78ee48c2a226b0eb4ecfdb6c0b68")]
 [assembly: System.Reflection.AssemblyProductAttribute("ProjectManagementBlazor")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ProjectManagementBlazor")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
