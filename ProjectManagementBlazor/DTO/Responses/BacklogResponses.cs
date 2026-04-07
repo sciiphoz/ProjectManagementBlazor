@@ -44,6 +44,8 @@ namespace ProjectManagementBlazor.DTO.Responses
         public int SubTasksCount { get; set; }
         public int CompletedSubTasksCount { get; set; }
         public string? ColorTag { get; set; }
+        public string? Description { get; set; }
+        public string? AcceptanceCriteria { get; set; }
     }
 
     public class BacklogItemDetailResponse : BacklogItemResponse

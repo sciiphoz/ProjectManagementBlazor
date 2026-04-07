@@ -1,4 +1,5 @@
 ﻿using Microsoft.JSInterop;
+using ProjectManagementBlazor.Services;
 
 namespace ProjectManagementBlazor.Services
 {

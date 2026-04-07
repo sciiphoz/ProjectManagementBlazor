@@ -1,0 +1,142 @@
+﻿@page "/sprints"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject ISprintService SprintService
+@inject IProjectService ProjectService
+@inject NavigationManager Navigation
+
+<PageTitle>Спринты</PageTitle>
+
+<div class="container mt-4">
+    <h2>Мои спринты</h2>
+
+    @if (isLoading)
+    {
+        <div class="text-center mt-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Загрузка...</span>
+            </div>
+        </div>
+    }
+    else if (projects != null && projects.Any())
+    {
+        @foreach (var project in projects)
+        {
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">@project.Name</h5>
+                </div>
+                <div class="card-body">
+                    @if (projectSprints.ContainsKey(project.Id) && projectSprints[project.Id].Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Название спринта</th>
+                                        <th>Даты</th>
+                                        <th>Статус</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var sprint in projectSprints[project.Id])
+                                    {
+                                        <tr>
+                                            <td>@sprint.Name</td>
+                                            <td>@sprint.StartDate.ToString("dd.MM.yyyy") - @sprint.EndDate.ToString("dd.MM.yyyy")</td>
+                                            <td>
+                                                @if (sprint.IsActive)
+                                                {
+                                                    <span class="badge bg-success">Активен</span>
+                                                }
+                                                else if (sprint.Status == "Completed")
+                                                {
+                                                    <span class="badge bg-secondary">Завершен</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-info">Планируется</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary"
+                                                        @onclick="() => OpenSprint(sprint.Id)">
+                                                    Открыть
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted">Нет спринтов в этом проекте</p>
+                    }
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="alert alert-info">
+            У вас нет проектов. Создайте проект, чтобы начать работу.
+            <button class="btn btn-primary ms-3" @onclick="GoToProjects">
+                Перейти к проектам
+            </button>
+        </div>
+    }
+</div>
+
+@code {
+    private List<ProjectResponse>? projects;
+    private Dictionary<Guid, List<SprintBriefResponse>> projectSprints = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        try
+        {
+            var projectsResult = await ProjectService.GetUserProjectsAsync(new PagedRequest { PageNumber = 1, PageSize = 50 });
+            if (projectsResult.Success && projectsResult.Data != null)
+            {
+                projects = projectsResult.Data.Items;
+
+                foreach (var project in projects)
+                {
+                    var sprintsResult = await SprintService.GetProjectSprintsAsync(project.Id);
+                    if (sprintsResult.Success && sprintsResult.Data != null)
+                    {
+                        projectSprints[project.Id] = sprintsResult.Data;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void OpenSprint(Guid sprintId)
+    {
+        Navigation.NavigateTo($"/sprints/{sprintId}");
+    }
+
+    private void GoToProjects()
+    {
+        Navigation.NavigateTo("/projects");
+    }
+}

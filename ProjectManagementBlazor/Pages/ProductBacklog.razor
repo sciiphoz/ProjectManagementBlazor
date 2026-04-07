@@ -1,0 +1,632 @@
+﻿@page "/backlog/{ProjectId:guid}"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject IBacklogService BacklogService
+@inject IProjectService ProjectService
+@inject ISprintService SprintService
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>Бэклог продукта</PageTitle>
+
+<div class="container-fluid mt-3">
+    @if (isLoading)
+    {
+        <div class="text-center mt-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Загрузка...</span>
+            </div>
+            <p class="mt-2">Загрузка бэклога...</p>
+        </div>
+    }
+    else if (project != null)
+    {
+        <!-- Заголовок проекта -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="mb-0">Бэклог продукта: @project.Name</h3>
+                        <p class="mb-0 mt-2 text-white-50">Управление задачами, готовыми к планированию в спринты</p>
+                    </div>
+                    <div>
+                        <button class="btn btn-light" @onclick="ShowCreateModal">
+                            + Новая задача
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Фильтры -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="form-label">Поиск</label>
+                        <input type="text" class="form-control" @bind="searchTerm" @bind:event="oninput" 
+                               placeholder="Поиск по названию..." />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Тип задачи</label>
+                        <select @bind="selectedType" class="form-select">
+                            <option value="all">Все</option>
+                            <option value="UserStory">User Story</option>
+                            <option value="Bug">Bug</option>
+                            <option value="TechnicalTask">Техническая задача</option>
+                            <option value="Improvement">Улучшение</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Статус</label>
+                        <select @bind="selectedStatus" class="form-select">
+                            <option value="all">Все</option>
+                            <option value="Backlog">Бэклог</option>
+                            <option value="ToDo">To Do</option>
+                            <option value="InProgress">In Progress</option>
+                            <option value="Done">Done</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Сортировка</label>
+                        <select @bind="sortBy" class="form-select">
+                            <option value="priority">По приоритету</option>
+                            <option value="created">По дате создания</option>
+                            <option value="storyPoints">По Story Points</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Список задач -->
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Задачи бэклога</h5>
+            </div>
+            <div class="card-body">
+                @if (filteredTasks.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Название</th>
+                                    <th>Тип</th>
+                                    <th>Story Points</th>
+                                    <th>Оценка (ч)</th>
+                                    <th>Статус</th>
+                                    <th>Исполнитель</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (int i = 0; i < filteredTasks.Count; i++)
+                                {
+                                    var task = filteredTasks[i];
+                                    <tr>
+                                        <td>@(i + 1 + (currentPage - 1) * pageSize)</td>
+                                        <td>
+                                            <strong>@task.Title</strong>
+                                            @if (!string.IsNullOrEmpty(task.Description))
+                                            {
+                                                <br />
+                                                <small class="text-muted">@(task.Description.Length > 50 ? task.Description[..50] + "..." : task.Description)</small>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="badge @GetTypeBadgeClass(task.Type)">@GetTypeName(task.Type)</span>
+                                        </td>
+                                        <td>@task.StoryPoints</td>
+                                        <td>@task.EstimatedHours</td>
+                                        <td>
+                                            <span class="badge @GetStatusBadgeClass(task.Status)">@GetStatusName(task.Status)</span>
+                                        </td>
+                                        <td>
+                                            @if (task.Assignee != null)
+                                            {
+                                                <span>@task.Assignee.FullName</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">Не назначен</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" @onclick="() => EditTask(task)">
+                                                    ✏️
+                                                </button>
+                                                <button class="btn btn-outline-danger" @onclick="() => DeleteTask(task.Id)">
+                                                    🗑️
+                                                </button>
+                                                @if (sprints != null && sprints.Any(s => s.Status != "Completed"))
+                                                {
+                                                    <button class="btn btn-outline-success" @onclick="() => MoveToSprint(task.Id, task.Title)">
+                                                        ➡️
+                                                    </button>
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center text-muted p-5">
+                        <h5>Нет задач в бэклоге</h5>
+                        <p>Создайте новую задачу, чтобы начать планирование</p>
+                        <button class="btn btn-primary" @onclick="ShowCreateModal">+ Создать задачу</button>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Пагинация -->
+        @if (totalPages > 1)
+        {
+            <div class="mt-3 d-flex justify-content-center">
+                <nav>
+                    <ul class="pagination">
+                        <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                            <button class="page-link" @onclick="() => GoToPage(currentPage - 1)">Назад</button>
+                        </li>
+                        @for (int i = 1; i <= totalPages; i++)
+                        {
+                            <li class="page-item @(currentPage == i ? "active" : "")">
+                                <button class="page-link" @onclick="() => GoToPage(i)">@i</button>
+                            </li>
+                        }
+                        <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                            <button class="page-link" @onclick="() => GoToPage(currentPage + 1)">Вперед</button>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+    }
+
+    <!-- Модальное окно создания/редактирования задачи -->
+    @if (showModal)
+    {
+        <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">@(editingTask == null ? "Создание задачи" : "Редактирование задачи")</h5>
+                        <button type="button" class="btn-close btn-close-white" @onclick="CloseModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <EditForm Model="@taskForm" OnValidSubmit="SaveTask">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Название *</label>
+                                        <InputText @bind-Value="taskForm.Title" class="form-control" />
+                                        <ValidationMessage For="@(() => taskForm.Title)" />
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label class="form-label">Тип *</label>
+                                        <InputSelect @bind-Value="taskForm.Type" class="form-select">
+                                            <option value="0">User Story</option>
+                                            <option value="1">Bug</option>
+                                            <option value="2">Техническая задача</option>
+                                            <option value="3">Улучшение</option>
+                                        </InputSelect>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label class="form-label">Story Points</label>
+                                        <InputNumber @bind-Value="taskForm.StoryPoints" class="form-control" min="0" max="100" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Оценка часов</label>
+                                        <InputNumber @bind-Value="taskForm.EstimatedHours" class="form-control" min="0" step="0.5" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Исполнитель</label>
+                                        <InputSelect @bind-Value="taskForm.AssigneeId" class="form-select">
+                                            <option value="">Не назначен</option>
+                                            @if (projectMembers != null)
+                                            {
+                                                @foreach (var member in projectMembers)
+                                                {
+                                                    <option value="@member.UserId">@member.FullName</option>
+                                                }
+                                            }
+                                        </InputSelect>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Описание</label>
+                                <InputTextArea @bind-Value="taskForm.Description" class="form-control" rows="3" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Критерии приемки</label>
+                                <InputTextArea @bind-Value="taskForm.AcceptanceCriteria" class="form-control" rows="3" />
+                            </div>
+                            <button type="submit" class="btn btn-primary">Сохранить</button>
+                            <button type="button" class="btn btn-secondary" @onclick="CloseModal">Отмена</button>
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Модальное окно перемещения в спринт -->
+    @if (showMoveToSprintModal)
+    {
+        <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title">Переместить в спринт</h5>
+                        <button type="button" class="btn-close btn-close-white" @onclick="CloseMoveModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Выберите спринт для задачи "<strong>@selectedTaskTitle</strong>"</p>
+                        <select @bind="selectedSprintId" class="form-select">
+                            <option value="">-- Выберите спринт --</option>
+                            @if (sprints != null)
+                            {
+                                @foreach (var sprint in sprints.Where(s => s.Status != "Completed"))
+                                {
+                                    <option value="@sprint.Id">@sprint.Name (@sprint.StartDate.ToString("dd.MM") - @sprint.EndDate.ToString("dd.MM"))</option>
+                                }
+                            }
+                        </select>
+                        @if (sprints == null || !sprints.Any())
+                        {
+                            <div class="alert alert-warning mt-2">
+                                Нет доступных спринтов. 
+                                <a href="/projects/@ProjectId" target="_blank">Создайте спринт</a> в проекте.
+                            </div>
+                        }
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" @onclick="CloseMoveModal">Отмена</button>
+                        <button class="btn btn-success" @onclick="ConfirmMoveToSprint" disabled="@(selectedSprintId == Guid.Empty)">
+                            Переместить
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        z-index: 1050;
+    }
+</style>
+
+@code {
+    [Parameter] public Guid ProjectId { get; set; }
+
+    private ProjectResponse? project;
+    private List<BacklogItemResponse>? allTasks;
+    private List<BacklogItemResponse> filteredTasks = new();
+    private List<ProjectMemberResponse>? projectMembers;
+    private List<SprintBriefResponse>? sprints;
+    
+    private string searchTerm = "";
+    private string selectedType = "all";
+    private string selectedStatus = "all";
+    private string sortBy = "priority";
+    private int currentPage = 1;
+    private int pageSize = 15;
+    private int totalPages = 1;
+    private bool isLoading = true;
+    
+    private bool showModal = false;
+    private bool showMoveToSprintModal = false;
+    private CreateBacklogItemRequest taskForm = new();
+    private BacklogItemResponse? editingTask;
+    private Guid selectedTaskId;
+    private string selectedTaskTitle = "";
+    private Guid selectedSprintId = Guid.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        try
+        {
+            var projectResult = await ProjectService.GetProjectByIdAsync(ProjectId);
+            if (projectResult.Success && projectResult.Data != null)
+            {
+                project = projectResult.Data;
+            }
+            else
+            {
+                Navigation.NavigateTo("/projects");
+                return;
+            }
+
+            var membersResult = await ProjectService.GetProjectMembersAsync(ProjectId);
+            if (membersResult.Success && membersResult.Data != null)
+            {
+                projectMembers = membersResult.Data;
+            }
+
+            var sprintsResult = await SprintService.GetProjectSprintsAsync(ProjectId);
+            if (sprintsResult.Success && sprintsResult.Data != null)
+            {
+                sprints = sprintsResult.Data;
+            }
+
+            await LoadBacklog();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadBacklog()
+    {
+        try
+        {
+            var request = new PagedRequest { PageNumber = 1, PageSize = 100 };
+            var result = await BacklogService.GetProjectBacklogAsync(ProjectId, request);
+            if (result.Success && result.Data != null)
+            {
+                allTasks = result.Data.Items.OrderBy(t => t.Priority).ToList();
+                ApplyFilters();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка загрузки бэклога: {ex.Message}");
+        }
+    }
+
+    private void ApplyFilters()
+    {
+        var query = allTasks?.AsQueryable() ?? new List<BacklogItemResponse>().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            query = query.Where(t => t.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (selectedType != "all")
+        {
+            query = query.Where(t => t.Type == selectedType);
+        }
+
+        if (selectedStatus != "all")
+        {
+            query = query.Where(t => t.Status == selectedStatus);
+        }
+
+        filteredTasks = sortBy switch
+        {
+            "created" => query.OrderByDescending(t => t.CreatedAt).ToList(),
+            "storyPoints" => query.OrderByDescending(t => t.StoryPoints).ToList(),
+            _ => query.OrderBy(t => t.Priority).ToList()
+        };
+
+        totalPages = (int)Math.Ceiling(filteredTasks.Count / (double)pageSize);
+        filteredTasks = filteredTasks.Skip((currentPage - 1) * pageSize).Take(pageSize).ToList();
+    }
+
+    private void GoToPage(int page)
+    {
+        if (page >= 1 && page <= totalPages)
+        {
+            currentPage = page;
+            ApplyFilters();
+        }
+    }
+
+    private void ShowCreateModal()
+    {
+        editingTask = null;
+        taskForm = new CreateBacklogItemRequest
+        {
+            ProjectId = ProjectId,
+            Type = BacklogItemType.UserStory
+        };
+        showModal = true;
+    }
+
+    private void EditTask(BacklogItemResponse task)
+    {
+        editingTask = task;
+        taskForm = new CreateBacklogItemRequest
+        {
+            ProjectId = ProjectId,
+            Type = Enum.Parse<BacklogItemType>(task.Type),
+            Title = task.Title,
+            Description = task.Description,
+            AcceptanceCriteria = task.AcceptanceCriteria,
+            StoryPoints = task.StoryPoints,
+            EstimatedHours = task.EstimatedHours,
+            AssigneeId = task.Assignee?.Id
+        };
+        showModal = true;
+    }
+
+    private async Task SaveTask()
+    {
+        try
+        {
+            // Получаем текущего пользователя
+            var currentUser = await AuthService.GetCurrentUserAsync();
+            if (!currentUser.Success || currentUser.Data == null)
+            {
+                Console.WriteLine("Не удалось получить текущего пользователя");
+                return;
+            }
+
+            ApiResponse<BacklogItemResponse> result;
+            if (editingTask == null)
+            {
+                // Добавляем CreatedById перед отправкой
+                taskForm.CreatedById = currentUser.Data.Id;
+                result = await BacklogService.CreateBacklogItemAsync(taskForm);
+            }
+            else
+            {
+                var updateRequest = new UpdateBacklogItemRequest
+                {
+                    Title = taskForm.Title,
+                    Description = taskForm.Description,
+                    AcceptanceCriteria = taskForm.AcceptanceCriteria,
+                    Type = taskForm.Type,
+                    StoryPoints = taskForm.StoryPoints,
+                    EstimatedHours = taskForm.EstimatedHours,
+                    AssigneeId = taskForm.AssigneeId,
+                    UserId = currentUser.Data.Id  // Добавляем UserId для обновления
+                };
+                result = await BacklogService.UpdateBacklogItemAsync(editingTask.Id, updateRequest);
+            }
+
+            if (result.Success)
+            {
+                CloseModal();
+                await LoadBacklog();
+            }
+            else
+            {
+                Console.WriteLine($"Ошибка: {result.Message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка сохранения: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteTask(Guid taskId)
+    {
+        if (await JS.InvokeAsync<bool>("confirm", "Удалить задачу?"))
+        {
+            var result = await BacklogService.DeleteBacklogItemAsync(taskId);
+            if (result.Success)
+            {
+                await LoadBacklog();
+            }
+        }
+    }
+
+    private void MoveToSprint(Guid taskId, string taskTitle)
+    {
+        selectedTaskId = taskId;
+        selectedTaskTitle = taskTitle;
+        selectedSprintId = Guid.Empty;
+        showMoveToSprintModal = true;
+    }
+
+    private void CloseMoveModal()
+    {
+        showMoveToSprintModal = false;
+        selectedTaskId = Guid.Empty;
+        selectedSprintId = Guid.Empty;
+    }
+
+    private async Task ConfirmMoveToSprint()
+    {
+        if (selectedSprintId != Guid.Empty)
+        {
+            var request = new MoveToSprintRequest
+            {
+                BacklogItemIds = new List<Guid> { selectedTaskId },
+                SprintId = selectedSprintId
+            };
+            var result = await SprintService.MoveToSprintAsync(request);
+            if (result.Success)
+            {
+                CloseMoveModal();
+                await LoadBacklog();
+            }
+        }
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        editingTask = null;
+        taskForm = new CreateBacklogItemRequest();
+    }
+
+    private string GetTypeBadgeClass(string type)
+    {
+        return type switch
+        {
+            "UserStory" => "bg-primary",
+            "Bug" => "bg-danger",
+            "TechnicalTask" => "bg-secondary",
+            "Improvement" => "bg-success",
+            _ => "bg-secondary"
+        };
+    }
+
+    private string GetTypeName(string type)
+    {
+        return type switch
+        {
+            "UserStory" => "Story",
+            "Bug" => "Bug",
+            "TechnicalTask" => "Task",
+            "Improvement" => "Improve",
+            _ => type
+        };
+    }
+
+    private string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Backlog" => "bg-secondary",
+            "ToDo" => "bg-info",
+            "InProgress" => "bg-warning",
+            "Done" => "bg-success",
+            _ => "bg-secondary"
+        };
+    }
+
+    private string GetStatusName(string status)
+    {
+        return status switch
+        {
+            "Backlog" => "Бэклог",
+            "ToDo" => "To Do",
+            "InProgress" => "In Progress",
+            "Done" => "Done",
+            _ => status
+        };
+    }
+}

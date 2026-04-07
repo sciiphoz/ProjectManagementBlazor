@@ -1,0 +1,124 @@
+﻿@page "/register"
+@using System.ComponentModel.DataAnnotations
+@using ProjectManagementBlazor.DTO.Requests
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+
+<PageTitle>Регистрация</PageTitle>
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6 col-lg-4">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white text-center">
+                <h4>Регистрация</h4>
+            </div>
+            <div class="card-body">
+                <EditForm Model="@registerModel" OnValidSubmit="@HandleRegister">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="text-danger" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Имя пользователя</label>
+                        <InputText @bind-Value="registerModel.Username" class="form-control" />
+                        <ValidationMessage For="@(() => registerModel.Username)" />
+                        <small class="text-muted">Минимум 3 символа</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <InputText type="email" @bind-Value="registerModel.Email" class="form-control" />
+                        <ValidationMessage For="@(() => registerModel.Email)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Полное имя</label>
+                        <InputText @bind-Value="registerModel.FullName" class="form-control" />
+                        <ValidationMessage For="@(() => registerModel.FullName)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Пароль</label>
+                        <InputText type="password" @bind-Value="registerModel.Password" class="form-control" />
+                        <ValidationMessage For="@(() => registerModel.Password)" />
+                        <small class="text-muted">Минимум 6 символов</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Подтверждение пароля</label>
+                        <InputText type="password" @bind-Value="registerModel.ConfirmPassword" class="form-control" />
+                        <ValidationMessage For="@(() => registerModel.ConfirmPassword)" />
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100" disabled="@isLoading">
+                        @if (isLoading)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        Зарегистрироваться
+                    </button>
+                </EditForm>
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger mt-3">@errorMessage</div>
+                }
+
+                @if (!string.IsNullOrEmpty(successMessage))
+                {
+                    <div class="alert alert-success mt-3">@successMessage</div>
+                }
+
+                <hr />
+
+                <div class="text-center">
+                    <p>Уже есть аккаунт? <a href="/login">Войти</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private RegisterRequest registerModel = new();
+    private bool isLoading = false;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+
+    private async Task HandleRegister()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+
+        try
+        {
+            var result = await AuthService.RegisterAsync(registerModel);
+
+            if (result.Success)
+            {
+                successMessage = "Регистрация прошла успешно! Теперь вы можете войти.";
+                registerModel = new RegisterRequest();
+
+                // Перенаправление на страницу входа через 2 секунды
+                await Task.Delay(2000);
+                Navigation.NavigateTo("/login");
+            }
+            else
+            {
+                errorMessage = result.Message;
+                if (result.Errors != null && result.Errors.Any())
+                {
+                    errorMessage = string.Join("; ", result.Errors);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Ошибка: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

@@ -1,0 +1,117 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components
+@attribute [Authorize]
+@inject IAuthService AuthService
+@inject IProjectService ProjectService
+@inject NavigationManager Navigation
+
+<PageTitle>Главная</PageTitle>
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4>Добро пожаловать в систему управления проектами!</h4>
+                </div>
+                <div class="card-body">
+                    @if (currentUser != null)
+                    {
+                        <h5>Здравствуйте, @currentUser.FullName!</h5>
+                        <p>Вы вошли как: <strong>@currentUser.Username</strong></p>
+                        <p>Роль: <strong>@currentUser.Role</strong></p>
+                        <p>Email: <strong>@currentUser.Email</strong></p>
+                    }
+                    else if (isLoading)
+                    {
+                        <p>Загрузка информации о пользователе...</p>
+                    }
+                    else
+                    {
+                        <p class="text-danger">Не удалось загрузить информацию о пользователе</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5>Мои проекты</h5>
+                </div>
+                <div class="card-body">
+                    <p>Количество проектов: <strong>@(myProjects?.Count ?? 0)</strong></p>
+                    <button class="btn btn-primary" @onclick="GoToProjects">
+                        Перейти к проектам
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5>Активные спринты</h5>
+                </div>
+                <div class="card-body">
+                    <p>Отслеживайте прогресс команды</p>
+                    <button class="btn btn-success" @onclick="GoToSprints">
+                        К спринтам
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5>Мой день</h5>
+                </div>
+                <div class="card-body">
+                    <p>Планируйте свои задачи</p>
+                    <button class="btn btn-warning" @onclick="GoToDashboard">
+                        Открыть дашборд
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private UserResponse? currentUser;
+    private List<ProjectResponse>? myProjects;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        try
+        {
+            var userResult = await AuthService.GetCurrentUserAsync();
+            if (userResult.Success && userResult.Data != null)
+            {
+                currentUser = userResult.Data;
+            }
+
+            var projectsResult = await ProjectService.GetUserProjectsAsync(new PagedRequest { PageNumber = 1, PageSize = 10 });
+            if (projectsResult.Success && projectsResult.Data != null)
+            {
+                myProjects = projectsResult.Data.Items;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void GoToProjects() => Navigation.NavigateTo("/projects");
+    private void GoToSprints() => Navigation.NavigateTo("/sprints");
+    private void GoToDashboard() => Navigation.NavigateTo("/dashboard");
+}

@@ -1,0 +1,171 @@
+﻿@page "/projects"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject IProjectService ProjectService
+@inject NavigationManager Navigation
+
+<PageTitle>Мои проекты</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Мои проекты</h2>
+        <button class="btn btn-primary" @onclick="ShowCreateModal">
+            + Создать проект
+        </button>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Загрузка...</span>
+            </div>
+        </div>
+    }
+    else if (projects != null && projects.Any())
+    {
+        <div class="row">
+            @foreach (var project in projects)
+            {
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">@project.Name</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">@(project.Description ?? "Нет описания")</p>
+                            <p class="small text-muted">
+                                Создан: @project.CreatedAt.ToString("dd.MM.yyyy")
+                            </p>
+                            <div class="d-flex justify-content-between">
+                                <span class="badge bg-info">Участников: @project.MembersCount</span>
+                                <span class="badge bg-success">Задач: @project.TotalTasksCount</span>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <button class="btn btn-sm btn-outline-primary w-100"
+                                    @onclick="() => OpenProject(project.Id)">
+                                Открыть проект
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info text-center">
+            У вас пока нет проектов. Создайте первый проект!
+        </div>
+    }
+
+    <!-- Модальное окно создания проекта -->
+    @if (showCreateModal)
+    {
+        <div class="modal show d-block" tabindex="-1" role="dialog">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">Создание проекта</h5>
+                        <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <EditForm Model="@newProject" OnValidSubmit="@CreateProject">
+                            <div class="mb-3">
+                                <label class="form-label">Название проекта *</label>
+                                <InputText @bind-Value="newProject.Name" class="form-control" />
+                                <ValidationMessage For="@(() => newProject.Name)" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Описание</label>
+                                <InputTextArea @bind-Value="newProject.Description" class="form-control" rows="3" />
+                            </div>
+                            <button type="submit" class="btn btn-primary" disabled="@isCreating">
+                                @if (isCreating)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                Создать
+                            </button>
+                            <button type="button" class="btn btn-secondary" @onclick="CloseModal">Отмена</button>
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-backdrop show"></div>
+    }
+</div>
+
+@code {
+    private List<ProjectResponse>? projects;
+    private bool isLoading = true;
+    private bool showCreateModal = false;
+    private bool isCreating = false;
+    private CreateProjectRequest newProject = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProjects();
+    }
+
+    private async Task LoadProjects()
+    {
+        isLoading = true;
+        try
+        {
+            var result = await ProjectService.GetUserProjectsAsync(new PagedRequest { PageNumber = 1, PageSize = 50 });
+            if (result.Success && result.Data != null)
+            {
+                projects = result.Data.Items;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ShowCreateModal()
+    {
+        newProject = new CreateProjectRequest();
+        showCreateModal = true;
+    }
+
+    private void CloseModal()
+    {
+        showCreateModal = false;
+    }
+
+    private async Task CreateProject()
+    {
+        isCreating = true;
+        try
+        {
+            var result = await ProjectService.CreateProjectAsync(newProject);
+            if (result.Success)
+            {
+                CloseModal();
+                await LoadProjects();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка: {ex.Message}");
+        }
+        finally
+        {
+            isCreating = false;
+        }
+    }
+
+    private void OpenProject(Guid projectId)
+    {
+        Navigation.NavigateTo($"/projects/{projectId}");
+    }
+}

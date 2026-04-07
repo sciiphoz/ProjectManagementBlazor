@@ -1,0 +1,96 @@
+﻿@page "/login"
+@using System.ComponentModel.DataAnnotations
+@using ProjectManagementBlazor.DTO.Requests
+@using ProjectManagementBlazor.DTO.Responses
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@inject ISprintService SprintService
+
+<PageTitle>Вход в систему</PageTitle>
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6 col-lg-4">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white text-center">
+                <h4>Вход в систему</h4>
+            </div>
+            <div class="card-body">
+                <EditForm Model="@loginModel" OnValidSubmit="@HandleLogin">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="text-danger" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Логин или Email</label>
+                        <InputText @bind-Value="loginModel.UsernameOrEmail" class="form-control" />
+                        <ValidationMessage For="@(() => loginModel.UsernameOrEmail)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Пароль</label>
+                        <InputText type="password" @bind-Value="loginModel.Password" class="form-control" />
+                        <ValidationMessage For="@(() => loginModel.Password)" />
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        <InputCheckbox @bind-Value="loginModel.RememberMe" class="form-check-input" />
+                        <label class="form-check-label">Запомнить меня</label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100" disabled="@isLoading">
+                        @if (isLoading)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        Войти
+                    </button>
+                </EditForm>
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger mt-3">@errorMessage</div>
+                }
+
+                <hr />
+
+                <div class="text-center">
+                    <p>Нет аккаунта? <a href="/register">Зарегистрироваться</a></p>
+                    <a href="/forgot-password">Забыли пароль?</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginRequest loginModel = new();
+    private bool isLoading = false;
+    private string errorMessage = string.Empty;
+
+    private async Task HandleLogin()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            var result = await AuthService.LoginAsync(loginModel);
+
+            if (result.Success)
+            {
+                Navigation.NavigateTo("/", true);
+            }
+            else
+            {
+                errorMessage = result.Message;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Ошибка: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

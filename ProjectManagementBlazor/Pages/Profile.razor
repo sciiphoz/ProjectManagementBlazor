@@ -1,0 +1,155 @@
+﻿@page "/profile"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject IAuthService AuthService
+@inject IUserService UserService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>Мой профиль</PageTitle>
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Мой профиль</h4>
+                </div>
+                <div class="card-body">
+                    @if (isLoading)
+                    {
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Загрузка...</span>
+                            </div>
+                        </div>
+                    }
+                    else if (user != null)
+                    {
+                        <EditForm Model="@editProfile" OnValidSubmit="@(async () => await UpdateProfile())">
+                            <div class="mb-3">
+                                <label class="form-label">Имя пользователя</label>
+                                <InputText @bind-Value="user.Username" class="form-control" disabled />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <InputText type="email" @bind-Value="editProfile.Email" class="form-control" />
+                                <ValidationMessage For="@(() => editProfile.Email)" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Полное имя</label>
+                                <InputText @bind-Value="editProfile.FullName" class="form-control" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Роль</label>
+                                <InputText @bind-Value="user.Role" class="form-control" disabled />
+                            </div>
+                            <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                                @if (isSaving)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                Сохранить изменения
+                            </button>
+                        </EditForm>
+
+                        <hr />
+
+                        <h5>Смена пароля</h5>
+                        <EditForm Model="@changePassword" OnValidSubmit="@(async () => await ChangePassword())">
+                            <div class="mb-3">
+                                <label class="form-label">Текущий пароль</label>
+                                <InputText type="password" @bind-Value="changePassword.CurrentPassword" class="form-control" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Новый пароль</label>
+                                <InputText type="password" @bind-Value="changePassword.NewPassword" class="form-control" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Подтверждение пароля</label>
+                                <InputText type="password" @bind-Value="changePassword.ConfirmNewPassword" class="form-control" />
+                            </div>
+                            <button type="submit" class="btn btn-warning">Сменить пароль</button>
+                        </EditForm>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private UserResponse? user;
+    private UpdateProfileRequest editProfile = new();
+    private ChangePasswordRequest changePassword = new();
+    private bool isLoading = true;
+    private bool isSaving = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUser();
+    }
+
+    private async Task LoadUser()
+    {
+        isLoading = true;
+        try
+        {
+            var result = await AuthService.GetCurrentUserAsync();
+            if (result.Success && result.Data != null)
+            {
+                user = result.Data;
+                editProfile = new UpdateProfileRequest
+                {
+                    Email = user.Email,
+                    FullName = user.FullName
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task UpdateProfile()
+    {
+        isSaving = true;
+        try
+        {
+            var result = await UserService.UpdateProfileAsync(editProfile);
+            if (result.Success)
+            {
+                await LoadUser();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task ChangePassword()
+    {
+        try
+        {
+            var result = await UserService.ChangePasswordAsync(changePassword);
+            if (result.Success)
+            {
+                changePassword = new ChangePasswordRequest();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка: {ex.Message}");
+        }
+    }
+}

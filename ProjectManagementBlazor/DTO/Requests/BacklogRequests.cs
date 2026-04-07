@@ -46,6 +46,7 @@ namespace ProjectManagementBlazor.DTO.Requests
         public decimal? EstimatedHours { get; set; }
 
         public Guid? AssigneeId { get; set; }
+        public Guid CreatedById { get; set; }
     }
 
     public class UpdateBacklogItemRequest
@@ -65,6 +66,7 @@ namespace ProjectManagementBlazor.DTO.Requests
         public decimal? EstimatedHours { get; set; }
         public BacklogItemStatus? Status { get; set; }
         public Guid? AssigneeId { get; set; }
+        public Guid UserId { get; set; }
     }
 
     public class ChangeTaskStatusRequest

@@ -1,0 +1,344 @@
+﻿@page "/projects/{ProjectId:guid}"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject IProjectService ProjectService
+@inject ISprintService SprintService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>Детали проекта</PageTitle>
+
+<div class="container mt-4">
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Загрузка...</span>
+            </div>
+        </div>
+    }
+    else if (project != null)
+    {
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">@project.Name</h3>
+                    <div>
+                        <button class="btn btn-sm btn-info me-2" @onclick="GoToBacklog">Бэклог</button>
+                        <button class="btn btn-sm btn-warning me-2" @onclick="ShowEditModal">Редактировать</button>
+                        <button class="btn btn-sm btn-danger" @onclick="DeleteProject">Удалить</button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <p>@(project.Description ?? "Нет описания")</p>
+                <div class="row mt-3">
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h4>@project.MembersCount</h4>
+                                <span>Участников</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h4>@project.TotalTasksCount</h4>
+                                <span>Всего задач</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h4>@project.CompletedTasksCount</h4>
+                                <span>Выполнено</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h4>@project.ActiveSprintsCount</h4>
+                                <span>Активных спринтов</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Спринты -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Спринты</h5>
+                <button class="btn btn-sm btn-light" @onclick="ShowCreateSprintModal">+ Создать спринт</button>
+            </div>
+            <div class="card-body">
+                @if (sprints != null && sprints.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Название</th>
+                                    <th>Даты</th>
+                                    <th>Статус</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var sprint in sprints)
+                                {
+                                    <tr>
+                                        <td>@sprint.Name</td>
+                                        <td>@sprint.StartDate.ToString("dd.MM.yyyy") - @sprint.EndDate.ToString("dd.MM.yyyy")</td>
+                                        <td>
+                                            @if (sprint.IsActive)
+                                            {
+                                                <span class="badge bg-success">Активен</span>
+                                            }
+                                            else if (sprint.Status == "Completed")
+                                            {
+                                                <span class="badge bg-secondary">Завершен</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-info">Планируется</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary"
+                                                    @onclick="() => OpenSprint(sprint.Id)">
+                                                Открыть
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted">Нет спринтов</p>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Модальное окно редактирования -->
+    @if (showEditModal)
+    {
+        <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Редактирование проекта</h5>
+                        <button type="button" class="btn-close" @onclick="CloseEditModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <EditForm Model="@editProject" OnValidSubmit="@UpdateProject">
+                            <div class="mb-3">
+                                <label class="form-label">Название</label>
+                                <InputText @bind-Value="editProject.Name" class="form-control" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Описание</label>
+                                <InputTextArea @bind-Value="editProject.Description" class="form-control" rows="3" />
+                            </div>
+                            <button type="submit" class="btn btn-primary">Сохранить</button>
+                            <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Отмена</button>
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Модальное окно создания спринта -->
+    @if (showCreateSprintModal)
+    {
+        <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title">Создание спринта</h5>
+                        <button type="button" class="btn-close btn-close-white" @onclick="CloseCreateSprintModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <EditForm Model="@newSprint" OnValidSubmit="@CreateSprint">
+                            <div class="mb-3">
+                                <label class="form-label">Название *</label>
+                                <InputText @bind-Value="newSprint.Name" class="form-control" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Цель спринта</label>
+                                <InputTextArea @bind-Value="newSprint.Goal" class="form-control" rows="2" />
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label">Дата начала</label>
+                                    <InputDate @bind-Value="newSprint.StartDate" class="form-control" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Дата окончания</label>
+                                    <InputDate @bind-Value="newSprint.EndDate" class="form-control" />
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-success mt-3">Создать</button>
+                            <button type="button" class="btn btn-secondary mt-3" @onclick="CloseCreateSprintModal">Отмена</button>
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        z-index: 1050;
+    }
+</style>
+
+@code {
+    [Parameter] public Guid ProjectId { get; set; }
+
+    private ProjectResponse? project;
+    private List<SprintBriefResponse>? sprints;
+    private bool isLoading = true;
+    private bool showEditModal = false;
+    private bool showCreateSprintModal = false;
+    private UpdateProjectRequest editProject = new();
+    private CreateSprintRequest newSprint = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        try
+        {
+            var projectResult = await ProjectService.GetProjectByIdAsync(ProjectId);
+            if (projectResult.Success && projectResult.Data != null)
+            {
+                project = projectResult.Data;
+            }
+
+            var sprintsResult = await SprintService.GetProjectSprintsAsync(ProjectId);
+            if (sprintsResult.Success && sprintsResult.Data != null)
+            {
+                sprints = sprintsResult.Data;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ShowEditModal()
+    {
+        if (project != null)
+        {
+            editProject = new UpdateProjectRequest
+            {
+                Name = project.Name,
+                Description = project.Description
+            };
+        }
+        showEditModal = true;
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+    }
+
+    private async Task UpdateProject()
+    {
+        try
+        {
+            var result = await ProjectService.UpdateProjectAsync(ProjectId, editProject);
+            if (result.Success)
+            {
+                CloseEditModal();
+                await LoadData();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteProject()
+    {
+        if (await JS.InvokeAsync<bool>("confirm", "Вы уверены, что хотите удалить проект?"))
+        {
+            var result = await ProjectService.DeleteProjectAsync(ProjectId);
+            if (result.Success)
+            {
+                Navigation.NavigateTo("/projects");
+            }
+        }
+    }
+
+    private void ShowCreateSprintModal()
+    {
+        newSprint = new CreateSprintRequest
+        {
+            ProjectId = ProjectId,
+            StartDate = DateTime.Now,
+            EndDate = DateTime.Now.AddDays(14)
+        };
+        showCreateSprintModal = true;
+    }
+
+    private void CloseCreateSprintModal()
+    {
+        showCreateSprintModal = false;
+    }
+
+    private async Task CreateSprint()
+    {
+        try
+        {
+            var result = await SprintService.CreateSprintAsync(newSprint);
+            if (result.Success)
+            {
+                CloseCreateSprintModal();
+                await LoadData();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка: {ex.Message}");
+        }
+    }
+
+    private void OpenSprint(Guid sprintId)
+    {
+        Navigation.NavigateTo($"/sprints/{sprintId}");
+    }
+
+    private void GoToBacklog()
+    {
+        Navigation.NavigateTo($"/backlog/{ProjectId}");
+    }
+}

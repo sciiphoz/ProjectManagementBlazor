@@ -28,16 +28,56 @@ build_property.EnableCodeStyleSeverity =
 build_metadata.AdditionalFiles.TargetPath = QXBwLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/sciiphoz/source/repos/ProjectManagementBlazor/ProjectManagementBlazor/Pages/Counter.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ291bnRlci5yYXpvcg==
+[C:/Users/sciiphoz/source/repos/ProjectManagementBlazor/ProjectManagementBlazor/Layout/RedirectToLogin.razor]
+build_metadata.AdditionalFiles.TargetPath = TGF5b3V0XFJlZGlyZWN0VG9Mb2dpbi5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/sciiphoz/source/repos/ProjectManagementBlazor/ProjectManagementBlazor/Pages/Home.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSG9tZS5yYXpvcg==
+[C:/Users/sciiphoz/source/repos/ProjectManagementBlazor/ProjectManagementBlazor/Pages/DailyScrum.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRGFpbHlTY3J1bS5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/sciiphoz/source/repos/ProjectManagementBlazor/ProjectManagementBlazor/Pages/Weather.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXNcV2VhdGhlci5yYXpvcg==
+[C:/Users/sciiphoz/source/repos/ProjectManagementBlazor/ProjectManagementBlazor/Pages/Dashboard.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRGFzaGJvYXJkLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/sciiphoz/source/repos/ProjectManagementBlazor/ProjectManagementBlazor/Pages/Index.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSW5kZXgucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/sciiphoz/source/repos/ProjectManagementBlazor/ProjectManagementBlazor/Pages/Login.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTG9naW4ucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/sciiphoz/source/repos/ProjectManagementBlazor/ProjectManagementBlazor/Pages/Logout.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTG9nb3V0LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/sciiphoz/source/repos/ProjectManagementBlazor/ProjectManagementBlazor/Pages/ProductBacklog.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUHJvZHVjdEJhY2tsb2cucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/sciiphoz/source/repos/ProjectManagementBlazor/ProjectManagementBlazor/Pages/Profile.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUHJvZmlsZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/sciiphoz/source/repos/ProjectManagementBlazor/ProjectManagementBlazor/Pages/ProjectDetail.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUHJvamVjdERldGFpbC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/sciiphoz/source/repos/ProjectManagementBlazor/ProjectManagementBlazor/Pages/Projects.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUHJvamVjdHMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/sciiphoz/source/repos/ProjectManagementBlazor/ProjectManagementBlazor/Pages/Register.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUmVnaXN0ZXIucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/sciiphoz/source/repos/ProjectManagementBlazor/ProjectManagementBlazor/Pages/SprintBoard.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcU3ByaW50Qm9hcmQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/sciiphoz/source/repos/ProjectManagementBlazor/ProjectManagementBlazor/Pages/Sprints.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcU3ByaW50cy5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/sciiphoz/source/repos/ProjectManagementBlazor/ProjectManagementBlazor/_Imports.razor]

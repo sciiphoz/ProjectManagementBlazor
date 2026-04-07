@@ -1,11 +1,3 @@
-C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\ProjectManagementBlazor.csproj.AssemblyReference.cache
-C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\rpswa.dswa.cache.json
-C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\ProjectManagementBlazor.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\ProjectManagementBlazor.AssemblyInfoInputs.cache
-C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\ProjectManagementBlazor.AssemblyInfo.cs
-C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\ProjectManagementBlazor.csproj.CoreCompileInputs.cache
-C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\ProjectManagementBlazor.MvcApplicationPartsAssemblyInfo.cache
-C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\ProjectManagementBlazor.sourcelink.json
 C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\bin\Debug\net8.0\wwwroot\_framework\blazor.webassembly.js
 C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\bin\Debug\net8.0\wwwroot\_framework\Microsoft.AspNetCore.Authorization.wasm
 C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\bin\Debug\net8.0\wwwroot\_framework\Microsoft.AspNetCore.Components.wasm
@@ -654,6 +646,14 @@ C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\b
 C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\bin\Debug\net8.0\icudt_EFIGS.dat
 C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\bin\Debug\net8.0\icudt_no_CJK.dat
 C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\bin\Debug\net8.0\emcc-props.json
+C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\ProjectManagementBlazor.csproj.AssemblyReference.cache
+C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\rpswa.dswa.cache.json
+C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\ProjectManagementBlazor.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\ProjectManagementBlazor.AssemblyInfoInputs.cache
+C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\ProjectManagementBlazor.AssemblyInfo.cs
+C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\ProjectManagementBlazor.csproj.CoreCompileInputs.cache
+C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\ProjectManagementBlazor.MvcApplicationPartsAssemblyInfo.cache
+C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\ProjectManagementBlazor.sourcelink.json
 C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\webcil\Microsoft.AspNetCore.Authorization.wasm
 C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\webcil\Microsoft.AspNetCore.Components.wasm
 C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\webcil\Microsoft.AspNetCore.Components.Authorization.wasm
@@ -1079,9 +1079,6 @@ C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\o
 C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\compressed\rv1xpna2q7-tptq2av103.gz
 C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\compressed\ttzx4pxn28-lfu7j35m59.gz
 C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\compressed\otvaax6odu-oyz0vx2fzb.gz
-C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\compressed\erwhf3plu4-lqn7gz0s9z.gz
-C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\compressed\dyzmiyby4w-92v8om8u2e.gz
-C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\compressed\e1s4x4bzp4-bomz26y9zn.gz
 C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\staticwebassets.build.json
 C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\staticwebassets.build.json.cache
 C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\staticwebassets.development.json
@@ -1092,3 +1089,6 @@ C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\o
 C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\refint\ProjectManagementBlazor.dll
 C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\ProjectManagementBlazor.pdb
 C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\ref\ProjectManagementBlazor.dll
+C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\compressed\erwhf3plu4-qxn3jhqwy6.gz
+C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\compressed\dyzmiyby4w-b6f5uskno9.gz
+C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\compressed\e1s4x4bzp4-yduhh7476n.gz
