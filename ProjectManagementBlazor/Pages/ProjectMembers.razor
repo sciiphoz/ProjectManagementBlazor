@@ -1,0 +1,384 @@
+﻿@page "/projects/{ProjectId:guid}/members"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject IProjectService ProjectService
+@inject IUserService UserService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>Участники проекта</PageTitle>
+
+<div class="container mt-4">
+    @if (isLoading)
+    {
+        <div class="text-center mt-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Загрузка...</span>
+            </div>
+            <p class="mt-2">Загрузка участников...</p>
+        </div>
+    }
+    else if (project != null)
+    {
+        <!-- Заголовок -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2>Участники проекта</h2>
+                <p class="text-muted">@project.Name</p>
+            </div>
+            <div>
+                <button class="btn btn-primary" @onclick="ShowAddMemberModal">
+                    + Добавить участника
+                </button>
+                <button class="btn btn-outline-secondary ms-2" @onclick="GoBack">
+                    ← Назад к проекту
+                </button>
+            </div>
+        </div>
+
+        <!-- Список участников -->
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">👥 Все участники (@(members?.Count ?? 0))</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Участник</th>
+                                <th>Email</th>
+                                <th>Роль</th>
+                                <th>Дата加入</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var member in members ?? new List<ProjectMemberResponse>())
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="ms-2">
+                                                <strong>@member.FullName</strong>
+                                                <br />
+                                                <small class="text-muted">@@@member.Username</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>@member.Email</td>
+                                    <td>
+                                        @if (member.IsOwner)
+                                        {
+                                            <span class="badge bg-primary">Владелец</span>
+                                        }
+                                        else
+                                        {
+                                            <select class="form-select form-select-sm"
+                                                    style="width: auto;"
+                                                    @onchange="(e) => ChangeRole(member.UserId, e.Value?.ToString() ??" ")"
+                                                    value="@member.Role">
+                                                <option value="ProductOwner">Product Owner</option>
+                                                <option value="ScrumMaster">Scrum Master</option>
+                                                <option value="Developer">Developer</option>
+                                                <option value="Viewer">Viewer</option>
+                                            </select>
+                                        }
+                                    </td>
+                                    <td>@member.JoinedAt.ToString("dd.MM.yyyy")</td>
+                                    <td>
+                                        @if (!member.IsOwner)
+                                        {
+                                            <button class="btn btn-sm btn-outline-danger"
+                                                    @onclick="() => RemoveMember(member.UserId, member.FullName)">
+                                                🗑️ Удалить
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Статистика ролей -->
+        <div class="row mt-4">
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h4>@GetRoleCount("ProductOwner")</h4>
+                        <span>Product Owner</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h4>@GetRoleCount("ScrumMaster")</h4>
+                        <span>Scrum Master</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h4>@GetRoleCount("Developer")</h4>
+                        <span>Разработчики</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h4>@GetRoleCount("Viewer")</h4>
+                        <span>Наблюдатели</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-warning text-center">
+            <h5>Проект не найден</h5>
+            <button class="btn btn-primary mt-2" @onclick="GoBack">Вернуться назад</button>
+        </div>
+    }
+
+    <!-- Модальное окно добавления участника -->
+    @if (showAddModal)
+    {
+        <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5); z-index: 1050;">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">Добавление участника</h5>
+                        <button type="button" class="btn-close btn-close-white" @onclick="CloseAddModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Email пользователя *</label>
+                            <input type="email" class="form-control" @bind="inviteEmail"
+                                   placeholder="user@example.com" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Роль</label>
+                            <select @bind="inviteRole" class="form-select">
+                                <option value="ProductOwner">Product Owner</option>
+                                <option value="ScrumMaster">Scrum Master</option>
+                                <option value="Developer">Developer</option>
+                                <option value="Viewer">Viewer</option>
+                            </select>
+                        </div>
+                        <div class="alert alert-info small">
+                            <strong>Примечание:</strong> Пользователь должен быть зарегистрирован в системе.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" @onclick="CloseAddModal">Отмена</button>
+                        <button class="btn btn-primary" @onclick="AddMember" disabled="@isSaving">
+                            @if (isSaving)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                            }
+                            Добавить
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+    }
+
+    .form-select-sm {
+        min-width: 140px;
+    }
+</style>
+
+@code {
+    [Parameter] public Guid ProjectId { get; set; }
+
+    private ProjectResponse? project;
+    private List<ProjectMemberResponse>? members;
+    private bool isLoading = true;
+    private bool showAddModal = false;
+    private string inviteEmail = "";
+    private string inviteRole = "Developer";
+    private bool isSaving = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        try
+        {
+            var projectResult = await ProjectService.GetProjectByIdAsync(ProjectId);
+            if (projectResult.Success && projectResult.Data != null)
+            {
+                project = projectResult.Data;
+            }
+            else
+            {
+                Navigation.NavigateTo("/projects");
+                return;
+            }
+
+            var membersResult = await ProjectService.GetProjectMembersAsync(ProjectId);
+            if (membersResult.Success && membersResult.Data != null)
+            {
+                members = membersResult.Data;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка загрузки: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task ChangeRole(Guid userId, string newRole)
+    {
+        try
+        {
+            var request = new UpdateMemberRoleRequest
+            {
+                UserId = userId,
+                NewRole = newRole
+            };
+            var result = await ProjectService.UpdateMemberRoleAsync(ProjectId, request);
+            if (result.Success)
+            {
+                await LoadData();
+                await JS.InvokeVoidAsync("alert", "Роль изменена");
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("alert", $"Ошибка: {result.Message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка изменения роли: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", "Произошла ошибка");
+        }
+    }
+
+    private async Task RemoveMember(Guid userId, string userName)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"Удалить участника '{userName}' из проекта?")) return;
+
+        try
+        {
+            var request = new RemoveMemberRequest { UserId = userId };
+            var result = await ProjectService.RemoveMemberAsync(ProjectId, request);
+            if (result.Success)
+            {
+                await LoadData();
+                await JS.InvokeVoidAsync("alert", "Участник удален");
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("alert", $"Ошибка: {result.Message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка удаления: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", "Произошла ошибка");
+        }
+    }
+
+    private void ShowAddMemberModal()
+    {
+        inviteEmail = "";
+        inviteRole = "Developer";
+        showAddModal = true;
+    }
+
+    private void CloseAddModal()
+    {
+        showAddModal = false;
+    }
+
+    private async Task AddMember()
+    {
+        if (string.IsNullOrWhiteSpace(inviteEmail))
+        {
+            await JS.InvokeVoidAsync("alert", "Введите email пользователя");
+            return;
+        }
+
+        isSaving = true;
+        try
+        {
+            // Сначала ищем пользователя по email
+            var usersResult = await UserService.GetAllUsersAsync(new PagedRequest { SearchTerm = inviteEmail, PageSize = 10 });
+            var user = usersResult.Data?.Items?.FirstOrDefault(u => u.Email == inviteEmail);
+
+            if (user == null)
+            {
+                await JS.InvokeVoidAsync("alert", $"Пользователь с email '{inviteEmail}' не найден");
+                return;
+            }
+
+            var request = new AddProjectMemberRequest
+            {
+                UserId = user.Id,
+                Role = inviteRole
+            };
+            var result = await ProjectService.AddMemberAsync(ProjectId, request);
+            if (result.Success)
+            {
+                CloseAddModal();
+                await LoadData();
+                await JS.InvokeVoidAsync("alert", "Участник добавлен");
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("alert", $"Ошибка: {result.Message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка добавления: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", "Произошла ошибка");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private int GetRoleCount(string role)
+    {
+        return members?.Count(m => m.Role == role && !m.IsOwner) ?? 0;
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo($"/projects/{ProjectId}");
+    }
+}

@@ -38,15 +38,23 @@ namespace ProjectManagementBlazor.Services
 
         public async Task<ApiResponse<PagedResult<UserResponse>>> GetAllUsersAsync(PagedRequest request)
         {
-            var queryString = $"?pageNumber={request.PageNumber}&pageSize={request.PageSize}";
-            if (!string.IsNullOrEmpty(request.SearchTerm))
-                queryString += $"&searchTerm={request.SearchTerm}";
-            if (!string.IsNullOrEmpty(request.SortBy))
-                queryString += $"&sortBy={request.SortBy}&sortDescending={request.SortDescending}";
+            try
+            {
+                var queryString = $"?pageNumber={request.PageNumber}&pageSize={request.PageSize}";
+                if (!string.IsNullOrEmpty(request.SearchTerm))
+                    queryString += $"&searchTerm={request.SearchTerm}";
+                if (!string.IsNullOrEmpty(request.SortBy))
+                    queryString += $"&sortBy={request.SortBy}&sortDescending={request.SortDescending}";
 
-            var response = await _httpClient.GetAsync($"api/users{queryString}");
-            return await response.Content.ReadFromJsonAsync<ApiResponse<PagedResult<UserResponse>>>()
-                   ?? ApiResponse<PagedResult<UserResponse>>.Fail("Ошибка получения пользователей");
+                var response = await _httpClient.GetAsync($"api/users{queryString}");
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse<PagedResult<UserResponse>>>();
+                return result ?? ApiResponse<PagedResult<UserResponse>>.Fail("Ошибка получения пользователей");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка: {ex.Message}");
+                return ApiResponse<PagedResult<UserResponse>>.Fail(ex.Message);
+            }
         }
 
         public async Task<ApiResponse<List<UserBriefResponse>>> GetProjectUsersAsync(Guid projectId)

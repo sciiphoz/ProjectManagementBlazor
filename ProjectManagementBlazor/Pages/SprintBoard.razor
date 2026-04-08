@@ -50,6 +50,9 @@
                             <div>@sprint.StartDate.ToString("dd.MM.yyyy") - @sprint.EndDate.ToString("dd.MM.yyyy")</div>
                             <div>Осталось дней: <strong>@sprint.DaysRemaining</strong></div>
                         </div>
+                        <button class="btn btn-sm btn-info" @onclick="GoToRetrospective">
+                            📊 Ретроспектива
+                        </button>
                     </div>
                 </div>
             </div>
@@ -669,5 +672,10 @@
     private async Task RefreshBurndown()
     {
         await LoadBurndownData();
+    }
+
+    private void GoToRetrospective()
+    {
+        Navigation.NavigateTo($"/retrospective/{SprintId}");
     }
 }

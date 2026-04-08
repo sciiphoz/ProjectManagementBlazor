@@ -6,6 +6,7 @@
 @inject IProjectService ProjectService
 @inject IUserService UserService
 @inject NavigationManager Navigation
+@inject ISprintService SprintService
 @inject IJSRuntime JS
 
 <PageTitle>Daily Scrum</PageTitle>
@@ -44,7 +45,7 @@
                 <div class="row align-items-end">
                     <div class="col-md-6">
                         <label class="form-label">Выберите проект</label>
-                        <select @bind="selectedProjectId" class="form-select" @onchange="OnProjectChanged">
+                        <select value="@selectedProjectId" class="form-select" @onchange="OnProjectChanged">
                             <option value="">-- Выберите проект --</option>
                             @foreach (var project in myProjects)
                             {
@@ -343,13 +344,23 @@
         }
     }
 
-    private async Task OnProjectChanged()
+    private async Task OnProjectChanged(ChangeEventArgs e)
     {
-        await LoadSprints();
-        await LoadDailyScrum();
-        StateHasChanged();
+        try
+        {
+            if (e.Value != null && Guid.TryParse(e.Value.ToString(), out var projectId))
+            {
+                selectedProjectId = projectId;
+                await LoadSprints();
+                await LoadDailyScrum();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка при смене проекта: {ex.Message}");
+        }
     }
-
     private async Task RefreshData()
     {
         await LoadSprints();
