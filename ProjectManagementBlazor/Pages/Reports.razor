@@ -1,0 +1,640 @@
+﻿@page "/reports/{ProjectId:guid}"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject IReportService ReportService
+@inject IProjectService ProjectService
+@inject ISprintService SprintService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>Отчеты</PageTitle>
+
+<div class="container-fluid mt-3">
+    @if (isLoading)
+    {
+        <div class="text-center mt-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Загрузка...</span>
+            </div>
+            <p class="mt-2">Загрузка отчетов...</p>
+        </div>
+    }
+    else if (project != null)
+    {
+        <!-- Заголовок -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2>Отчеты проекта</h2>
+                <p class="text-muted">@project.Name</p>
+            </div>
+            <div>
+                <button class="btn btn-outline-secondary" @onclick="GoBack">
+                    ← Назад к проекту
+                </button>
+            </div>
+        </div>
+
+        <!-- Вкладки -->
+        <ul class="nav nav-tabs mb-4">
+            <li class="nav-item">
+                <button class="nav-link @(activeTab == "velocity" ? "active" : "")"
+                        @onclick="ShowVelocityTab">
+                    📈 Velocity Chart
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link @(activeTab == "team" ? "active" : "")"
+                        @onclick="ShowTeamTab">
+                    👥 Team Performance
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link @(activeTab == "sprint" ? "active" : "")"
+                        @onclick="ShowSprintTab">
+                    📋 Sprint Report
+                </button>
+            </li>
+        </ul>
+
+        <!-- Velocity Chart -->
+        @if (activeTab == "velocity")
+        {
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Velocity Chart (Скорость команды)</h5>
+                    <button class="btn btn-sm btn-light" @onclick="ExportVelocityReport">
+                        📥 Экспорт
+                    </button>
+                </div>
+                <div class="card-body">
+                    @if (isVelocityLoading)
+                    {
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Загрузка...</span>
+                            </div>
+                        </div>
+                    }
+                    else if (velocityReport != null && velocityReport.SprintHistory.Any())
+                    {
+                        <!-- График Velocity -->
+                        <canvas id="velocityChart" style="width: 100%; height: 400px;"></canvas>
+                        
+                        <!-- Таблица истории спринтов -->
+                        <div class="table-responsive mt-4">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Спринт</th>
+                                        <th>Завершен</th>
+                                        <th>Story Points</th>
+                                        <th>Выполнено</th>
+                                        <th>Velocity</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var sprint in velocityReport.SprintHistory)
+                                    {
+                                        <tr>
+                                            <td>@sprint.SprintName</td>
+                                            <td>@sprint.EndDate.ToString("dd.MM.yyyy")</td>
+                                            <td>@sprint.TotalStoryPoints</td>
+                                            <td>@sprint.CompletedStoryPoints</td>
+                                            <td><strong>@sprint.Velocity</strong></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot class="table-light">
+                                    <tr>
+                                        <th colspan="4">Средняя Velocity:</th>
+                                        <th><strong>@velocityReport.AverageVelocity</strong></th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                        
+                        <!-- Дополнительная статистика -->
+                        <div class="row mt-4">
+                            <div class="col-md-3">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h5>Максимум</h5>
+                                        <h3 class="text-success">@velocityReport.MaxVelocity</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h5>Минимум</h5>
+                                        <h3 class="text-danger">@velocityReport.MinVelocity</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h5>Медиана</h5>
+                                        <h3>@velocityReport.MedianVelocity</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h5>Тренд</h5>
+                                        <h3 class="@(velocityReport.VelocityTrend >= 0 ? "text-success" : "text-danger")">
+                                            @(velocityReport.VelocityTrend >= 0 ? "+" : "")@velocityReport.VelocityTrend%
+                                        </h3>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-5">
+                            <h5>Нет данных для отображения</h5>
+                            <p>Завершите хотя бы один спринт, чтобы увидеть Velocity Chart</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Team Performance -->
+        @if (activeTab == "team")
+        {
+            <div class="card">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Team Performance (Производительность команды)</h5>
+                    <button class="btn btn-sm btn-light" @onclick="ExportTeamReport">
+                        📥 Экспорт
+                    </button>
+                </div>
+                <div class="card-body">
+                    @if (isTeamLoading)
+                    {
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Загрузка...</span>
+                            </div>
+                        </div>
+                    }
+                    else if (teamReport != null && teamReport.TeamMembers.Any())
+                    {
+                        <!-- Период -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label">Дата начала</label>
+                                <input type="date" class="form-control" @bind="teamReportStartDate" 
+                                       @bind:event="oninput" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Дата окончания</label>
+                                <input type="date" class="form-control" @bind="teamReportEndDate" 
+                                       @bind:event="oninput" />
+                            </div>
+                        </div>
+                        <button class="btn btn-primary mb-4" @onclick="LoadTeamReport">Применить фильтр</button>
+
+                        <!-- Таблица производительности -->
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Участник</th>
+                                        <th>Выполнено задач</th>
+                                        <th>Story Points</th>
+                                        <th>Оценка (ч)</th>
+                                        <th>Факт (ч)</th>
+                                        <th>Эффективность</th>
+                                        <th>Выполнение</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var member in teamReport.TeamMembers)
+                                    {
+                                        <tr>
+                                            <td><strong>@member.User.FullName</strong><br /><small>@member.User.Role</small></td>
+                                            <td>@member.TasksCompleted</td>
+                                            <td>@member.TotalStoryPointsCompleted</td>
+                                            <td>@member.TotalEstimatedHours.ToString("F1")</td>
+                                            <td>@member.TotalActualHours.ToString("F1")</td>
+                                            <td>
+                                                <div class="progress" style="height: 20px;">
+                                                    <div class="progress-bar @(member.Efficiency >= 100 ? "bg-success" : "bg-warning")" 
+                                                         role="progressbar" style="width: @Math.Min(member.Efficiency, 100)%">
+                                                        @((int)member.Efficiency)%
+                                                    </div>
+                                                </div>
+                                             </td>
+                                            <td>
+                                                <div class="progress" style="height: 20px;">
+                                                    <div class="progress-bar bg-info" role="progressbar" 
+                                                         style="width: @member.CompletionRate%">
+                                                        @((int)member.CompletionRate)%
+                                                    </div>
+                                                </div>
+                                             </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot class="table-light">
+                                    <tr>
+                                        <th>Итого:</th>
+                                        <th>@teamReport.AggregateMetrics.TotalTasksCompleted</th>
+                                        <th>@teamReport.AggregateMetrics.TotalStoryPointsCompleted</th>
+                                        <th>@teamReport.AggregateMetrics.TotalEstimatedHours.ToString("F1")</th>
+                                        <th>@teamReport.AggregateMetrics.TotalActualHours.ToString("F1")</th>
+                                        <th>@((int)teamReport.AggregateMetrics.OverallEfficiency)%</th>
+                                        <th>—</th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-5">
+                            <h5>Нет данных для отображения</h5>
+                            <p>Выберите период и нажмите "Применить фильтр"</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Sprint Report -->
+        @if (activeTab == "sprint")
+        {
+            <div class="card">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Sprint Report (Отчет по спринту)</h5>
+                    <button class="btn btn-sm btn-light" @onclick="ExportSprintReport">
+                        📥 Экспорт
+                    </button>
+                </div>
+                <div class="card-body">
+                    @if (isSprintLoading)
+                    {
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Загрузка...</span>
+                            </div>
+                        </div>
+                    }
+                    else if (sprints != null && sprints.Any())
+                    {
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Выберите спринт</label>
+                                <select value="@selectedSprintId" class="form-select" @onchange="OnSprintSelected">
+                                    <option value="">-- Выберите спринт --</option>
+                                    @foreach (var sprint in sprints.Where(s => s.Status == "Completed"))
+                                    {
+                                        <option value="@sprint.Id">@sprint.Name (@sprint.StartDate.ToString("dd.MM") - @sprint.EndDate.ToString("dd.MM"))</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+
+                        @if (sprintReport != null)
+                        {
+                            <div class="mt-4">
+                                <h5>@sprintReport.Sprint.Name</h5>
+                                <p class="text-muted">@sprintReport.Sprint.StartDate.ToString("dd.MM.yyyy") - @sprintReport.Sprint.EndDate.ToString("dd.MM.yyyy")</p>
+                                
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="card bg-light">
+                                            <div class="card-body text-center">
+                                                <h5>Выполнено задач</h5>
+                                                <h3>@sprintReport.Sprint.CompletedTasksCount / @sprintReport.Sprint.TotalTasksCount</h3>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card bg-light">
+                                            <div class="card-body text-center">
+                                                <h5>Velocity</h5>
+                                                <h3>@sprintReport.Metrics.Velocity</h3>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card bg-light">
+                                            <div class="card-body text-center">
+                                                <h5>Выполнение</h5>
+                                                <h3>@((int)sprintReport.Sprint.CompletionPercentage)%</h3>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Выполненные задачи -->
+                                @if (sprintReport.CompletedTasks.Any())
+                                {
+                                    <h6 class="mt-4 text-success">✅ Выполненные задачи</h6>
+                                    <ul>
+                                        @foreach (var task in sprintReport.CompletedTasks)
+                                        {
+                                            <li>@task.Title @(task.StoryPoints.HasValue ? $"({task.StoryPoints} SP)" : "")</li>
+                                        }
+                                    </ul>
+                                }
+
+                                <!-- Невыполненные задачи -->
+                                @if (sprintReport.IncompleteTasks.Any())
+                                {
+                                    <h6 class="mt-3 text-danger">❌ Невыполненные задачи</h6>
+                                    <ul>
+                                        @foreach (var task in sprintReport.IncompleteTasks)
+                                        {
+                                            <li>@task.Title @(task.StoryPoints.HasValue ? $"({task.StoryPoints} SP)" : "")</li>
+                                        }
+                                    </ul>
+                                }
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-5">
+                            <h5>Нет завершенных спринтов</h5>
+                            <p>Завершите хотя бы один спринт, чтобы увидеть отчет</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="alert alert-warning text-center">
+            <h5>Проект не найден</h5>
+            <button class="btn btn-primary mt-2" @onclick="GoBack">Вернуться назад</button>
+        </div>
+    }
+</div>
+
+<style>
+    .nav-tabs .nav-link {
+        cursor: pointer;
+    }
+    .progress {
+        min-width: 80px;
+    }
+</style>
+
+@code {
+    [Parameter] public Guid ProjectId { get; set; }
+
+    private ProjectResponse? project;
+    private List<SprintBriefResponse>? sprints;
+    private string activeTab = "velocity";
+    private bool isLoading = true;
+    
+    // Velocity
+    private VelocityReportResponse? velocityReport;
+    private bool isVelocityLoading = false;
+    
+    // Team Performance
+    private TeamPerformanceReportResponse? teamReport;
+    private DateTime teamReportStartDate = DateTime.Now.AddDays(-30);
+    private DateTime teamReportEndDate = DateTime.Now;
+    private bool isTeamLoading = false;
+    
+    // Sprint Report
+    private SprintReportResponse? sprintReport;
+    private Guid selectedSprintId = Guid.Empty;
+    private bool isSprintLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        try
+        {
+            var projectResult = await ProjectService.GetProjectByIdAsync(ProjectId);
+            if (projectResult.Success && projectResult.Data != null)
+            {
+                project = projectResult.Data;
+            }
+            else
+            {
+                Navigation.NavigateTo("/projects");
+                return;
+            }
+
+            var sprintsResult = await SprintService.GetProjectSprintsAsync(ProjectId);
+            if (sprintsResult.Success && sprintsResult.Data != null)
+            {
+                sprints = sprintsResult.Data;
+            }
+
+            await LoadVelocityReport();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка загрузки: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadVelocityReport()
+    {
+        isVelocityLoading = true;
+        try
+        {
+            var result = await ReportService.GenerateVelocityReportAsync(ProjectId);
+            if (result.Success && result.Data != null)
+            {
+                velocityReport = result.Data;
+                await JS.InvokeVoidAsync("drawVelocityChart", velocityReport.SprintHistory);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка загрузки Velocity: {ex.Message}");
+        }
+        finally
+        {
+            isVelocityLoading = false;
+        }
+    }
+
+    private async Task LoadTeamReport()
+    {
+        isTeamLoading = true;
+        try
+        {
+            var request = new GenerateReportRequest
+            {
+                ProjectId = ProjectId,
+                StartDate = teamReportStartDate,
+                EndDate = teamReportEndDate,
+                Type = ReportType.TeamPerformance
+            };
+            var result = await ReportService.GenerateTeamPerformanceReportAsync(request);
+            if (result.Success && result.Data != null)
+            {
+                teamReport = result.Data;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка загрузки Team Report: {ex.Message}");
+        }
+        finally
+        {
+            isTeamLoading = false;
+        }
+    }
+
+    private async Task LoadSprintReport()
+    {
+        if (selectedSprintId == Guid.Empty) return;
+
+        isSprintLoading = true;
+        try
+        {
+            var result = await ReportService.GenerateSprintReportAsync(selectedSprintId);
+            if (result.Success && result.Data != null)
+            {
+                sprintReport = result.Data;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка загрузки Sprint Report: {ex.Message}");
+        }
+        finally
+        {
+            isSprintLoading = false;
+        }
+    }
+
+    private void SetActiveTab(string tab)
+    {
+        activeTab = tab;
+        StateHasChanged();
+        
+        if (tab == "team" && teamReport == null)
+        {
+            LoadTeamReport();
+        }
+    }
+
+    private async Task ExportVelocityReport()
+    {
+        try
+        {
+            var request = new GenerateReportRequest
+            {
+                ProjectId = ProjectId,
+                StartDate = DateTime.Now.AddMonths(-6),
+                EndDate = DateTime.Now,
+                Type = ReportType.VelocityReport,
+                Format = ReportFormat.PDF
+            };
+            var fileData = await ReportService.ExportReportAsync(request);
+            await JS.InvokeVoidAsync("downloadFile", "velocity_report.pdf", Convert.ToBase64String(fileData));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка экспорта: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", "Ошибка экспорта");
+        }
+    }
+
+    private async Task ExportTeamReport()
+    {
+        try
+        {
+            var request = new GenerateReportRequest
+            {
+                ProjectId = ProjectId,
+                StartDate = teamReportStartDate,
+                EndDate = teamReportEndDate,
+                Type = ReportType.TeamPerformance,
+                Format = ReportFormat.Excel
+            };
+            var fileData = await ReportService.ExportReportAsync(request);
+            await JS.InvokeVoidAsync("downloadFile", "team_performance.xlsx", Convert.ToBase64String(fileData));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка экспорта: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", "Ошибка экспорта");
+        }
+    }
+
+    private async Task ExportSprintReport()
+    {
+        if (selectedSprintId == Guid.Empty) return;
+
+        try
+        {
+            var request = new GenerateReportRequest
+            {
+                ProjectId = ProjectId,
+                StartDate = DateTime.Now.AddMonths(-1),
+                EndDate = DateTime.Now,
+                Type = ReportType.SprintReport,
+                Format = ReportFormat.PDF,
+                SprintId = selectedSprintId
+            };
+            var fileData = await ReportService.ExportReportAsync(request);
+            await JS.InvokeVoidAsync("downloadFile", $"sprint_report_{selectedSprintId}.pdf", Convert.ToBase64String(fileData));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка экспорта: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", "Ошибка экспорта");
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo($"/projects/{ProjectId}");
+    }
+
+    private async Task OnSprintSelected(ChangeEventArgs e)
+    {
+        if (e.Value != null && Guid.TryParse(e.Value.ToString(), out var sprintId))
+        {
+            selectedSprintId = sprintId;
+            await LoadSprintReport();
+        }
+    }
+
+    private void ShowVelocityTab()
+    {
+        activeTab = "velocity";
+        StateHasChanged();
+    }
+
+    private void ShowTeamTab()
+    {
+        activeTab = "team";
+        StateHasChanged();
+        if (teamReport == null)
+        {
+            LoadTeamReport();
+        }
+    }
+
+    private void ShowSprintTab()
+    {
+        activeTab = "sprint";
+        StateHasChanged();
+    }
+}

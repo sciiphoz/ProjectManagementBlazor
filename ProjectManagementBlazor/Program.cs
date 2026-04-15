@@ -20,7 +20,9 @@ builder.Services.AddHttpClient("AuthorizedClient", client =>
     client.BaseAddress = new Uri(apiBaseUrl);
 }).AddHttpMessageHandler<AuthorizationMessageHandler>();
 
-// Авторизация
+// Сервисы обработки ошибок
+builder.Services.AddScoped<IErrorHandlingService, ErrorHandlingService>();
+
 builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
 builder.Services.AddScoped<AuthorizationMessageHandler>();
@@ -39,5 +41,6 @@ builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IRetrospectiveService, RetrospectiveService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
 
 await builder.Build().RunAsync();

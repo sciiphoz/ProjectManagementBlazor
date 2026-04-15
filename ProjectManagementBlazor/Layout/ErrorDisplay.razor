@@ -1,0 +1,41 @@
+﻿@inject IErrorHandlingService ErrorHandling
+
+@if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-exclamation-triangle-fill me-2" style="font-size: 1.2rem;"></i>
+            <div>
+                <strong>Ошибка!</strong> @ErrorMessage
+            </div>
+        </div>
+        <button type="button" class="btn-close" @onclick="Dismiss"></button>
+    </div>
+}
+
+@code {
+    private string? ErrorMessage { get; set; }
+
+    protected override void OnInitialized()
+    {
+        ErrorHandling.OnError += OnErrorReceived;
+    }
+
+    private Task OnErrorReceived(string message)
+    {
+        ErrorMessage = message;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private void Dismiss()
+    {
+        ErrorMessage = null;
+        ErrorHandling.ClearError();
+    }
+
+    public void Dispose()
+    {
+        ErrorHandling.OnError -= OnErrorReceived;
+    }
+}

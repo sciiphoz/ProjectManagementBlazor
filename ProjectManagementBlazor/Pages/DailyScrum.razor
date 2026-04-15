@@ -1,10 +1,9 @@
 ﻿@page "/daily-scrum"
 @using Microsoft.AspNetCore.Authorization
-@using System.Text.Json
 @attribute [Authorize]
 @inject IDashboardService DashboardService
 @inject IProjectService ProjectService
-@inject IUserService UserService
+@inject IAuthService AuthService
 @inject NavigationManager Navigation
 @inject ISprintService SprintService
 @inject IJSRuntime JS
@@ -21,9 +20,8 @@
             <p class="mt-2">Загрузка данных...</p>
         </div>
     }
-    else
+    else if (currentUser != null && currentUser.Role != "Developer")
     {
-        <!-- Заголовок -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h2>Ежедневная встреча (Daily Scrum)</h2>
@@ -58,8 +56,8 @@
                         <input type="text" class="form-control" value="@activeSprintName" disabled />
                     </div>
                     <div class="col-md-2">
-                        <button class="btn btn-success w-100" @onclick="SendReminder" disabled="@(selectedProjectId == Guid.Empty)">
-                            📧 Напомнить всем
+                        <button class="btn btn-outline-info w-100" @onclick="CopyToClipboard" disabled="@(selectedProjectId == Guid.Empty)">
+                            📋 Копировать сводку
                         </button>
                     </div>
                 </div>
@@ -80,7 +78,7 @@
                                 <h5>Выполнено задач</h5>
                                 <h3>@dailyScrum.SprintProgress.CompletedTasks / @dailyScrum.SprintProgress.TotalTasks</h3>
                                 <div class="progress">
-                                    <div class="progress-bar bg-success" role="progressbar" 
+                                    <div class="progress-bar bg-success" role="progressbar"
                                          style="width: @dailyScrum.SprintProgress.CompletionPercentage%">
                                         @((int)dailyScrum.SprintProgress.CompletionPercentage)%
                                     </div>
@@ -141,7 +139,7 @@
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover mb-0">
+                        <table class="table table-hover mb-0" id="dailyScrumTable">
                             <thead class="table-light">
                                 <tr>
                                     <th style="width: 15%">Участник</th>
@@ -226,19 +224,23 @@
                 </div>
             </div>
 
-            <!-- Кнопки управления встречей -->
-            <div class="row mt-4">
-                <div class="col-12 text-center">
-                    <button class="btn btn-lg btn-primary me-3" @onclick="StartMeeting">
-                        🎬 Начать встречу
-                    </button>
-                    <button class="btn btn-lg btn-success me-3" @onclick="CompleteMeeting">
-                        ✅ Завершить встречу
-                    </button>
-                    <button class="btn btn-lg btn-info" @onclick="GenerateReport">
-                        📄 Сформировать отчет
-                    </button>
-                </div>
+            <!-- Краткая инструкция -->
+            <div class="alert alert-info mt-4">
+                <strong>📌 Как использовать страницу для Daily Scrum:</strong>
+                <ol class="mb-0 mt-2">
+                    <li>Участники команды заранее заполняют свой дашборд <strong>"Мой день"</strong></li>
+                    <li>Scrum-мастер открывает эту страницу и выводит на экран</li>
+                    <li>
+                        Каждый участник по очереди отвечает на три вопроса:
+                        <ul>
+                            <li>Что сделал вчера?</li>
+                            <li>Что планирует сделать сегодня?</li>
+                            <li>Есть ли блокеры?</li>
+                        </ul>
+                    </li>
+                    <li>Scrum-мастер фиксирует блокеры и помогает их решить</li>
+                    <li>После встречи можно скопировать сводку или экспортировать в Excel</li>
+                </ol>
             </div>
         }
         else if (selectedProjectId == Guid.Empty && myProjects.Any())
@@ -256,29 +258,63 @@
             </div>
         }
     }
+    else if (currentUser != null && currentUser.Role == "Developer")
+    {
+        <div class="alert alert-warning text-center">
+            <h5>⛔ Доступ ограничен</h5>
+            <p>Эта страница доступна только для Scrum Master и Product Owner</p>
+            <button class="btn btn-primary" @onclick="GoToDashboard">Перейти к "Мой день"</button>
+        </div>
+    }
 </div>
 
 <style>
     .table th, .table td {
         vertical-align: middle;
     }
+
     .badge {
         font-size: 0.8rem;
         padding: 0.3rem 0.6rem;
+    }
+
+    .alert ul {
+        padding-left: 20px;
     }
 </style>
 
 @code {
     private List<ProjectResponse> myProjects = new();
-    private List<SprintBriefResponse> sprints = new();
     private DailyScrumResponse? dailyScrum;
+    private UserResponse? currentUser;
     private Guid selectedProjectId = Guid.Empty;
     private string activeSprintName = "Нет активного спринта";
     private bool isLoading = true;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadProjects();
+        await LoadCurrentUser();
+        if (currentUser != null && currentUser.Role != "Developer")
+        {
+            await LoadProjects();
+        }
+        isLoading = false;
+    }
+
+    private async Task LoadCurrentUser()
+    {
+        try
+        {
+            var result = await AuthService.GetCurrentUserAsync();
+            if (result.Success && result.Data != null)
+            {
+                currentUser = result.Data;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка загрузки пользователя: {ex.Message}");
+        }
     }
 
     private async Task LoadProjects()
@@ -290,7 +326,7 @@
             if (result.Success && result.Data != null)
             {
                 myProjects = result.Data.Items;
-                
+
                 if (myProjects.Any())
                 {
                     selectedProjectId = myProjects.First().Id;
@@ -316,8 +352,7 @@
             var result = await SprintService.GetProjectSprintsAsync(selectedProjectId);
             if (result.Success && result.Data != null)
             {
-                sprints = result.Data;
-                var activeSprint = sprints.FirstOrDefault(s => s.IsActive);
+                var activeSprint = result.Data.FirstOrDefault(s => s.IsActive);
                 activeSprintName = activeSprint != null ? activeSprint.Name : "Нет активного спринта";
             }
         }
@@ -331,7 +366,8 @@
     {
         try
         {
-            var activeSprint = sprints.FirstOrDefault(s => s.IsActive);
+            var sprintsResult = await SprintService.GetProjectSprintsAsync(selectedProjectId);
+            var activeSprint = sprintsResult.Data?.FirstOrDefault(s => s.IsActive);
             var result = await DashboardService.GetDailyScrumViewAsync(selectedProjectId, activeSprint?.Id);
             if (result.Success && result.Data != null)
             {
@@ -346,21 +382,15 @@
 
     private async Task OnProjectChanged(ChangeEventArgs e)
     {
-        try
+        if (e.Value != null && Guid.TryParse(e.Value.ToString(), out var projectId))
         {
-            if (e.Value != null && Guid.TryParse(e.Value.ToString(), out var projectId))
-            {
-                selectedProjectId = projectId;
-                await LoadSprints();
-                await LoadDailyScrum();
-                StateHasChanged();
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка при смене проекта: {ex.Message}");
+            selectedProjectId = projectId;
+            await LoadSprints();
+            await LoadDailyScrum();
+            StateHasChanged();
         }
     }
+
     private async Task RefreshData()
     {
         await LoadSprints();
@@ -368,51 +398,45 @@
         StateHasChanged();
     }
 
-    private async Task SendReminder()
+    private async Task CopyToClipboard()
     {
         try
         {
-            await JS.InvokeVoidAsync("alert", $"Напоминание отправлено всем участникам проекта");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка отправки напоминания: {ex.Message}");
-        }
-    }
+            // Формируем текст для копирования
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"Daily Scrum - {DateTime.Now:dd.MM.yyyy HH:mm}");
+            sb.AppendLine($"Проект: {myProjects.FirstOrDefault(p => p.Id == selectedProjectId)?.Name}");
+            sb.AppendLine($"Спринт: {activeSprintName}");
+            sb.AppendLine();
+            sb.AppendLine("=== Прогресс спринта ===");
+            sb.AppendLine($"Выполнено задач: {dailyScrum?.SprintProgress.CompletedTasks}/{dailyScrum?.SprintProgress.TotalTasks}");
+            sb.AppendLine($"Осталось дней: {dailyScrum?.SprintProgress.DaysRemaining}");
+            sb.AppendLine();
+            sb.AppendLine("=== Команда ===");
 
-    private async Task StartMeeting()
-    {
-        try
-        {
-            await JS.InvokeVoidAsync("alert", "Встреча начата! Пожалуйста, по очереди отвечайте на три вопроса.");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка: {ex.Message}");
-        }
-    }
+            foreach (var member in dailyScrum?.TeamMembers ?? new List<TeamMemberDailyStatus>())
+            {
+                sb.AppendLine();
+                sb.AppendLine($"👤 {member.User.FullName} ({member.User.Role})");
+                sb.AppendLine($"  Вчера: {string.Join(", ", member.WorkedYesterday?.Select(t => t.Title) ?? new List<string>())}");
+                sb.AppendLine($"  Сегодня: {string.Join(", ", member.PlanForToday?.Select(t => t.Title) ?? new List<string>())}");
+                sb.AppendLine($"  Блокеры: {string.Join(", ", member.Blockers?.Select(b => b.Description) ?? new List<string>())}");
+            }
 
-    private async Task CompleteMeeting()
-    {
-        try
-        {
-            await JS.InvokeVoidAsync("alert", "Встреча завершена! Все блокеры зафиксированы.");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка: {ex.Message}");
-        }
-    }
+            sb.AppendLine();
+            sb.AppendLine("=== Блокеры команды ===");
+            foreach (var blocker in dailyScrum?.TeamBlockers ?? new List<BlockerResponse>())
+            {
+                sb.AppendLine($"- {blocker.Description} ({blocker.Severity})");
+            }
 
-    private async Task GenerateReport()
-    {
-        try
-        {
-            await JS.InvokeVoidAsync("alert", "Отчет сформирован и сохранен");
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", sb.ToString());
+            await JS.InvokeVoidAsync("alert", "Сводка скопирована в буфер обмена");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Ошибка: {ex.Message}");
+            Console.WriteLine($"Ошибка копирования: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", "Ошибка при копировании");
         }
     }
 
@@ -424,12 +448,17 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Ошибка: {ex.Message}");
+            Console.WriteLine($"Ошибка экспорта: {ex.Message}");
         }
     }
 
     private void GoToProjects()
     {
         Navigation.NavigateTo("/projects");
+    }
+
+    private void GoToDashboard()
+    {
+        Navigation.NavigateTo("/dashboard");
     }
 }

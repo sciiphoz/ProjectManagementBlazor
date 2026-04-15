@@ -1,82 +1,82 @@
 ﻿@page "/"
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject IProjectService ProjectService
 @inject NavigationManager Navigation
+@inject IErrorHandlingService ErrorHandling
 
 <PageTitle>Главная</PageTitle>
 
 <div class="container mt-4">
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h4>Добро пожаловать в систему управления проектами!</h4>
-                </div>
-                <div class="card-body">
-                    @if (currentUser != null)
-                    {
-                        <h5>Здравствуйте, @currentUser.FullName!</h5>
-                        <p>Вы вошли как: <strong>@currentUser.Username</strong></p>
-                        <p>Роль: <strong>@currentUser.Role</strong></p>
-                        <p>Email: <strong>@currentUser.Email</strong></p>
-                    }
-                    else if (isLoading)
-                    {
-                        <p>Загрузка информации о пользователе...</p>
-                    }
-                    else
-                    {
-                        <p class="text-danger">Не удалось загрузить информацию о пользователе</p>
-                    }
-                </div>
+    @if (isLoading)
+    {
+        <div class="text-center mt-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Загрузка...</span>
+            </div>
+            <p class="mt-2">Загрузка данных...</p>
+        </div>
+    }
+    else if (currentUser != null)
+    {
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4>Добро пожаловать в систему управления проектами!</h4>
+            </div>
+            <div class="card-body">
+                @if (currentUser != null)
+                {
+                    <h5>Здравствуйте, @currentUser.FullName!</h5>
+                    <p>Вы вошли как: <strong>@currentUser.Username</strong></p>
+                    <p>Роль: <strong>@currentUser.Role</strong></p>
+                    <p>Email: <strong>@currentUser.Email</strong></p>
+                }
             </div>
         </div>
-    </div>
 
-    <div class="row mt-4">
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header bg-info text-white">
-                    <h5>Мои проекты</h5>
+        <div class="row mt-4">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5>Мои проекты</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Количество проектов: <strong>@(myProjects?.Count ?? 0)</strong></p>
+                        <button class="btn btn-primary" @onclick="GoToProjects">
+                            Перейти к проектам
+                        </button>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <p>Количество проектов: <strong>@(myProjects?.Count ?? 0)</strong></p>
-                    <button class="btn btn-primary" @onclick="GoToProjects">
-                        Перейти к проектам
-                    </button>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5>Активные спринты</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Отслеживайте прогресс команды</p>
+                        <button class="btn btn-success" @onclick="GoToSprints">
+                            К спринтам
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h5>Мой день</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Планируйте свои задачи</p>
+                        <button class="btn btn-warning" @onclick="GoToDashboard">
+                            Открыть дашборд
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header bg-success text-white">
-                    <h5>Активные спринты</h5>
-                </div>
-                <div class="card-body">
-                    <p>Отслеживайте прогресс команды</p>
-                    <button class="btn btn-success" @onclick="GoToSprints">
-                        К спринтам
-                    </button>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header bg-warning text-dark">
-                    <h5>Мой день</h5>
-                </div>
-                <div class="card-body">
-                    <p>Планируйте свои задачи</p>
-                    <button class="btn btn-warning" @onclick="GoToDashboard">
-                        Открыть дашборд
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+    }
 </div>
 
 @code {
@@ -86,6 +86,11 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
         isLoading = true;
         try
         {
@@ -93,6 +98,10 @@
             if (userResult.Success && userResult.Data != null)
             {
                 currentUser = userResult.Data;
+            }
+            else
+            {
+                await ErrorHandling.TriggerError(userResult.Message ?? "Не удалось загрузить данные пользователя");
             }
 
             var projectsResult = await ProjectService.GetUserProjectsAsync(new PagedRequest { PageNumber = 1, PageSize = 10 });
@@ -103,11 +112,12 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Ошибка: {ex.Message}");
+            await ErrorHandling.TriggerError($"Ошибка загрузки данных: {ex.Message}");
         }
         finally
         {
             isLoading = false;
+            StateHasChanged();
         }
     }
 

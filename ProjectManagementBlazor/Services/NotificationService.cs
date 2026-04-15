@@ -1,47 +1,47 @@
 ﻿using ProjectManagementBlazor.DTO.Common;
 using ProjectManagementBlazor.DTO.Responses;
 using ProjectManagementBlazor.Interfaces;
-
 using System.Net.Http.Json;
 
 namespace ProjectManagementBlazor.Services
 {
-    public class NotificationService : INotificationService
+    public class NotificationService : BaseApiService, INotificationService
     {
-        private readonly HttpClient _httpClient;
-
-        public NotificationService(HttpClient httpClient)
+        public NotificationService(HttpClient httpClient, IErrorHandlingService errorHandling)
+            : base(httpClient, errorHandling)
         {
-            _httpClient = httpClient;
         }
 
         public async Task<ApiResponse<PagedResult<NotificationResponse>>> GetUserNotificationsAsync(PagedRequest request)
         {
             var queryString = $"?pageNumber={request.PageNumber}&pageSize={request.PageSize}";
-            var response = await _httpClient.GetAsync($"api/notifications{queryString}");
-            return await response.Content.ReadFromJsonAsync<ApiResponse<PagedResult<NotificationResponse>>>()
-                   ?? ApiResponse<PagedResult<NotificationResponse>>.Fail("Ошибка получения уведомлений");
+
+            return await SendRequestAsync<PagedResult<NotificationResponse>>(
+                () => _httpClient.GetAsync($"api/notifications{queryString}"),
+                "Не удалось загрузить уведомления");
         }
 
         public async Task<ApiResponse<int>> GetUnreadCountAsync()
         {
-            var response = await _httpClient.GetAsync("api/notifications/unread-count");
-            return await response.Content.ReadFromJsonAsync<ApiResponse<int>>()
-                   ?? ApiResponse<int>.Fail("Ошибка получения количества уведомлений");
+            var result = await SendRequestAsync<int>(
+                () => _httpClient.GetAsync("api/notifications/unread-count"),
+                "Не удалось получить количество уведомлений");
+
+            return result;
         }
 
         public async Task<ApiResponse> MarkAsReadAsync(Guid notificationId)
         {
-            var response = await _httpClient.PostAsync($"api/notifications/{notificationId}/read", null);
-            return await response.Content.ReadFromJsonAsync<ApiResponse>()
-                   ?? ApiResponse.Fail("Ошибка отметки уведомления");
+            return await SendRequestAsync(
+                () => _httpClient.PostAsync($"api/notifications/{notificationId}/read", null),
+                "Не удалось отметить уведомление");
         }
 
         public async Task<ApiResponse> MarkAllAsReadAsync()
         {
-            var response = await _httpClient.PostAsync("api/notifications/mark-all-read", null);
-            return await response.Content.ReadFromJsonAsync<ApiResponse>()
-                   ?? ApiResponse.Fail("Ошибка отметки уведомлений");
+            return await SendRequestAsync(
+                () => _httpClient.PostAsync("api/notifications/mark-all-read", null),
+                "Не удалось отметить все уведомления");
         }
     }
 }

@@ -1,22 +1,44 @@
 ﻿@using ProjectManagementBlazor.Layout
+@inject NavigationManager NavigationManager
 
-<Router AppAssembly="@typeof(App).Assembly">
-    <Found Context="routeData">
-        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
-            <NotAuthorized>
-                <RedirectToLogin />
-            </NotAuthorized>
-        </AuthorizeRouteView>
-        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
-    </Found>
-    <NotFound>
-        <PageTitle>Страница не найдена</PageTitle>
-        <LayoutView Layout="@typeof(MainLayout)">
-            <div class="container mt-5 text-center">
-                <h1>404</h1>
-                <p>Страница не найдена</p>
-                <a href="/" class="btn btn-primary">Вернуться на главную</a>
-            </div>
-        </LayoutView>
-    </NotFound>
-</Router>
+<ErrorBoundary>
+    <ChildContent>
+        <Router AppAssembly="@typeof(App).Assembly">
+            <Found Context="routeData">
+                <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                    <NotAuthorized>
+                        <RedirectToLogin />
+                    </NotAuthorized>
+                </AuthorizeRouteView>
+                <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+            </Found>
+            <NotFound>
+                <PageTitle>Страница не найдена</PageTitle>
+                <LayoutView Layout="@typeof(MainLayout)">
+                    <div class="container mt-5 text-center">
+                        <h1>404</h1>
+                        <p>Страница не найдена</p>
+                        <a href="/" class="btn btn-primary">Вернуться на главную</a>
+                    </div>
+                </LayoutView>
+            </NotFound>
+        </Router>
+    </ChildContent>
+    <ErrorContent>
+        <div class="alert alert-danger m-3">
+            <h5>Произошла ошибка</h5>
+            <p>Пожалуйста, обновите страницу или обратитесь к администратору.</p>
+            <button class="btn btn-primary" @onclick="ReloadPage">Обновить страницу</button>
+        </div>
+    </ErrorContent>
+</ErrorBoundary>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationStateTask { get; set; } = null!;
+
+    private void ReloadPage()
+    {
+        NavigationManager.NavigateTo(NavigationManager.Uri, true);
+    }
+}

@@ -1,54 +1,64 @@
-﻿
-using ProjectManagementBlazor.Interfaces;
-using ProjectManagementBlazor.DTO.Common;
+﻿using ProjectManagementBlazor.DTO.Common;
 using ProjectManagementBlazor.DTO.Requests;
 using ProjectManagementBlazor.DTO.Responses;
+using ProjectManagementBlazor.Interfaces;
 using System.Net.Http.Json;
 
 namespace ProjectManagementBlazor.Services
 {
-    public class RetrospectiveService : IRetrospectiveService
+    public class RetrospectiveService : BaseApiService, IRetrospectiveService
     {
-        private readonly HttpClient _httpClient;
-
-        public RetrospectiveService(HttpClient httpClient)
+        public RetrospectiveService(HttpClient httpClient, IErrorHandlingService errorHandling)
+            : base(httpClient, errorHandling)
         {
-            _httpClient = httpClient;
         }
 
         public async Task<ApiResponse<RetrospectiveBoardResponse>> GetRetrospectiveBoardAsync(Guid sprintId)
         {
-            var response = await _httpClient.GetAsync($"api/retrospective/sprint/{sprintId}");
-            return await response.Content.ReadFromJsonAsync<ApiResponse<RetrospectiveBoardResponse>>()
-                   ?? ApiResponse<RetrospectiveBoardResponse>.Fail("Ошибка получения ретроспективы");
+            return await SendRequestAsync<RetrospectiveBoardResponse>(
+                () => _httpClient.GetAsync($"api/retrospective/sprint/{sprintId}"),
+                "Не удалось загрузить ретроспективу");
         }
 
         public async Task<ApiResponse<RetrospectiveItemResponse>> AddRetrospectiveItemAsync(Guid sprintId, AddRetrospectiveItemRequest request)
         {
-            var response = await _httpClient.PostAsJsonAsync($"api/retrospective/sprint/{sprintId}/items", request);
-            return await response.Content.ReadFromJsonAsync<ApiResponse<RetrospectiveItemResponse>>()
-                   ?? ApiResponse<RetrospectiveItemResponse>.Fail("Ошибка добавления элемента");
+            if (string.IsNullOrWhiteSpace(request.Content))
+            {
+                await _errorHandling.TriggerError("Содержание элемента не может быть пустым");
+                return ApiResponse<RetrospectiveItemResponse>.Fail("Содержание элемента не может быть пустым");
+            }
+
+            var validCategories = new[] { "Good", "Bad", "Idea", "Action" };
+            if (!validCategories.Contains(request.Category))
+            {
+                await _errorHandling.TriggerError("Неверная категория элемента");
+                return ApiResponse<RetrospectiveItemResponse>.Fail("Неверная категория элемента");
+            }
+
+            return await SendRequestAsync<RetrospectiveItemResponse>(
+                () => _httpClient.PostAsJsonAsync($"api/retrospective/sprint/{sprintId}/items", request),
+                "Не удалось добавить элемент");
         }
 
         public async Task<ApiResponse> VoteRetrospectiveItemAsync(Guid itemId)
         {
-            var response = await _httpClient.PostAsync($"api/retrospective/items/{itemId}/vote", null);
-            return await response.Content.ReadFromJsonAsync<ApiResponse>()
-                   ?? ApiResponse.Fail("Ошибка голосования");
+            return await SendRequestAsync(
+                () => _httpClient.PostAsync($"api/retrospective/items/{itemId}/vote", null),
+                "Не удалось проголосовать");
         }
 
         public async Task<ApiResponse> RemoveVoteAsync(Guid itemId)
         {
-            var response = await _httpClient.DeleteAsync($"api/retrospective/items/{itemId}/vote");
-            return await response.Content.ReadFromJsonAsync<ApiResponse>()
-                   ?? ApiResponse.Fail("Ошибка удаления голоса");
+            return await SendRequestAsync(
+                () => _httpClient.DeleteAsync($"api/retrospective/items/{itemId}/vote"),
+                "Не удалось удалить голос");
         }
 
         public async Task<ApiResponse> DeleteRetrospectiveItemAsync(Guid itemId)
         {
-            var response = await _httpClient.DeleteAsync($"api/retrospective/items/{itemId}");
-            return await response.Content.ReadFromJsonAsync<ApiResponse>()
-                   ?? ApiResponse.Fail("Ошибка удаления элемента");
+            return await SendRequestAsync(
+                () => _httpClient.DeleteAsync($"api/retrospective/items/{itemId}"),
+                "Не удалось удалить элемент");
         }
     }
 }

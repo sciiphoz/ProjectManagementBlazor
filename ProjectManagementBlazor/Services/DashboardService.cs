@@ -1,18 +1,16 @@
-﻿using System.Net.Http.Json;
-using ProjectManagementBlazor.DTO.Common;
+﻿using ProjectManagementBlazor.DTO.Common;
 using ProjectManagementBlazor.DTO.Requests;
 using ProjectManagementBlazor.DTO.Responses;
 using ProjectManagementBlazor.Interfaces;
+using System.Net.Http.Json;
 
 namespace ProjectManagementBlazor.Services
 {
-    public class DashboardService : IDashboardService
+    public class DashboardService : BaseApiService, IDashboardService
     {
-        private readonly HttpClient _httpClient;
-
-        public DashboardService(HttpClient httpClient)
+        public DashboardService(HttpClient httpClient, IErrorHandlingService errorHandling)
+            : base(httpClient, errorHandling)
         {
-            _httpClient = httpClient;
         }
 
         public async Task<ApiResponse<PersonalDashboardResponse>> GetPersonalDashboardAsync(DashboardRequest? request = null)
@@ -32,37 +30,27 @@ namespace ProjectManagementBlazor.Services
                     queryString = "?" + string.Join("&", paramsList);
             }
 
-            var response = await _httpClient.GetAsync($"api/dashboard/my-day{queryString}");
-            return await response.Content.ReadFromJsonAsync<ApiResponse<PersonalDashboardResponse>>()
-                   ?? ApiResponse<PersonalDashboardResponse>.Fail("Ошибка получения дашборда");
+            return await SendRequestAsync<PersonalDashboardResponse>(
+                () => _httpClient.GetAsync($"api/dashboard/my-day{queryString}"),
+                "Не удалось загрузить дашборд");
         }
 
         public async Task<ApiResponse<DailyScrumResponse>> GetDailyScrumViewAsync(Guid projectId, Guid? sprintId = null)
         {
-            try
-            {
-                var url = $"api/dashboard/daily-scrum?projectId={projectId}";
-                if (sprintId.HasValue)
-                {
-                    url += $"&sprintId={sprintId}";
-                }
+            var url = $"api/dashboard/daily-scrum?projectId={projectId}";
+            if (sprintId.HasValue)
+                url += $"&sprintId={sprintId}";
 
-                var response = await _httpClient.GetAsync(url);
-                var content = await response.Content.ReadFromJsonAsync<ApiResponse<DailyScrumResponse>>();
-                return content ?? ApiResponse<DailyScrumResponse>.Fail("Ошибка получения данных");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Ошибка: {ex.Message}");
-                return ApiResponse<DailyScrumResponse>.Fail(ex.Message);
-            }
+            return await SendRequestAsync<DailyScrumResponse>(
+                () => _httpClient.GetAsync(url),
+                "Не удалось загрузить Daily Scrum");
         }
 
         public async Task<ApiResponse> UpdateDailyTasksAsync(UpdateDailyTasksRequest request)
         {
-            var response = await _httpClient.PostAsJsonAsync("api/dashboard/my-day", request);
-            return await response.Content.ReadFromJsonAsync<ApiResponse>()
-                   ?? ApiResponse.Fail("Ошибка обновления ежедневных задач");
+            return await SendRequestAsync(
+                () => _httpClient.PostAsJsonAsync("api/dashboard/my-day", request),
+                "Не удалось сохранить ежедневные задачи");
         }
     }
 }

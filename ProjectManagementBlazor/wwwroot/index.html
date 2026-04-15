@@ -200,3 +200,97 @@
         }
     });
 </script>
+
+<script>
+    window.drawVelocityChart = (sprintHistory) => {
+        try {
+            const canvas = document.getElementById('velocityChart');
+            if (!canvas) {
+                setTimeout(() => window.drawVelocityChart(sprintHistory), 100);
+                return;
+            }
+
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+
+            if (window.velocityChartInstance) {
+                window.velocityChartInstance.destroy();
+            }
+
+            const labels = sprintHistory.map(s => s.sprintName);
+            const completedPoints = sprintHistory.map(s => s.completedStoryPoints);
+            const committedPoints = sprintHistory.map(s => s.totalStoryPoints);
+
+            window.velocityChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Выполнено Story Points',
+                            data: completedPoints,
+                            backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                            borderColor: 'rgb(40, 167, 69)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Запланировано Story Points',
+                            data: committedPoints,
+                            backgroundColor: 'rgba(23, 162, 184, 0.7)',
+                            borderColor: 'rgb(23, 162, 184)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { position: 'top' },
+                        title: { display: true, text: 'Velocity Chart' }
+                    },
+                    scales: {
+                        y: {
+                            title: { display: true, text: 'Story Points' },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Ошибка создания графика Velocity:', error);
+        }
+    };
+
+    window.downloadFile = (filename, base64Data) => {
+        const link = document.createElement('a');
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+</script>
+
+<script>
+    window.updateUnreadCount = (count) => {
+        const badge = document.getElementById('unreadCountBadge');
+        if (badge) {
+            if (count > 0) {
+                badge.textContent = count;
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    };
+</script>

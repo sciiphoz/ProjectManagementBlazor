@@ -20,7 +20,6 @@
     }
     else if (project != null)
     {
-        <!-- Заголовок -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h2>Участники проекта</h2>
@@ -36,7 +35,6 @@
             </div>
         </div>
 
-        <!-- Список участников -->
         <div class="card">
             <div class="card-header bg-primary text-white">
                 <h5 class="mb-0">👥 Все участники (@(members?.Count ?? 0))</h5>
@@ -56,6 +54,8 @@
                         <tbody>
                             @foreach (var member in members ?? new List<ProjectMemberResponse>())
                             {
+                                var memberId = member.UserId;
+                                var memberRole = member.Role;
                                 <tr>
                                     <td>
                                         <div class="d-flex align-items-center">
@@ -74,10 +74,9 @@
                                         }
                                         else
                                         {
-                                            <select class="form-select form-select-sm"
-                                                    style="width: auto;"
-                                                    @onchange="(e) => ChangeRole(member.UserId, e.Value?.ToString() ??" ")"
-                                                    value="@member.Role">
+                                            <select class="form-select form-select-sm" style="width: auto;"
+                                                    value="@memberRole"
+                                                    @onchange="(ChangeEventArgs e) => ChangeRole(memberId, e.Value?.ToString())">
                                                 <option value="ProductOwner">Product Owner</option>
                                                 <option value="ScrumMaster">Scrum Master</option>
                                                 <option value="Developer">Developer</option>
@@ -107,7 +106,6 @@
             </div>
         </div>
 
-        <!-- Статистика ролей -->
         <div class="row mt-4">
             <div class="col-md-3">
                 <div class="card bg-light">
@@ -151,7 +149,6 @@
         </div>
     }
 
-    <!-- Модальное окно добавления участника -->
     @if (showAddModal)
     {
         <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5); z-index: 1050;">
@@ -259,8 +256,10 @@
         }
     }
 
-    private async Task ChangeRole(Guid userId, string newRole)
+    private async Task ChangeRole(Guid userId, string? newRole)
     {
+        if (string.IsNullOrEmpty(newRole)) return;
+
         try
         {
             var request = new UpdateMemberRoleRequest
@@ -334,7 +333,6 @@
         isSaving = true;
         try
         {
-            // Сначала ищем пользователя по email
             var usersResult = await UserService.GetAllUsersAsync(new PagedRequest { SearchTerm = inviteEmail, PageSize = 10 });
             var user = usersResult.Data?.Items?.FirstOrDefault(u => u.Email == inviteEmail);
 

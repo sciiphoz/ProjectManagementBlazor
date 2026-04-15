@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "ProjectManagementBlazor",
   "resources": {
-    "hash": "sha256-T/gEQFOKZuF2RLvRHu0QeQv8K+EQgUPWDDamclrbHCs=",
+    "hash": "sha256-6O9Ahnoq153eQrDCN/do2VLhEXvUNXny4Ko5E8rJyE8=",
     "jsModuleNative": {
       "dotnet.native.js": "sha256-4g0GzvOXSwZvTLca4PrWJkoeltz+V9IF/hEFDcnVros="
     },
@@ -220,10 +220,10 @@
       "mscorlib.wasm": "sha256-OWQk7msdg0kG9vfJqVNUrPJ8JkyUipH2afbnYJLsKjk=",
       "netstandard.wasm": "sha256-+Ya7AWY6kwjwbQw9fHax9L8Qnn+UZKQF05aZE4ZOXiY=",
       "System.Private.CoreLib.wasm": "sha256-ouVBjy2oz9hC308fAFLns0mvmtyaeUDXt3C5DAk1muc=",
-      "ProjectManagementBlazor.wasm": "sha256-KHQUOrOTRX53zM9ZOMA2wvIL7bTnb/mzV7IjSrV0H+8="
+      "ProjectManagementBlazor.wasm": "sha256-IiLrL8dZHjlgmwsvypbvD2E0oPueFfWCRoWWOuFJMHA="
     },
     "pdb": {
-      "ProjectManagementBlazor.pdb": "sha256-O95UzlxMLngclqx4q01GwB97odIPyslLdJiPfhw743Y="
+      "ProjectManagementBlazor.pdb": "sha256-3NfQn1Hh1k/LeddBwOypvHJvgTlOYu9jErzdDEppelo="
     }
   },
   "cacheBootResources": true,

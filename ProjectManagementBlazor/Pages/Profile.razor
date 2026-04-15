@@ -1,135 +1,412 @@
 ﻿@page "/profile"
 @using Microsoft.AspNetCore.Authorization
+@using System.ComponentModel.DataAnnotations
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject IUserService UserService
+@inject IProjectService ProjectService
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 
-<PageTitle>Мой профиль</PageTitle>
+<PageTitle>Личный кабинет</PageTitle>
 
 <div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">Мой профиль</h4>
+    @if (isLoading)
+    {
+        <div class="text-center mt-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Загрузка...</span>
+            </div>
+            <p class="mt-2">Загрузка профиля...</p>
+        </div>
+    }
+    else if (currentUser != null)
+    {
+        <div class="row">
+            <!-- Левая колонка - информация о пользователе -->
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <div class="card-header bg-primary text-white text-center">
+                        <h5 class="mb-0">👤 Информация</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="avatar-circle mb-3">
+                            <span class="avatar-text">@GetInitials(currentUser.FullName)</span>
+                        </div>
+                        <h4>@currentUser.FullName</h4>
+                        <p class="text-muted">@@@currentUser.Username</p>
+                        <p class="text-muted">@currentUser.Email</p>
+                        <span class="badge bg-primary">@currentUser.Role</span>
+                        <hr />
+                        <div class="text-start">
+                            <p><strong>📅 Дата регистрации:</strong> @currentUser.CreatedAt.ToString("dd.MM.yyyy")</p>
+                            <p><strong>📧 Email подтвержден:</strong> @(currentUser.IsEmailConfirmed ? "✅ Да" : "❌ Нет")</p>
+                            <p><strong>👥 Участвует в проектах:</strong> @projectsCount</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    @if (isLoading)
-                    {
-                        <div class="text-center">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Загрузка...</span>
+            </div>
+
+            <!-- Правая колонка - редактирование профиля -->
+            <div class="col-md-8 mb-4">
+                <!-- Вкладки -->
+                <ul class="nav nav-tabs mb-3">
+                    <li class="nav-item">
+                        <button class="nav-link @(activeTab == "profile" ? "active" : "")" @onclick="ShowProfileTab">
+                            📝 Редактировать профиль
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link @(activeTab == "password" ? "active" : "")" @onclick="ShowPasswordTab">
+                            🔒 Смена пароля
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link @(activeTab == "activity" ? "active" : "")" @onclick="ShowActivityTab">
+                            📊 Моя активность
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- Вкладка редактирования профиля -->
+                @if (activeTab == "profile")
+                {
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">Редактирование профиля</h5>
+                        </div>
+                        <div class="card-body">
+                            <EditForm Model="@profileRequest" OnValidSubmit="UpdateProfile">
+                                <div class="mb-3">
+                                    <label class="form-label">Имя пользователя</label>
+                                    <input type="text" class="form-control" value="@currentUser.Username" disabled />
+                                    <small class="text-muted">Имя пользователя нельзя изменить</small>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Email</label>
+                                    <InputText type="email" @bind-Value="profileRequest.Email" class="form-control" />
+                                    <ValidationMessage For="@(() => profileRequest.Email)" />
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Полное имя</label>
+                                    <InputText @bind-Value="profileRequest.FullName" class="form-control" />
+                                </div>
+                                <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                                    @if (isSaving)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                    }
+                                    Сохранить изменения
+                                </button>
+                            </EditForm>
+                        </div>
+                    </div>
+                }
+
+                <!-- Вкладка смены пароля -->
+                @if (activeTab == "password")
+                {
+                    <div class="card">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0">Смена пароля</h5>
+                        </div>
+                        <div class="card-body">
+                            <EditForm Model="@passwordRequest" OnValidSubmit="ChangePassword">
+                                <div class="mb-3">
+                                    <label class="form-label">Текущий пароль *</label>
+                                    <InputText type="password" @bind-Value="passwordRequest.CurrentPassword" class="form-control" />
+                                    <ValidationMessage For="@(() => passwordRequest.CurrentPassword)" />
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Новый пароль *</label>
+                                    <InputText type="password" @bind-Value="passwordRequest.NewPassword" class="form-control" />
+                                    <ValidationMessage For="@(() => passwordRequest.NewPassword)" />
+                                    <small class="text-muted">Минимум 6 символов</small>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Подтверждение пароля *</label>
+                                    <InputText type="password" @bind-Value="passwordRequest.ConfirmNewPassword" class="form-control" />
+                                    <ValidationMessage For="@(() => passwordRequest.ConfirmNewPassword)" />
+                                </div>
+                                <button type="submit" class="btn btn-warning" disabled="@isSavingPassword">
+                                    @if (isSavingPassword)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                    }
+                                    Сменить пароль
+                                </button>
+                            </EditForm>
+                        </div>
+                    </div>
+                }
+
+                <!-- Вкладка активности -->
+                @if (activeTab == "activity")
+                {
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">Моя активность</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="card bg-light mb-3">
+                                        <div class="card-body text-center">
+                                            <h3>@totalTasksAssigned</h3>
+                                            <span>Назначено задач</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-light mb-3">
+                                        <div class="card-body text-center">
+                                            <h3 class="text-success">@completedTasksCount</h3>
+                                            <span>Выполнено задач</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-light mb-3">
+                                        <div class="card-body text-center">
+                                            <h3 class="text-warning">@inProgressTasksCount</h3>
+                                            <span>В работе</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-3">
+                                <h6>📋 Мои проекты</h6>
+                                @if (myProjects.Any())
+                                {
+                                    <div class="list-group">
+                                        @foreach (var project in myProjects)
+                                        {
+                                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <strong>@project.Name</strong>
+                                                    <br />
+                                                    <small class="text-muted">Роль: @GetUserRoleInProject(project.Id)</small>
+                                                </div>
+                                                <button class="btn btn-sm btn-outline-primary" @onclick="() => GoToProject(project.Id)">
+                                                    Перейти
+                                                </button>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <p class="text-muted">Нет проектов</p>
+                                }
                             </div>
                         </div>
-                    }
-                    else if (user != null)
-                    {
-                        <EditForm Model="@editProfile" OnValidSubmit="@(async () => await UpdateProfile())">
-                            <div class="mb-3">
-                                <label class="form-label">Имя пользователя</label>
-                                <InputText @bind-Value="user.Username" class="form-control" disabled />
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Email</label>
-                                <InputText type="email" @bind-Value="editProfile.Email" class="form-control" />
-                                <ValidationMessage For="@(() => editProfile.Email)" />
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Полное имя</label>
-                                <InputText @bind-Value="editProfile.FullName" class="form-control" />
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Роль</label>
-                                <InputText @bind-Value="user.Role" class="form-control" disabled />
-                            </div>
-                            <button type="submit" class="btn btn-primary" disabled="@isSaving">
-                                @if (isSaving)
-                                {
-                                    <span class="spinner-border spinner-border-sm me-2"></span>
-                                }
-                                Сохранить изменения
-                            </button>
-                        </EditForm>
+                    </div>
+                }
+            </div>
+        </div>
+    }
 
-                        <hr />
-
-                        <h5>Смена пароля</h5>
-                        <EditForm Model="@changePassword" OnValidSubmit="@(async () => await ChangePassword())">
-                            <div class="mb-3">
-                                <label class="form-label">Текущий пароль</label>
-                                <InputText type="password" @bind-Value="changePassword.CurrentPassword" class="form-control" />
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Новый пароль</label>
-                                <InputText type="password" @bind-Value="changePassword.NewPassword" class="form-control" />
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Подтверждение пароля</label>
-                                <InputText type="password" @bind-Value="changePassword.ConfirmNewPassword" class="form-control" />
-                            </div>
-                            <button type="submit" class="btn btn-warning">Сменить пароль</button>
-                        </EditForm>
-                    }
+    <!-- Модальное окно уведомления -->
+    @if (showNotification)
+    {
+        <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5); z-index: 1050;">
+            <div class="modal-dialog modal-sm">
+                <div class="modal-content">
+                    <div class="modal-header @(notificationType == "success" ? "bg-success" : "bg-danger") text-white">
+                        <h5 class="modal-title">@(notificationType == "success" ? "Успешно" : "Ошибка")</h5>
+                        <button type="button" class="btn-close btn-close-white" @onclick="CloseNotification"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>@notificationMessage</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" @onclick="CloseNotification">Закрыть</button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    }
 </div>
 
+<style>
+    .avatar-circle {
+        width: 100px;
+        height: 100px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+    }
+
+    .avatar-text {
+        font-size: 40px;
+        color: white;
+        font-weight: bold;
+    }
+
+    .nav-tabs .nav-link {
+        cursor: pointer;
+    }
+
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+    }
+</style>
+
 @code {
-    private UserResponse? user;
-    private UpdateProfileRequest editProfile = new();
-    private ChangePasswordRequest changePassword = new();
+    private UserResponse? currentUser;
+    private List<ProjectResponse> myProjects = new();
+    private Dictionary<Guid, string> userRoles = new();
+    private UpdateProfileRequest profileRequest = new();
+    private ChangePasswordRequest passwordRequest = new();
+
+    private string activeTab = "profile";
     private bool isLoading = true;
     private bool isSaving = false;
+    private bool isSavingPassword = false;
+
+    private int projectsCount = 0;
+    private int totalTasksAssigned = 0;
+    private int completedTasksCount = 0;
+    private int inProgressTasksCount = 0;
+
+    private bool showNotification = false;
+    private string notificationMessage = "";
+    private string notificationType = "success";
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadUser();
+        await LoadUserData();
+        await LoadProjects();
+        await LoadStatistics();
+        isLoading = false;
     }
 
-    private async Task LoadUser()
+    private async Task LoadUserData()
     {
-        isLoading = true;
         try
         {
             var result = await AuthService.GetCurrentUserAsync();
             if (result.Success && result.Data != null)
             {
-                user = result.Data;
-                editProfile = new UpdateProfileRequest
+                currentUser = result.Data;
+                profileRequest = new UpdateProfileRequest
                 {
-                    Email = user.Email,
-                    FullName = user.FullName
+                    Email = currentUser.Email,
+                    FullName = currentUser.FullName
                 };
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Ошибка: {ex.Message}");
-        }
-        finally
-        {
-            isLoading = false;
+            Console.WriteLine($"Ошибка загрузки пользователя: {ex.Message}");
         }
     }
 
-    private async Task UpdateProfile()
+    private async Task LoadProjects()
     {
-        isSaving = true;
         try
         {
-            var result = await UserService.UpdateProfileAsync(editProfile);
-            if (result.Success)
+            var result = await ProjectService.GetUserProjectsAsync(new PagedRequest { PageNumber = 1, PageSize = 100 });
+            if (result.Success && result.Data != null)
             {
-                await LoadUser();
+                myProjects = result.Data.Items;
+                projectsCount = myProjects.Count;
+
+                foreach (var project in myProjects)
+                {
+                    var role = await GetUserRoleInProjectAsync(project.Id);
+                    userRoles[project.Id] = role;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка загрузки проектов: {ex.Message}");
+        }
+    }
+
+    private async Task<string> GetUserRoleInProjectAsync(Guid projectId)
+    {
+        try
+        {
+            var members = await ProjectService.GetProjectMembersAsync(projectId);
+            if (members.Success && members.Data != null)
+            {
+                var member = members.Data.FirstOrDefault(m => m.UserId == currentUser?.Id);
+                if (member != null)
+                {
+                    return member.Role;
+                }
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Ошибка: {ex.Message}");
+        }
+        return "Участник";
+    }
+
+    private string GetUserRoleInProject(Guid projectId)
+    {
+        return userRoles.ContainsKey(projectId) ? userRoles[projectId] : "Участник";
+    }
+
+    private async Task LoadStatistics()
+    {
+        try
+        {
+            totalTasksAssigned = 0;
+            completedTasksCount = 0;
+            inProgressTasksCount = 0;
+
+            foreach (var project in myProjects)
+            {
+                var stats = await ProjectService.GetProjectStatisticsAsync(project.Id);
+                if (stats.Success && stats.Data != null)
+                {
+                    totalTasksAssigned += stats.Data.TotalTasks;
+                    completedTasksCount += stats.Data.CompletedTasks;
+                    inProgressTasksCount += stats.Data.InProgressTasks;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка загрузки статистики: {ex.Message}");
+        }
+    }
+
+    private async Task UpdateProfile()
+    {
+        if (currentUser == null) return;
+
+        isSaving = true;
+        try
+        {
+            var result = await UserService.UpdateProfileAsync(profileRequest);
+            if (result.Success)
+            {
+                await LoadUserData();
+                ShowSuccessMessage("Профиль успешно обновлен");
+            }
+            else
+            {
+                ShowErrorMessage($"Ошибка: {result.Message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка: {ex.Message}");
+            ShowErrorMessage("Произошла ошибка при обновлении профиля");
         }
         finally
         {
@@ -139,17 +416,96 @@
 
     private async Task ChangePassword()
     {
+        isSavingPassword = true;
         try
         {
-            var result = await UserService.ChangePasswordAsync(changePassword);
+            var result = await UserService.ChangePasswordAsync(passwordRequest);
             if (result.Success)
             {
-                changePassword = new ChangePasswordRequest();
+                passwordRequest = new ChangePasswordRequest();
+                ShowSuccessMessage("Пароль успешно изменен");
+            }
+            else
+            {
+                ShowErrorMessage($"Ошибка: {result.Message}");
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Ошибка: {ex.Message}");
+            ShowErrorMessage("Произошла ошибка при смене пароля");
         }
+        finally
+        {
+            isSavingPassword = false;
+        }
+    }
+
+    private void ShowProfileTab()
+    {
+        activeTab = "profile";
+        StateHasChanged();
+    }
+
+    private void ShowPasswordTab()
+    {
+        activeTab = "password";
+        StateHasChanged();
+    }
+
+    private void ShowActivityTab()
+    {
+        activeTab = "activity";
+        StateHasChanged();
+    }
+
+    private void GoToProject(Guid projectId)
+    {
+        Navigation.NavigateTo($"/projects/{projectId}");
+    }
+
+    private string GetInitials(string fullName)
+    {
+        if (string.IsNullOrEmpty(fullName)) return "?";
+        var parts = fullName.Split(' ');
+        if (parts.Length >= 2)
+        {
+            return $"{parts[0][0]}{parts[1][0]}".ToUpper();
+        }
+        return fullName.Substring(0, Math.Min(2, fullName.Length)).ToUpper();
+    }
+
+    private void ShowSuccessMessage(string message)
+    {
+        notificationType = "success";
+        notificationMessage = message;
+        showNotification = true;
+        StateHasChanged();
+
+        Task.Delay(3000).ContinueWith(_ =>
+        {
+            showNotification = false;
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private void ShowErrorMessage(string message)
+    {
+        notificationType = "error";
+        notificationMessage = message;
+        showNotification = true;
+        StateHasChanged();
+
+        Task.Delay(3000).ContinueWith(_ =>
+        {
+            showNotification = false;
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private void CloseNotification()
+    {
+        showNotification = false;
+        StateHasChanged();
     }
 }

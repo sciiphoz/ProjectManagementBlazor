@@ -1,4 +1,9 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿@inject INotificationService NotificationService
+@inject IAuthService AuthService
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">Project Management</a>
         <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
@@ -30,8 +35,13 @@
             </NavLink>
         </div>
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="daily-scrum">
-                <span class="oi oi-people" aria-hidden="true"></span> Daily Scrum
+            <NavLink class="nav-link" href="notifications">
+                <span class="oi oi-bell" aria-hidden="true"></span>
+                Уведомления
+                @if (unreadCount > 0)
+                {
+                    <span class="badge bg-danger ms-1">@unreadCount</span>
+                }
             </NavLink>
         </div>
     </nav>
@@ -39,6 +49,54 @@
 
 @code {
     private bool collapseNavMenu = true;
+    private int unreadCount = 0;
+    private bool isInitialized = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!isInitialized)
+        {
+            await LoadUnreadCount();
+            isInitialized = true;
+        }
+    }
+
+    private async Task LoadUnreadCount()
+    {
+        try
+        {
+            // Проверяем, есть ли токен в localStorage
+            var token = await GetTokenFromLocalStorage();
+            if (string.IsNullOrEmpty(token))
+            {
+                return;
+            }
+
+            var result = await NotificationService.GetUnreadCountAsync();
+            if (result.Success)
+            {
+                unreadCount = result.Data;
+            }
+        }
+        catch (Exception ex)
+        {
+            // Игнорируем ошибки авторизации
+            Console.WriteLine($"Ошибка загрузки уведомлений: {ex.Message}");
+            unreadCount = 0;
+        }
+    }
+
+    private async Task<string?> GetTokenFromLocalStorage()
+    {
+        try
+        {
+            return await JS.InvokeAsync<string?>("localStorage.getItem", "authToken");
+        }
+        catch
+        {
+            return null;
+        }
+    }
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
 

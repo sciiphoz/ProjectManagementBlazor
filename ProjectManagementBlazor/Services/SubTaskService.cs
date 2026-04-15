@@ -1,95 +1,122 @@
-﻿using System.Net.Http.Json;
-using ProjectManagementBlazor.DTO.Common;
+﻿using ProjectManagementBlazor.DTO.Common;
 using ProjectManagementBlazor.DTO.Requests;
 using ProjectManagementBlazor.DTO.Responses;
 using ProjectManagementBlazor.Interfaces;
+using System.Net.Http.Json;
 
 namespace ProjectManagementBlazor.Services
 {
-    public class SubTaskService : ISubTaskService
+    public class SubTaskService : BaseApiService, ISubTaskService
     {
-        private readonly HttpClient _httpClient;
-
-        public SubTaskService(HttpClient httpClient)
+        public SubTaskService(HttpClient httpClient, IErrorHandlingService errorHandling)
+            : base(httpClient, errorHandling)
         {
-            _httpClient = httpClient;
         }
 
         public async Task<ApiResponse<SubTaskResponse>> CreateSubTaskAsync(CreateSubTaskRequest request)
         {
-            var response = await _httpClient.PostAsJsonAsync("api/subtasks", request);
-            return await response.Content.ReadFromJsonAsync<ApiResponse<SubTaskResponse>>()
-                   ?? ApiResponse<SubTaskResponse>.Fail("Ошибка создания подзадачи");
+            if (string.IsNullOrWhiteSpace(request.Title))
+            {
+                await _errorHandling.TriggerError("Название подзадачи обязательно");
+                return ApiResponse<SubTaskResponse>.Fail("Название подзадачи обязательно");
+            }
+
+            return await SendRequestAsync<SubTaskResponse>(
+                () => _httpClient.PostAsJsonAsync("api/subtasks", request),
+                "Не удалось создать подзадачу");
         }
 
         public async Task<ApiResponse<SubTaskResponse>> GetSubTaskByIdAsync(Guid subTaskId)
         {
-            var response = await _httpClient.GetAsync($"api/subtasks/{subTaskId}");
-            return await response.Content.ReadFromJsonAsync<ApiResponse<SubTaskResponse>>()
-                   ?? ApiResponse<SubTaskResponse>.Fail("Подзадача не найдена");
+            return await SendRequestAsync<SubTaskResponse>(
+                () => _httpClient.GetAsync($"api/subtasks/{subTaskId}"),
+                "Не удалось получить данные подзадачи");
         }
 
         public async Task<ApiResponse<List<SubTaskResponse>>> GetBacklogItemSubTasksAsync(Guid backlogItemId)
         {
-            var response = await _httpClient.GetAsync($"api/subtasks/backlog-item/{backlogItemId}");
-            return await response.Content.ReadFromJsonAsync<ApiResponse<List<SubTaskResponse>>>()
-                   ?? ApiResponse<List<SubTaskResponse>>.Fail("Ошибка получения подзадач");
+            return await SendRequestAsync<List<SubTaskResponse>>(
+                () => _httpClient.GetAsync($"api/subtasks/backlog-item/{backlogItemId}"),
+                "Не удалось получить список подзадач");
         }
 
         public async Task<ApiResponse<SubTaskResponse>> UpdateSubTaskAsync(Guid subTaskId, UpdateSubTaskRequest request)
         {
-            var response = await _httpClient.PutAsJsonAsync($"api/subtasks/{subTaskId}", request);
-            return await response.Content.ReadFromJsonAsync<ApiResponse<SubTaskResponse>>()
-                   ?? ApiResponse<SubTaskResponse>.Fail("Ошибка обновления подзадачи");
+            if (request.Title != null && string.IsNullOrWhiteSpace(request.Title))
+            {
+                await _errorHandling.TriggerError("Название подзадачи не может быть пустым");
+                return ApiResponse<SubTaskResponse>.Fail("Название подзадачи не может быть пустым");
+            }
+
+            return await SendRequestAsync<SubTaskResponse>(
+                () => _httpClient.PutAsJsonAsync($"api/subtasks/{subTaskId}", request),
+                "Не удалось обновить подзадачу");
         }
 
         public async Task<ApiResponse> DeleteSubTaskAsync(Guid subTaskId)
         {
-            var response = await _httpClient.DeleteAsync($"api/subtasks/{subTaskId}");
-            return await response.Content.ReadFromJsonAsync<ApiResponse>()
-                   ?? ApiResponse.Fail("Ошибка удаления подзадачи");
+            return await SendRequestAsync(
+                () => _httpClient.DeleteAsync($"api/subtasks/{subTaskId}"),
+                "Не удалось удалить подзадачу");
         }
 
         public async Task<ApiResponse<SubTaskResponse>> StartSubTaskAsync(StartSubTaskRequest request)
         {
-            var response = await _httpClient.PostAsync($"api/subtasks/{request.SubTaskId}/start", null);
-            return await response.Content.ReadFromJsonAsync<ApiResponse<SubTaskResponse>>()
-                   ?? ApiResponse<SubTaskResponse>.Fail("Ошибка начала работы");
+            return await SendRequestAsync<SubTaskResponse>(
+                () => _httpClient.PostAsync($"api/subtasks/{request.SubTaskId}/start", null),
+                "Не удалось начать выполнение подзадачи");
         }
 
         public async Task<ApiResponse<SubTaskResponse>> CompleteSubTaskAsync(CompleteSubTaskRequest request)
         {
-            var response = await _httpClient.PostAsJsonAsync($"api/subtasks/{request.SubTaskId}/complete", request);
-            return await response.Content.ReadFromJsonAsync<ApiResponse<SubTaskResponse>>()
-                   ?? ApiResponse<SubTaskResponse>.Fail("Ошибка завершения подзадачи");
+            return await SendRequestAsync<SubTaskResponse>(
+                () => _httpClient.PostAsJsonAsync($"api/subtasks/{request.SubTaskId}/complete", request),
+                "Не удалось завершить подзадачу");
         }
 
         public async Task<ApiResponse<SubTaskResponse>> ChangeStatusAsync(Guid subTaskId, ChangeSubTaskStatusRequest request)
         {
-            var response = await _httpClient.PatchAsJsonAsync($"api/subtasks/{subTaskId}/status", request);
-            return await response.Content.ReadFromJsonAsync<ApiResponse<SubTaskResponse>>()
-                   ?? ApiResponse<SubTaskResponse>.Fail("Ошибка изменения статуса");
+            if (string.IsNullOrWhiteSpace(request.NewStatus))
+            {
+                await _errorHandling.TriggerError("Не указан новый статус");
+                return ApiResponse<SubTaskResponse>.Fail("Не указан новый статус");
+            }
+
+            return await SendRequestAsync<SubTaskResponse>(
+                () => _httpClient.PatchAsJsonAsync($"api/subtasks/{subTaskId}/status", request),
+                "Не удалось изменить статус подзадачи");
         }
 
         public async Task<ApiResponse> ReorderSubTasksAsync(ReorderSubTasksRequest request)
         {
-            var response = await _httpClient.PostAsJsonAsync("api/subtasks/reorder", request);
-            return await response.Content.ReadFromJsonAsync<ApiResponse>()
-                   ?? ApiResponse.Fail("Ошибка изменения порядка");
+            if (request.Items == null || !request.Items.Any())
+            {
+                return ApiResponse.Fail("Нет данных для переупорядочивания");
+            }
+
+            return await SendRequestAsync(
+                () => _httpClient.PostAsJsonAsync("api/subtasks/reorder", request),
+                "Не удалось изменить порядок подзадач");
         }
 
         public async Task<ApiResponse<SubTaskStatisticsResponse>> GetSubTaskStatisticsAsync(Guid backlogItemId)
         {
-            var response = await _httpClient.GetAsync($"api/subtasks/backlog-item/{backlogItemId}/statistics");
-            return await response.Content.ReadFromJsonAsync<ApiResponse<SubTaskStatisticsResponse>>()
-                   ?? ApiResponse<SubTaskStatisticsResponse>.Fail("Ошибка получения статистики");
+            return await SendRequestAsync<SubTaskStatisticsResponse>(
+                () => _httpClient.GetAsync($"api/subtasks/backlog-item/{backlogItemId}/statistics"),
+                "Не удалось получить статистику подзадач");
         }
 
         public async Task<ApiResponse<BlockerResponse>> AddBlockerToSubTaskAsync(Guid subTaskId, AddBlockerRequest request)
         {
-            var response = await _httpClient.PostAsJsonAsync($"api/subtasks/{subTaskId}/blockers", request);
-            return await response.Content.ReadFromJsonAsync<ApiResponse<BlockerResponse>>()
-                   ?? ApiResponse<BlockerResponse>.Fail("Ошибка добавления блокера");
+            if (string.IsNullOrWhiteSpace(request.Description))
+            {
+                await _errorHandling.TriggerError("Описание блокера обязательно");
+                return ApiResponse<BlockerResponse>.Fail("Описание блокера обязательно");
+            }
+
+            return await SendRequestAsync<BlockerResponse>(
+                () => _httpClient.PostAsJsonAsync($"api/subtasks/{subTaskId}/blockers", request),
+                "Не удалось добавить блокер");
         }
     }
 }

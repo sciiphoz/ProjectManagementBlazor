@@ -1,6 +1,7 @@
 ﻿@inherits LayoutComponentBase
 @inject NavigationManager Navigation
 @inject IAuthService AuthService
+@inject IErrorHandlingService ErrorHandling
 
 <PageTitle>Project Management System</PageTitle>
 
@@ -16,6 +17,8 @@
             </span>
         </div>
 
+        <ErrorDisplay />
+
         <article class="content px-4">
             @Body
         </article>
@@ -25,7 +28,14 @@
 @code {
     private async Task Logout()
     {
-        await AuthService.LogoutAsync();
-        Navigation.NavigateTo("/login", true);
+        try
+        {
+            await AuthService.LogoutAsync();
+            Navigation.NavigateTo("/login", true);
+        }
+        catch (Exception ex)
+        {
+            await ErrorHandling.TriggerError($"Ошибка при выходе: {ex.Message}");
+        }
     }
 }

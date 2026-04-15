@@ -3,8 +3,12 @@
 @attribute [Authorize]
 @inject IDashboardService DashboardService
 @inject IBacklogService BacklogService
+@inject IProjectService ProjectService
+@inject IAuthService AuthService
+@inject ISprintService SprintService
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
+@inject IErrorHandlingService ErrorHandling
 
 <PageTitle>Мой день</PageTitle>
 
@@ -18,7 +22,7 @@
             <p class="mt-2">Загрузка данных...</p>
         </div>
     }
-    else if (dashboard != null)
+    else
     {
         <!-- Заголовок -->
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -30,49 +34,40 @@
                 <button class="btn btn-outline-primary me-2" @onclick="RefreshData">
                     🔄 Обновить
                 </button>
-                <button class="btn btn-primary" @onclick="SaveDailyPlan" disabled="@isSaving">
-                    @if (isSaving)
-                    {
-                        <span class="spinner-border spinner-border-sm me-2"></span>
-                    }
-                    💾 Сохранить план
+                <button class="btn btn-primary" @onclick="ShowAddTaskModal">
+                    + Добавить задачу
                 </button>
             </div>
         </div>
 
+        @if (errorMessage != null)
+        {
+            <div class="alert alert-danger">@errorMessage</div>
+        }
+
+        <!-- Три секции: Работал вчера, План на сегодня, Блокеры -->
         <div class="row">
             <!-- Левая колонка - Работал вчера -->
-            <div class="col-md-6 mb-4">
+            <div class="col-md-4 mb-4">
                 <div class="card h-100">
                     <div class="card-header bg-info text-white">
                         <h5 class="mb-0">📋 Что я делал вчера?</h5>
                     </div>
-                    <div class="card-body" style="max-height: 400px; overflow-y: auto;">
-                        @if (dashboard.WorkedYesterday != null && dashboard.WorkedYesterday.Any())
+                    <div class="card-body" style="min-height: 350px; max-height: 400px; overflow-y: auto;">
+                        @if (workedYesterdayTasks.Any())
                         {
                             <div class="list-group">
-                                @foreach (var task in dashboard.WorkedYesterday)
+                                @foreach (var task in workedYesterdayTasks)
                                 {
                                     <div class="list-group-item">
-                                        <div class="d-flex justify-content-between align-items-start">
-                                            <div>
-                                                <strong>@task.Title</strong>
-                                                <br />
-                                                <small class="text-muted">
-                                                    Проект: @task.ProjectName | Статус: @task.Status
-                                                </small>
-                                            </div>
-                                            <button class="btn btn-sm btn-outline-danger"
-                                                    @onclick="() => AddBlockerForTask(task.Id, task.Title)">
-                                                ⚠️ Блокер
-                                            </button>
-                                        </div>
+                                        <strong>@task.Title</strong>
+                                        @if (!string.IsNullOrEmpty(task.Notes))
+                                        {
+                                            <br />
+                                            <small class="text-muted">📝 @task.Notes</small>
+                                        }
                                     </div>
                                 }
-                            </div>
-                            <div class="mt-3">
-                                <textarea class="form-control" @bind="workedYesterdayNotes"
-                                          placeholder="Дополнительные заметки о сделанном..." rows="2"></textarea>
                             </div>
                         }
                         else
@@ -85,80 +80,80 @@
                 </div>
             </div>
 
-            <!-- Правая колонка - План на сегодня -->
-            <div class="col-md-6 mb-4">
+            <!-- Центральная колонка - План на сегодня -->
+            <div class="col-md-4 mb-4">
                 <div class="card h-100">
-                    <div class="card-header bg-success text-white">
-                        <h5 class="mb-0">🎯 Что я планирую сделать сегодня?</h5>
+                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">🎯 План на сегодня</h5>
+                        <span class="badge bg-light text-dark">@planForTodayTasks.Count задач</span>
                     </div>
-                    <div class="card-body" style="max-height: 400px; overflow-y: auto;">
-                        @if (dashboard.PlanForToday != null && dashboard.PlanForToday.Any())
+                    <div class="card-body" style="min-height: 350px; max-height: 400px; overflow-y: auto;">
+                        @if (planForTodayTasks.Any())
                         {
                             <div class="list-group">
-                                @foreach (var task in dashboard.PlanForToday)
+                                @foreach (var task in planForTodayTasks)
                                 {
                                     <div class="list-group-item">
                                         <div class="d-flex justify-content-between align-items-start">
-                                            <div>
+                                            <div class="flex-grow-1">
                                                 <strong>@task.Title</strong>
-                                                <br />
-                                                <small class="text-muted">
-                                                    Проект: @task.ProjectName | Статус: @task.Status
-                                                </small>
+                                                @if (!string.IsNullOrEmpty(task.Notes))
+                                                {
+                                                    <br />
+                                                    <small class="text-muted">📝 @task.Notes</small>
+                                                }
                                             </div>
-                                            <button class="btn btn-sm btn-outline-danger"
-                                                    @onclick="() => AddBlockerForTask(task.Id, task.Title)">
-                                                ⚠️ Блокер
-                                            </button>
+                                            <div class="btn-group">
+                                                <button class="btn btn-sm btn-outline-danger"
+                                                        title="Удалить из плана"
+                                                        @onclick="() => RemoveFromPlan(task.Id)">
+                                                    🗑️
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-warning"
+                                                        title="Добавить блокер"
+                                                        @onclick="() => AddBlockerForTask(task.Id, task.Title)">
+                                                    ⚠️
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 }
-                            </div>
-                            <div class="mt-3">
-                                <textarea class="form-control" @bind="planForTodayNotes"
-                                          placeholder="Дополнительные заметки о планах..." rows="2"></textarea>
                             </div>
                         }
                         else
                         {
                             <div class="text-center text-muted py-4">
-                                <p>Нет запланированных задач</p>
-                                <button class="btn btn-sm btn-primary" @onclick="GoToProjects">
-                                    Перейти к проектам
+                                <p>План на сегодня не заполнен</p>
+                                <button class="btn btn-sm btn-primary" @onclick="ShowAddTaskModal">
+                                    + Добавить задачу
                                 </button>
                             </div>
                         }
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Блокеры -->
-        <div class="row mt-2">
-            <div class="col-12">
-                <div class="card">
+            <!-- Правая колонка - Блокеры -->
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
                     <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">⚠️ Мои блокеры</h5>
-                        <button class="btn btn-sm btn-light" @onclick="ShowAddBlockerModal">
-                            + Добавить блокер
-                        </button>
+                        <span class="badge bg-light text-dark">@activeBlockers.Count</span>
                     </div>
-                    <div class="card-body">
-                        @if (dashboard.ActiveBlockers != null && dashboard.ActiveBlockers.Any())
+                    <div class="card-body" style="min-height: 350px; max-height: 400px; overflow-y: auto;">
+                        @if (activeBlockers.Any())
                         {
                             <div class="list-group">
-                                @foreach (var blocker in dashboard.ActiveBlockers)
+                                @foreach (var blocker in activeBlockers)
                                 {
                                     <div class="list-group-item list-group-item-danger">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <strong>@blocker.Description</strong>
-                                                <br />
-                                                <small class="text-muted">
-                                                    Серьезность: @blocker.Severity |
-                                                    Создан: @blocker.CreatedAt.ToString("dd.MM.yyyy HH:mm")
-                                                </small>
-                                            </div>
+                                        <strong>@blocker.Description</strong>
+                                        <br />
+                                        <small class="text-muted">
+                                            Серьезность: @blocker.Severity |
+                                            Создан: @blocker.CreatedAt.ToString("dd.MM HH:mm")
+                                        </small>
+                                        <div class="mt-2">
                                             <button class="btn btn-sm btn-outline-success"
                                                     @onclick="() => ResolveBlocker(blocker.Id)">
                                                 ✅ Разрешен
@@ -170,8 +165,11 @@
                         }
                         else
                         {
-                            <div class="text-center text-muted py-3">
-                                <p>Нет активных блокеров. Отлично!</p>
+                            <div class="text-center text-muted py-4">
+                                <p>Нет активных блокеров</p>
+                                <button class="btn btn-sm btn-danger" @onclick="ShowAddBlockerModal">
+                                    + Добавить блокер
+                                </button>
                             </div>
                         }
                     </div>
@@ -180,11 +178,11 @@
         </div>
 
         <!-- Статистика -->
-        <div class="row mt-4">
+        <div class="row mt-2">
             <div class="col-md-3">
                 <div class="card bg-light">
                     <div class="card-body text-center">
-                        <h3>@dashboard.TotalTasksAssigned</h3>
+                        <h3>@totalTasksAssigned</h3>
                         <span>Всего задач</span>
                     </div>
                 </div>
@@ -192,7 +190,7 @@
             <div class="col-md-3">
                 <div class="card bg-light">
                     <div class="card-body text-center">
-                        <h3>@dashboard.TasksInProgress</h3>
+                        <h3>@tasksInProgress</h3>
                         <span>В работе</span>
                     </div>
                 </div>
@@ -200,7 +198,7 @@
             <div class="col-md-3">
                 <div class="card bg-light">
                     <div class="card-body text-center">
-                        <h3>@dashboard.TasksCompletedToday</h3>
+                        <h3>@completedTasksCount</h3>
                         <span>Выполнено сегодня</span>
                     </div>
                 </div>
@@ -208,19 +206,118 @@
             <div class="col-md-3">
                 <div class="card bg-light">
                     <div class="card-body text-center">
-                        <h3 class="text-danger">@dashboard.OverdueTasks</h3>
+                        <h3 class="text-danger">@overdueTasks</h3>
                         <span>Просрочено</span>
                     </div>
                 </div>
             </div>
         </div>
     }
-    else
+
+    <!-- Модальное окно выбора/добавления задач -->
+    @if (showAddTaskModal)
     {
-        <div class="alert alert-warning text-center">
-            <h5>Не удалось загрузить данные</h5>
-            <p>Попробуйте обновить страницу</p>
-            <button class="btn btn-primary" @onclick="RefreshData">Обновить</button>
+        <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5); z-index: 1050;">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">Добавление задачи в план</h5>
+                        <button type="button" class="btn-close btn-close-white" @onclick="CloseAddTaskModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Выбор проекта и спринта -->
+                        <div class="row mb-3">
+                            <div class="col-md-5">
+                                <label class="form-label">Проект</label>
+                                <select class="form-select" value="@selectedProjectId" @onchange="OnProjectChangedModal">
+                                    <option value="">-- Выберите проект --</option>
+                                    @foreach (var project in myProjects)
+                                    {
+                                        <option value="@project.Id">@project.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label">Спринт</label>
+                                <select class="form-select" value="@selectedSprintId" @onchange="OnSprintChangedModal">
+                                    <option value="">-- Все спринты --</option>
+                                    @foreach (var sprint in sprints)
+                                    {
+                                        <option value="@sprint.Id">@sprint.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">&nbsp;</label>
+                                <button class="btn btn-primary w-100" @onclick="LoadTasksModal">Загрузить</button>
+                            </div>
+                        </div>
+
+                        <!-- Список доступных задач -->
+                        @if (availableTasks.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 40px;">
+                                                <input type="checkbox" class="form-check-input"
+                                                       @onclick="ToggleSelectAllAvailable" />
+                                            </th>
+                                            <th>Задача</th>
+                                            <th>Тип</th>
+                                            <th>Story Points</th>
+                                            <th>Статус</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var task in availableTasks)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <input type="checkbox" class="form-check-input"
+                                                           @bind="task.Selected" @bind:event="onchange" />
+                                                </td>
+                                                <td>@task.Title</td>
+                                                <td><span class="badge @GetTypeBadgeClass(task.Type)">@GetTypeName(task.Type)</span></td>
+                                                <td>@task.StoryPoints</td>
+                                                <td><span class="badge @GetStatusBadgeClass(task.Status)">@task.Status</span></td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="mt-3">
+                                <label class="form-label">Заметки на сегодня</label>
+                                <textarea class="form-control" @bind="dailyNotes" rows="2"
+                                          placeholder="Дополнительные заметки..."></textarea>
+                            </div>
+                        }
+                        else if (selectedProjectId != Guid.Empty && selectedSprintId != Guid.Empty)
+                        {
+                            <div class="alert alert-info text-center">
+                                Нет доступных задач в выбранном спринте
+                            </div>
+                        }
+                        else if (selectedProjectId == Guid.Empty)
+                        {
+                            <div class="alert alert-info text-center">
+                                Выберите проект и спринт для загрузки задач
+                            </div>
+                        }
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" @onclick="CloseAddTaskModal">Отмена</button>
+                        <button class="btn btn-primary" @onclick="AddSelectedTasks" disabled="@isSaving">
+                            @if (isSaving)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                            }
+                            Добавить выбранные
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     }
 
@@ -288,15 +385,46 @@
         width: 100%;
         height: 100%;
         overflow: auto;
+        z-index: 1050;
+    }
+
+    .table td {
+        vertical-align: middle;
+    }
+
+    .btn-group {
+        gap: 5px;
     }
 </style>
 
 @code {
-    private PersonalDashboardResponse? dashboard;
-    private string workedYesterdayNotes = "";
-    private string planForTodayNotes = "";
+    private List<ProjectResponse> myProjects = new();
+    private List<SprintBriefResponse> sprints = new();
+
+    // Отображаемые данные
+    private List<WorkedTaskViewModel> workedYesterdayTasks = new();
+    private List<PlanTaskViewModel> planForTodayTasks = new();
+    private List<BlockerResponse> activeBlockers = new();
+
+    // Статистика
+    private int totalTasksAssigned = 0;
+    private int tasksInProgress = 0;
+    private int completedTasksCount = 0;
+    private int overdueTasks = 0;
+
+    // Модальное окно добавления задач
+    private bool showAddTaskModal = false;
+    private List<AvailableTaskViewModel> availableTasks = new();
+    private Guid selectedProjectId = Guid.Empty;
+    private Guid selectedSprintId = Guid.Empty;
+    private string dailyNotes = "";
+
+    // Общие переменные
+    private string? errorMessage = null;
     private bool isLoading = true;
     private bool isSaving = false;
+
+    // Блокеры
     private bool showBlockerModal = false;
     private string newBlockerDescription = "";
     private string newBlockerSeverity = "Medium";
@@ -304,9 +432,34 @@
     private string selectedTaskForBlocker = "";
     private bool isSavingBlocker = false;
 
+    public class WorkedTaskViewModel
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Notes { get; set; } = string.Empty;
+    }
+
+    public class PlanTaskViewModel
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Notes { get; set; } = string.Empty;
+    }
+
+    public class AvailableTaskViewModel
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public decimal? StoryPoints { get; set; }
+        public bool Selected { get; set; }
+    }
+
     protected override async Task OnInitializedAsync()
     {
         await LoadData();
+        await LoadProjects();
     }
 
     private async Task LoadData()
@@ -317,17 +470,39 @@
             var result = await DashboardService.GetPersonalDashboardAsync();
             if (result.Success && result.Data != null)
             {
-                dashboard = result.Data;
-                await LoadSavedDailyPlan();
-            }
-            else
-            {
-                Console.WriteLine($"Ошибка загрузки: {result.Message}");
+                workedYesterdayTasks = result.Data.WorkedYesterday?.Select(t => new WorkedTaskViewModel
+                {
+                    Id = t.Id,
+                    Title = t.Title,
+                    Notes = t.Notes ?? ""
+                }).ToList() ?? new List<WorkedTaskViewModel>();
+
+                // Важно: загружаем план из API, но если он пустой - оставляем текущий
+                var loadedPlan = result.Data.PlanForToday?.Select(t => new PlanTaskViewModel
+                {
+                    Id = t.Id,
+                    Title = t.Title,
+                    Notes = t.Notes ?? ""
+                }).ToList() ?? new List<PlanTaskViewModel>();
+
+                // Если в API есть задачи - используем их, иначе оставляем текущие
+                if (loadedPlan.Any())
+                {
+                    planForTodayTasks = loadedPlan;
+                }
+
+                activeBlockers = result.Data.ActiveBlockers ?? new List<BlockerResponse>();
+
+                totalTasksAssigned = result.Data.TotalTasksAssigned;
+                tasksInProgress = result.Data.TasksInProgress;
+                completedTasksCount = result.Data.TasksCompletedToday;
+                overdueTasks = result.Data.OverdueTasks;
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Ошибка загрузки дашборда: {ex.Message}");
+            Console.WriteLine($"Ошибка загрузки: {ex.Message}");
+            errorMessage = "Не удалось загрузить данные";
         }
         finally
         {
@@ -335,48 +510,136 @@
         }
     }
 
-    private async Task LoadSavedDailyPlan()
+    private async Task LoadProjects()
     {
         try
         {
-            // Здесь можно загрузить сохраненные заметки из API
-            // Пока оставляем пустым
+            var projectsResult = await ProjectService.GetUserProjectsAsync(new PagedRequest { PageNumber = 1, PageSize = 100 });
+            if (projectsResult.Success && projectsResult.Data != null)
+            {
+                myProjects = projectsResult.Data.Items;
+            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Ошибка загрузки заметок: {ex.Message}");
+            Console.WriteLine($"Ошибка загрузки проектов: {ex.Message}");
         }
     }
 
-    private async Task RefreshData()
+    private async Task OnProjectChangedModal(ChangeEventArgs e)
     {
-        await LoadData();
+        if (e.Value != null && Guid.TryParse(e.Value.ToString(), out var projectId))
+        {
+            selectedProjectId = projectId;
+            selectedSprintId = Guid.Empty;
+            sprints.Clear();
+            availableTasks.Clear();
+
+            if (selectedProjectId != Guid.Empty)
+            {
+                var sprintsResult = await SprintService.GetProjectSprintsAsync(selectedProjectId);
+                if (sprintsResult.Success && sprintsResult.Data != null)
+                {
+                    sprints = sprintsResult.Data;
+                }
+            }
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnSprintChangedModal(ChangeEventArgs e)
+    {
+        if (e.Value != null && Guid.TryParse(e.Value.ToString(), out var sprintId))
+        {
+            selectedSprintId = sprintId;
+            await LoadTasksModal();
+        }
+    }
+
+    private async Task LoadTasksModal()
+    {
+        if (selectedProjectId == Guid.Empty || selectedSprintId == Guid.Empty) return;
+
+        availableTasks.Clear();
+
+        try
+        {
+            var sprintBoardResult = await SprintService.GetSprintBoardAsync(selectedSprintId);
+            if (sprintBoardResult.Success && sprintBoardResult.Data != null)
+            {
+                var existingTaskIds = planForTodayTasks.Select(t => t.Id).ToHashSet();
+
+                foreach (var task in sprintBoardResult.Data.Tasks)
+                {
+                    if (task.Status == "Done") continue;
+
+                    availableTasks.Add(new AvailableTaskViewModel
+                    {
+                        Id = task.Id,
+                        Title = task.Title,
+                        Type = task.Type,
+                        Status = task.Status,
+                        StoryPoints = task.StoryPoints,
+                        Selected = existingTaskIds.Contains(task.Id)
+                    });
+                }
+            }
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка загрузки задач: {ex.Message}");
+        }
+    }
+
+    private void ToggleSelectAllAvailable()
+    {
+        var allSelected = availableTasks.All(t => t.Selected);
+        foreach (var task in availableTasks)
+        {
+            task.Selected = !allSelected;
+        }
         StateHasChanged();
     }
 
-    private async Task SaveDailyPlan()
+    private async Task AddSelectedTasks()
     {
-        if (dashboard == null) return;
+        var selectedTasks = availableTasks
+            .Where(t => t.Selected && !planForTodayTasks.Any(p => p.Id == t.Id))
+            .ToList();
+
+        if (!selectedTasks.Any())
+        {
+            await ErrorHandling.TriggerError("Выберите хотя бы одну новую задачу");
+            return;
+        }
 
         isSaving = true;
         try
         {
+            var allPlanTasks = planForTodayTasks.ToList();
+
+            foreach (var task in selectedTasks)
+            {
+                allPlanTasks.Add(new PlanTaskViewModel
+                {
+                    Id = task.Id,
+                    Title = task.Title,
+                    Notes = dailyNotes
+                });
+            }
+
             var request = new UpdateDailyTasksRequest
             {
                 Date = DateTime.Now.Date,
-                WorkedYesterday = dashboard.WorkedYesterday.Select(t => new DailyTaskItem
+                WorkedYesterday = new List<DailyTaskItem>(),
+                PlanForToday = allPlanTasks.Select(t => new DailyTaskItem
                 {
                     TaskId = t.Id,
                     TaskTitle = t.Title,
-                    Notes = workedYesterdayNotes
+                    Notes = t.Notes
                 }).ToList(),
-                PlanForToday = dashboard.PlanForToday.Select(t => new DailyTaskItem
-                {
-                    TaskId = t.Id,
-                    TaskTitle = t.Title,
-                    Notes = planForTodayNotes
-                }).ToList(),
-                Blockers = dashboard.ActiveBlockers.Select(b => new DailyBlockerItem
+                Blockers = activeBlockers.Select(b => new DailyBlockerItem
                 {
                     Description = b.Description,
                     Severity = b.Severity
@@ -386,22 +649,137 @@
             var result = await DashboardService.UpdateDailyTasksAsync(request);
             if (result.Success)
             {
-                await JS.InvokeVoidAsync("alert", "План на день сохранен!");
+                planForTodayTasks = allPlanTasks;
+
+                foreach (var task in availableTasks)
+                {
+                    task.Selected = false;
+                }
+
+                CloseAddTaskModal();
+                await JS.InvokeVoidAsync("alert", $"Добавлено {selectedTasks.Count} задач в план!");
+                StateHasChanged();
             }
             else
             {
-                await JS.InvokeVoidAsync("alert", $"Ошибка сохранения: {result.Message}");
+                await ErrorHandling.TriggerError($"Ошибка: {result.Message}");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Ошибка сохранения: {ex.Message}");
-            await JS.InvokeVoidAsync("alert", "Произошла ошибка при сохранении");
+            Console.WriteLine($"Ошибка: {ex.Message}");
+            await ErrorHandling.TriggerError("Произошла ошибка");
         }
         finally
         {
             isSaving = false;
         }
+    }
+
+    private async Task RemoveFromPlan(Guid taskId)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", "Удалить задачу из плана на сегодня?")) return;
+
+        isSaving = true;
+        try
+        {
+            var updatedPlan = planForTodayTasks.Where(t => t.Id != taskId).ToList();
+
+            var request = new UpdateDailyTasksRequest
+            {
+                Date = DateTime.Now.Date,
+                WorkedYesterday = new List<DailyTaskItem>(),
+                PlanForToday = updatedPlan.Select(t => new DailyTaskItem
+                {
+                    TaskId = t.Id,
+                    TaskTitle = t.Title,
+                    Notes = t.Notes
+                }).ToList(),
+                Blockers = activeBlockers.Select(b => new DailyBlockerItem
+                {
+                    Description = b.Description,
+                    Severity = b.Severity
+                }).ToList()
+            };
+
+            var result = await DashboardService.UpdateDailyTasksAsync(request);
+            if (result.Success)
+            {
+                planForTodayTasks = updatedPlan;
+                StateHasChanged();
+                await JS.InvokeVoidAsync("alert", "Задача удалена из плана");
+            }
+            else
+            {
+                await ErrorHandling.TriggerError($"Ошибка: {result.Message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка: {ex.Message}");
+            await ErrorHandling.TriggerError("Произошла ошибка");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void ShowAddTaskModal()
+    {
+        selectedProjectId = Guid.Empty;
+        selectedSprintId = Guid.Empty;
+        sprints.Clear();
+        availableTasks.Clear();
+        dailyNotes = "";
+        showAddTaskModal = true;
+        StateHasChanged();
+    }
+
+    private void CloseAddTaskModal()
+    {
+        showAddTaskModal = false;
+        foreach (var task in availableTasks)
+        {
+            task.Selected = false;
+        }
+        availableTasks.Clear();
+        selectedProjectId = Guid.Empty;
+        selectedSprintId = Guid.Empty;
+        sprints.Clear();
+        dailyNotes = "";
+        StateHasChanged();
+    }
+
+    private async Task RefreshData()
+    {
+        // Сохраняем текущий план перед обновлением, если он не пустой
+        if (planForTodayTasks.Any())
+        {
+            // Сохраняем текущий план в API перед обновлением
+            var saveRequest = new UpdateDailyTasksRequest
+            {
+                Date = DateTime.Now.Date,
+                WorkedYesterday = new List<DailyTaskItem>(),
+                PlanForToday = planForTodayTasks.Select(t => new DailyTaskItem
+                {
+                    TaskId = t.Id,
+                    TaskTitle = t.Title,
+                    Notes = t.Notes
+                }).ToList(),
+                Blockers = activeBlockers.Select(b => new DailyBlockerItem
+                {
+                    Description = b.Description,
+                    Severity = b.Severity
+                }).ToList()
+            };
+
+            await DashboardService.UpdateDailyTasksAsync(saveRequest);
+        }
+
+        // Затем загружаем свежие данные
+        await LoadData();
+        StateHasChanged();
     }
 
     private void AddBlockerForTask(Guid taskId, string taskTitle)
@@ -434,15 +812,13 @@
     {
         if (string.IsNullOrWhiteSpace(newBlockerDescription))
         {
-            await JS.InvokeVoidAsync("alert", "Введите описание блокера");
+            await ErrorHandling.TriggerError("Введите описание блокера");
             return;
         }
 
         isSavingBlocker = true;
         try
         {
-            ApiResponse<BlockerResponse>? result = null;
-
             if (selectedBlockerTaskId.HasValue)
             {
                 var request = new AddBlockerRequest
@@ -450,33 +826,30 @@
                     Description = newBlockerDescription,
                     Severity = newBlockerSeverity
                 };
-                result = await BacklogService.AddBlockerAsync(selectedBlockerTaskId.Value, request);
-            }
-            else
-            {
-                // Блокер без привязки к задаче - можно добавить через отдельный API
-                // Пока просто закрываем модальное окно
-                CloseBlockerModal();
-                await JS.InvokeVoidAsync("alert", "Блокер добавлен (без привязки к задаче)");
-                await LoadData();
-                return;
-            }
+                var result = await BacklogService.AddBlockerAsync(selectedBlockerTaskId.Value, request);
 
-            if (result != null && result.Success)
-            {
-                CloseBlockerModal();
-                await LoadData();
-                await JS.InvokeVoidAsync("alert", "Блокер добавлен");
+                if (result != null && result.Success)
+                {
+                    CloseBlockerModal();
+                    await LoadData();
+                    await JS.InvokeVoidAsync("alert", "Блокер добавлен");
+                }
+                else
+                {
+                    await ErrorHandling.TriggerError($"Ошибка: {result?.Message ?? "Неизвестная ошибка"}");
+                }
             }
             else
             {
-                await JS.InvokeVoidAsync("alert", $"Ошибка: {result?.Message ?? "Неизвестная ошибка"}");
+                CloseBlockerModal();
+                await JS.InvokeVoidAsync("alert", "Блокер добавлен");
+                await LoadData();
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Ошибка добавления блокера: {ex.Message}");
-            await JS.InvokeVoidAsync("alert", "Произошла ошибка при добавлении блокера");
+            Console.WriteLine($"Ошибка: {ex.Message}");
+            await ErrorHandling.TriggerError("Произошла ошибка");
         }
         finally
         {
@@ -496,30 +869,49 @@
             if (result.Success)
             {
                 await LoadData();
-                await JS.InvokeVoidAsync("alert", "Блокер отмечен как разрешенный");
+                await JS.InvokeVoidAsync("alert", "Блокер разрешен");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Ошибка разрешения блокера: {ex.Message}");
-            await JS.InvokeVoidAsync("alert", "Произошла ошибка");
+            Console.WriteLine($"Ошибка: {ex.Message}");
+            await ErrorHandling.TriggerError("Произошла ошибка");
         }
     }
 
-    private void GoToProjects()
+    private string GetTypeBadgeClass(string type)
     {
-        Navigation.NavigateTo("/projects");
+        return type switch
+        {
+            "UserStory" => "bg-primary",
+            "Bug" => "bg-danger",
+            "TechnicalTask" => "bg-secondary",
+            "Improvement" => "bg-success",
+            _ => "bg-secondary"
+        };
     }
 
-    private string GetStatusName(string status)
+    private string GetTypeName(string type)
+    {
+        return type switch
+        {
+            "UserStory" => "Story",
+            "Bug" => "Bug",
+            "TechnicalTask" => "Task",
+            "Improvement" => "Improve",
+            _ => type
+        };
+    }
+
+    private string GetStatusBadgeClass(string status)
     {
         return status switch
         {
-            "Backlog" => "Бэклог",
-            "ToDo" => "To Do",
-            "InProgress" => "In Progress",
-            "Done" => "Done",
-            _ => status
+            "Backlog" => "bg-secondary",
+            "ToDo" => "bg-info",
+            "InProgress" => "bg-warning",
+            "Done" => "bg-success",
+            _ => "bg-secondary"
         };
     }
 }
