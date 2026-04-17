@@ -1089,6 +1089,6 @@ C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\o
 C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\refint\ProjectManagementBlazor.dll
 C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\ProjectManagementBlazor.pdb
 C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\ref\ProjectManagementBlazor.dll
-C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\compressed\erwhf3plu4-qaiqb6cbt4.gz
-C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\compressed\dyzmiyby4w-8zjk60cgu4.gz
-C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\compressed\e1s4x4bzp4-tfw12max4r.gz
+C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\compressed\erwhf3plu4-3mcvatzt8f.gz
+C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\compressed\dyzmiyby4w-hlbl6tafmc.gz
+C:\Users\sciiphoz\source\repos\ProjectManagementBlazor\ProjectManagementBlazor\obj\Debug\net8.0\compressed\e1s4x4bzp4-8mhl73ooiv.gz

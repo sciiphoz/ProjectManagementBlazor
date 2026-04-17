@@ -3,8 +3,10 @@
 @attribute [Authorize]
 @inject IProjectService ProjectService
 @inject IUserService UserService
+@inject IAuthService AuthService
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
+@inject IErrorHandlingService ErrorHandling
 
 <PageTitle>Участники проекта</PageTitle>
 
@@ -20,15 +22,26 @@
     }
     else if (project != null)
     {
+        <!-- Проверка прав на добавление участников -->
+        @if (!canAddMembers)
+        {
+            <div class="alert alert-warning mb-3">
+                ⚠️ У вас нет прав для добавления или изменения участников. Только Product Owner и Scrum Master могут управлять участниками.
+            </div>
+        }
+
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h2>Участники проекта</h2>
                 <p class="text-muted">@project.Name</p>
             </div>
             <div>
-                <button class="btn btn-primary" @onclick="ShowAddMemberModal">
-                    + Добавить участника
-                </button>
+                @if (canAddMembers)
+                {
+                    <button class="btn btn-primary" @onclick="ShowAddMemberModal">
+                        + Добавить участника
+                    </button>
+                }
                 <button class="btn btn-outline-secondary ms-2" @onclick="GoBack">
                     ← Назад к проекту
                 </button>
@@ -47,7 +60,7 @@
                                 <th>Участник</th>
                                 <th>Email</th>
                                 <th>Роль</th>
-                                <th>Дата加入</th>
+                                <th>Дата</th>
                                 <th>Действия</th>
                             </tr>
                         </thead>
@@ -65,14 +78,14 @@
                                                 <small class="text-muted">@@@member.Username</small>
                                             </div>
                                         </div>
-                                    </td>
-                                    <td>@member.Email</td>
+                                    </td
+                                    <td>@member.Email</td
                                     <td>
                                         @if (member.IsOwner)
                                         {
                                             <span class="badge bg-primary">Владелец</span>
                                         }
-                                        else
+                                        else if (canAddMembers)
                                         {
                                             <select class="form-select form-select-sm" style="width: auto;"
                                                     value="@memberRole"
@@ -83,10 +96,14 @@
                                                 <option value="Viewer">Viewer</option>
                                             </select>
                                         }
-                                    </td>
-                                    <td>@member.JoinedAt.ToString("dd.MM.yyyy")</td>
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">@member.Role</span>
+                                        }
+                                    </td
+                                    <td>@member.JoinedAt.ToString("dd.MM.yyyy")</td
                                     <td>
-                                        @if (!member.IsOwner)
+                                        @if (!member.IsOwner && canAddMembers)
                                         {
                                             <button class="btn btn-sm btn-outline-danger"
                                                     @onclick="() => RemoveMember(member.UserId, member.FullName)">
@@ -97,7 +114,7 @@
                                         {
                                             <span class="text-muted">—</span>
                                         }
-                                    </td>
+                                    </td
                                 </tr>
                             }
                         </tbody>
@@ -218,10 +235,45 @@
     private string inviteEmail = "";
     private string inviteRole = "Developer";
     private bool isSaving = false;
+    private bool canAddMembers = false;
+    private string currentUserRole = "";
 
     protected override async Task OnInitializedAsync()
     {
         await LoadData();
+        await CheckPermissions();
+    }
+
+    private async Task CheckPermissions()
+    {
+        try
+        {
+            var currentUser = await AuthService.GetCurrentUserAsync();
+            if (currentUser.Success && currentUser.Data != null)
+            {
+                var membersResult = await ProjectService.GetProjectMembersAsync(ProjectId);
+                if (membersResult.Success && membersResult.Data != null)
+                {
+                    var currentMember = membersResult.Data.FirstOrDefault(m => m.UserId == currentUser.Data.Id);
+                    if (currentMember != null)
+                    {
+                        currentUserRole = currentMember.Role;
+                        canAddMembers = currentUserRole == "ProductOwner" || currentUserRole == "ScrumMaster";
+                        Console.WriteLine($"Текущий пользователь: {currentUser.Data.FullName}, Роль: {currentUserRole}, Может добавлять: {canAddMembers}");
+                    }
+                    else if (project?.Owner?.Id == currentUser.Data.Id)
+                    {
+                        canAddMembers = true;
+                        currentUserRole = "ProductOwner";
+                        Console.WriteLine($"Текущий пользователь: {currentUser.Data.FullName} (владелец), Может добавлять: true");
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка проверки прав: {ex.Message}");
+        }
     }
 
     private async Task LoadData()
@@ -244,11 +296,16 @@
             if (membersResult.Success && membersResult.Data != null)
             {
                 members = membersResult.Data;
+                foreach (var m in members)
+                {
+                    Console.WriteLine($"Участник: {m.FullName}, Роль: {m.Role}, IsOwner: {m.IsOwner}");
+                }
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Ошибка загрузки: {ex.Message}");
+            await ErrorHandling.TriggerError($"Ошибка загрузки: {ex.Message}");
         }
         finally
         {
@@ -259,6 +316,11 @@
     private async Task ChangeRole(Guid userId, string? newRole)
     {
         if (string.IsNullOrEmpty(newRole)) return;
+        if (!canAddMembers)
+        {
+            await ErrorHandling.TriggerError("У вас нет прав для изменения ролей");
+            return;
+        }
 
         try
         {
@@ -275,18 +337,24 @@
             }
             else
             {
-                await JS.InvokeVoidAsync("alert", $"Ошибка: {result.Message}");
+                await ErrorHandling.TriggerError($"Ошибка: {result.Message}");
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Ошибка изменения роли: {ex.Message}");
-            await JS.InvokeVoidAsync("alert", "Произошла ошибка");
+            await ErrorHandling.TriggerError("Произошла ошибка");
         }
     }
 
     private async Task RemoveMember(Guid userId, string userName)
     {
+        if (!canAddMembers)
+        {
+            await ErrorHandling.TriggerError("У вас нет прав для удаления участников");
+            return;
+        }
+        
         if (!await JS.InvokeAsync<bool>("confirm", $"Удалить участника '{userName}' из проекта?")) return;
 
         try
@@ -300,18 +368,23 @@
             }
             else
             {
-                await JS.InvokeVoidAsync("alert", $"Ошибка: {result.Message}");
+                await ErrorHandling.TriggerError($"Ошибка: {result.Message}");
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Ошибка удаления: {ex.Message}");
-            await JS.InvokeVoidAsync("alert", "Произошла ошибка");
+            await ErrorHandling.TriggerError("Произошла ошибка");
         }
     }
 
     private void ShowAddMemberModal()
     {
+        if (!canAddMembers)
+        {
+            ErrorHandling.TriggerError("У вас нет прав для добавления участников");
+            return;
+        }
         inviteEmail = "";
         inviteRole = "Developer";
         showAddModal = true;
@@ -323,56 +396,58 @@
     }
 
     private async Task AddMember()
+{
+    if (string.IsNullOrWhiteSpace(inviteEmail))
     {
-        if (string.IsNullOrWhiteSpace(inviteEmail))
-        {
-            await JS.InvokeVoidAsync("alert", "Введите email пользователя");
-            return;
-        }
+        await ErrorHandling.TriggerError("Введите email пользователя");
+        return;
+    }
 
-        isSaving = true;
-        try
-        {
-            var usersResult = await UserService.GetAllUsersAsync(new PagedRequest { SearchTerm = inviteEmail, PageSize = 10 });
-            var user = usersResult.Data?.Items?.FirstOrDefault(u => u.Email == inviteEmail);
+    if (!canAddMembers)
+    {
+        await ErrorHandling.TriggerError("У вас нет прав для добавления участников");
+        return;
+    }
 
-            if (user == null)
-            {
-                await JS.InvokeVoidAsync("alert", $"Пользователь с email '{inviteEmail}' не найден");
-                return;
-            }
-
-            var request = new AddProjectMemberRequest
-            {
-                UserId = user.Id,
-                Role = inviteRole
-            };
-            var result = await ProjectService.AddMemberAsync(ProjectId, request);
-            if (result.Success)
-            {
-                CloseAddModal();
-                await LoadData();
-                await JS.InvokeVoidAsync("alert", "Участник добавлен");
-            }
-            else
-            {
-                await JS.InvokeVoidAsync("alert", $"Ошибка: {result.Message}");
-            }
-        }
-        catch (Exception ex)
+    isSaving = true;
+    try
+    {
+        // Создаём запрос с email (без UserId)
+        var request = new AddProjectMemberRequest
         {
-            Console.WriteLine($"Ошибка добавления: {ex.Message}");
-            await JS.InvokeVoidAsync("alert", "Произошла ошибка");
-        }
-        finally
+            Email = inviteEmail,  // Отправляем email вместо UserId
+            Role = inviteRole
+        };
+        
+        var result = await ProjectService.AddMemberAsync(ProjectId, request);
+        
+        if (result.Success)
         {
-            isSaving = false;
+            CloseAddModal();
+            await LoadData();
+            await JS.InvokeVoidAsync("alert", "Участник добавлен");
+        }
+        else
+        {
+            await ErrorHandling.TriggerError($"Ошибка: {result.Message}");
         }
     }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Ошибка добавления: {ex.Message}");
+        await ErrorHandling.TriggerError("Произошла ошибка");
+    }
+    finally
+    {
+        isSaving = false;
+    }
+}
 
     private int GetRoleCount(string role)
     {
-        return members?.Count(m => m.Role == role && !m.IsOwner) ?? 0;
+        if (members == null) return 0;
+        
+        return members.Count(m => m.Role == role && !m.IsOwner);
     }
 
     private void GoBack()

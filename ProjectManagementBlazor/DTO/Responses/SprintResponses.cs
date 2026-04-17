@@ -10,6 +10,7 @@
         public bool IsActive { get; set; }
         public string Status { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
+        public Guid ProjectId { get; set; }
         public int TotalTasksCount { get; set; }
         public int CompletedTasksCount { get; set; }
         public decimal? TotalStoryPoints { get; set; }

@@ -5,6 +5,7 @@
 @inject ISprintService SprintService
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
+@inject IErrorHandlingService ErrorHandling
 
 <PageTitle>Детали проекта</PageTitle>
 
@@ -88,6 +89,7 @@
                                     <th>Название</th>
                                     <th>Даты</th>
                                     <th>Статус</th>
+                                    <th>Прогресс</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -95,8 +97,8 @@
                                 @foreach (var sprint in sprints)
                                 {
                                     <tr>
-                                        <td>@sprint.Name</td>
-                                        <td>@sprint.StartDate.ToString("dd.MM.yyyy") - @sprint.EndDate.ToString("dd.MM.yyyy")</td>
+                                        <td>@sprint.Name</td
+                                        <td>@sprint.StartDate.ToString("dd.MM.yyyy") - @sprint.EndDate.ToString("dd.MM.yyyy")</td
                                         <td>
                                             @if (sprint.IsActive)
                                             {
@@ -106,17 +108,45 @@
                                             {
                                                 <span class="badge bg-secondary">Завершен</span>
                                             }
+                                            else if (sprint.Status == "Cancelled")
+                                            {
+                                                <span class="badge bg-danger">Отменен</span>
+                                            }
                                             else
                                             {
                                                 <span class="badge bg-info">Планируется</span>
                                             }
-                                        </td>
+                                        </td
                                         <td>
-                                            <button class="btn btn-sm btn-outline-primary"
-                                                    @onclick="() => OpenSprint(sprint.Id)">
-                                                Открыть
-                                            </button>
-                                        </td>
+                                            <div class="progress" style="height: 20px; width: 100px;">
+                                                <div class="progress-bar bg-success" role="progressbar" 
+                                                     style="width: @GetSprintProgress(sprint.Id)%">
+                                                    @((int)GetSprintProgress(sprint.Id))%
+                                                </div>
+                                            </div>
+                                        </td
+                                        <td>
+                                            <div class="btn-group">
+                                                <button class="btn btn-sm btn-outline-primary" 
+                                                        @onclick="() => OpenSprint(sprint.Id)">
+                                                    Открыть
+                                                </button>
+                                                @if (sprint.Status == "Planned" || sprint.Status == "Cancelled")
+                                                {
+                                                    <button class="btn btn-sm btn-outline-danger" 
+                                                            @onclick="() => DeleteSprint(sprint.Id, sprint.Name)">
+                                                        Удалить
+                                                    </button>
+                                                }
+                                                @if (sprint.Status == "Cancelled")
+                                                {
+                                                    <button class="btn btn-sm btn-outline-success" 
+                                                            @onclick="() => RestoreSprint(sprint.Id)">
+                                                        Восстановить
+                                                    </button>
+                                                }
+                                            </div>
+                                        </td
                                     </tr>
                                 }
                             </tbody>
@@ -210,6 +240,9 @@
         overflow: auto;
         z-index: 1050;
     }
+    .btn-group {
+        gap: 5px;
+    }
 </style>
 
 @code {
@@ -217,6 +250,7 @@
 
     private ProjectResponse? project;
     private List<SprintBriefResponse>? sprints;
+    private Dictionary<Guid, double> sprintProgress = new();
     private bool isLoading = true;
     private bool showEditModal = false;
     private bool showCreateSprintModal = false;
@@ -243,16 +277,47 @@
             if (sprintsResult.Success && sprintsResult.Data != null)
             {
                 sprints = sprintsResult.Data;
+                
+                // Загружаем прогресс для каждого спринта
+                foreach (var sprint in sprints)
+                {
+                    await LoadSprintProgress(sprint.Id);
+                }
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Ошибка: {ex.Message}");
+            await ErrorHandling.TriggerError($"Ошибка загрузки: {ex.Message}");
         }
         finally
         {
             isLoading = false;
         }
+    }
+
+    private async Task LoadSprintProgress(Guid sprintId)
+    {
+        try
+        {
+            var result = await SprintService.GetSprintBoardAsync(sprintId);
+            if (result.Success && result.Data != null)
+            {
+                var total = result.Data.TotalTasksCount;
+                var completed = result.Data.CompletedTasksCount;
+                sprintProgress[sprintId] = total > 0 ? (double)completed / total * 100 : 0;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка загрузки прогресса спринта: {ex.Message}");
+            sprintProgress[sprintId] = 0;
+        }
+    }
+
+    private double GetSprintProgress(Guid sprintId)
+    {
+        return sprintProgress.ContainsKey(sprintId) ? sprintProgress[sprintId] : 0;
     }
 
     private void ShowEditModal()
@@ -282,11 +347,17 @@
             {
                 CloseEditModal();
                 await LoadData();
+                await JS.InvokeVoidAsync("alert", "Проект обновлен");
+            }
+            else
+            {
+                await ErrorHandling.TriggerError($"Ошибка: {result.Message}");
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Ошибка: {ex.Message}");
+            await ErrorHandling.TriggerError("Произошла ошибка");
         }
     }
 
@@ -294,10 +365,22 @@
     {
         if (await JS.InvokeAsync<bool>("confirm", "Вы уверены, что хотите удалить проект?"))
         {
-            var result = await ProjectService.DeleteProjectAsync(ProjectId);
-            if (result.Success)
+            try
             {
-                Navigation.NavigateTo("/projects");
+                var result = await ProjectService.DeleteProjectAsync(ProjectId);
+                if (result.Success)
+                {
+                    Navigation.NavigateTo("/projects");
+                }
+                else
+                {
+                    await ErrorHandling.TriggerError($"Ошибка: {result.Message}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка: {ex.Message}");
+                await ErrorHandling.TriggerError("Произошла ошибка");
             }
         }
     }
@@ -327,11 +410,71 @@
             {
                 CloseCreateSprintModal();
                 await LoadData();
+                await JS.InvokeVoidAsync("alert", "Спринт создан");
+            }
+            else
+            {
+                await ErrorHandling.TriggerError($"Ошибка: {result.Message}");
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Ошибка: {ex.Message}");
+            await ErrorHandling.TriggerError("Произошла ошибка");
+        }
+    }
+
+    private async Task DeleteSprint(Guid sprintId, string sprintName)
+    {
+        if (await JS.InvokeAsync<bool>("confirm", $"Удалить спринт '{sprintName}'?"))
+        {
+            try
+            {
+                var result = await SprintService.DeleteSprintAsync(sprintId);
+                if (result.Success)
+                {
+                    await LoadData();
+                    await JS.InvokeVoidAsync("alert", "Спринт удален");
+                }
+                else
+                {
+                    await ErrorHandling.TriggerError($"Ошибка: {result.Message}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка: {ex.Message}");
+                await ErrorHandling.TriggerError("Произошла ошибка");
+            }
+        }
+    }
+
+    private async Task RestoreSprint(Guid sprintId)
+    {
+        if (await JS.InvokeAsync<bool>("confirm", "Восстановить отмененный спринт?"))
+        {
+            try
+            {
+                var updateRequest = new UpdateSprintRequest
+                {
+                    Status = "Planned"
+                };
+                var result = await SprintService.UpdateSprintAsync(sprintId, updateRequest);
+                if (result.Success)
+                {
+                    await LoadData();
+                    await JS.InvokeVoidAsync("alert", "Спринт восстановлен");
+                }
+                else
+                {
+                    await ErrorHandling.TriggerError($"Ошибка: {result.Message}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка: {ex.Message}");
+                await ErrorHandling.TriggerError("Произошла ошибка");
+            }
         }
     }
 
@@ -344,14 +487,17 @@
     {
         Navigation.NavigateTo($"/backlog/{ProjectId}");
     }
+
     private void GoToMembers()
     {
         Navigation.NavigateTo($"/projects/{ProjectId}/members");
     }
+
     private void GoToReports()
     {
         Navigation.NavigateTo($"/reports/{ProjectId}");
     }
+
     private void GoToActivityLogs()
     {
         Navigation.NavigateTo($"/projects/{ProjectId}/logs");

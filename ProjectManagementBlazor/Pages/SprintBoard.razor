@@ -1,10 +1,12 @@
 ﻿@page "/sprints/{SprintId:guid}"
+@page "/sprints/{SprintId:guid}/{TaskId:guid}"
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize]
 @inject ISprintService SprintService
 @inject IBacklogService BacklogService
 @inject ISubTaskService SubTaskService
 @inject NavigationManager Navigation
+@inject IErrorHandlingService ErrorHandling
 @inject IJSRuntime JS
 
 <PageTitle>Доска спринта</PageTitle>
@@ -50,9 +52,14 @@
                             <div>@sprint.StartDate.ToString("dd.MM.yyyy") - @sprint.EndDate.ToString("dd.MM.yyyy")</div>
                             <div>Осталось дней: <strong>@sprint.DaysRemaining</strong></div>
                         </div>
-                        <button class="btn btn-sm btn-info" @onclick="GoToRetrospective">
-                            📊 Ретроспектива
-                        </button>
+                        <div class="mt-2">
+                            <button class="btn btn-sm btn-secondary me-2" @onclick="GoToProject">
+                                📁 К проекту
+                            </button>
+                            <button class="btn btn-sm btn-info" @onclick="GoToRetrospective">
+                                📊 Ретроспектива
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -414,6 +421,7 @@
 
 @code {
     [Parameter] public Guid SprintId { get; set; }
+    [Parameter] public Guid TaskId { get; set; }
 
     private List<BurndownPoint>? burndownData;
     private bool isBurndownLoading = false;
@@ -521,10 +529,15 @@
             if (result.Success && result.Data != null)
             {
                 sprint = result.Data;
+                Console.WriteLine($"Спринт загружен: {sprint.Name}, ProjectId: {sprint.ProjectId}");
                 completeRequest = new CompleteSprintRequest { SprintId = SprintId };
 
-                // Загружаем данные графика отдельно
                 await LoadBurndownData();
+
+                if (TaskId != Guid.Empty)
+                {
+                    await OpenTaskDetailFromUrl(TaskId);
+                }
             }
             else
             {
@@ -541,44 +554,169 @@
         }
     }
 
-    private async Task StartSprint()
+    private async Task OpenTaskDetailFromUrl(Guid taskId)
     {
-        var request = new StartSprintRequest
+        try
         {
-            SprintId = SprintId,
-            BacklogItemIds = sprint?.Tasks.Select(t => t.Id).ToList() ?? new List<Guid>()
-        };
+            // Ждём, пока спринт загрузится
+            int maxAttempts = 10;
+            int attempt = 0;
+            while (sprint == null && attempt < maxAttempts)
+            {
+                await Task.Delay(200);
+                attempt++;
+            }
 
-        var result = await SprintService.StartSprintAsync(request);
-        if (result.Success)
+            if (sprint == null)
+            {
+                Console.WriteLine("Спринт не загружен");
+                return;
+            }
+
+            var result = await BacklogService.GetBacklogItemDetailAsync(taskId);
+            if (result.Success && result.Data != null)
+            {
+                taskDetail = result.Data;
+                selectedTask = sprint.Tasks.FirstOrDefault(t => t.Id == taskId);
+                selectedStatus = selectedTask?.Status ?? "ToDo";
+                StateHasChanged();
+                Console.WriteLine($"Задача успешно открыта: {taskDetail.Title}");
+            }
+            else
+            {
+                Console.WriteLine($"Ошибка загрузки задачи: {result.Message}");
+            }
+        }
+        catch (Exception ex)
         {
-            await LoadSprint();
+            Console.WriteLine($"Ошибка: {ex.Message}");
         }
     }
 
-    private void ShowCompleteModal() => showCompleteModal = true;
+    private async Task StartSprint()
+    {
+        try
+        {
+            if (sprint == null)
+            {
+                await ErrorHandling.TriggerError("Спринт не загружен");
+                return;
+            }
 
-    private void CloseCompleteModal() => showCompleteModal = false;
+            // Проверяем статус спринта перед отправкой
+            if (sprint.Status != "Planned")
+            {
+                await ErrorHandling.TriggerError($"Спринт можно запустить только в статусе Planned. Текущий статус: {sprint.Status}");
+                return;
+            }
+
+            var request = new StartSprintRequest
+            {
+                SprintId = SprintId,
+                BacklogItemIds = sprint.Tasks.Where(t => t.Status == "Backlog").Select(t => t.Id).ToList()
+            };
+
+            Console.WriteLine($"Отправка запроса на запуск спринта {SprintId}");
+            Console.WriteLine($"Текущий статус спринта: {sprint.Status}");
+            Console.WriteLine($"Количество задач для перемещения: {request.BacklogItemIds.Count}");
+
+            var result = await SprintService.StartSprintAsync(request);
+
+            if (result.Success)
+            {
+                Console.WriteLine("Спринт успешно запущен");
+                await LoadSprint();
+                await JS.InvokeVoidAsync("alert", "Спринт успешно запущен!");
+            }
+            else
+            {
+                Console.WriteLine($"Ошибка запуска спринта: {result.Message}");
+                await ErrorHandling.TriggerError($"Ошибка: {result.Message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Исключение при запуске спринта: {ex.Message}");
+            await ErrorHandling.TriggerError($"Произошла ошибка: {ex.Message}");
+        }
+    }
+
+    private void ShowCompleteModal()
+    {
+        completeRequest = new CompleteSprintRequest { SprintId = SprintId };
+        showCompleteModal = true;
+        StateHasChanged();
+    }
+
+    private void CloseCompleteModal()
+    {
+        showCompleteModal = false;
+        StateHasChanged();
+    }
 
     private async Task CompleteSprint()
     {
-        var result = await SprintService.CompleteSprintAsync(completeRequest);
-        if (result.Success)
+        try
         {
-            CloseCompleteModal();
-            await LoadSprint();
+            if (string.IsNullOrWhiteSpace(completeRequest.ReviewNotes))
+            {
+                await ErrorHandling.TriggerError("Заполните заметки к Sprint Review");
+                return;
+            }
+
+            Console.WriteLine($"Отправка запроса на завершение спринта {SprintId}");
+            Console.WriteLine($"ReviewNotes: {completeRequest.ReviewNotes}");
+            Console.WriteLine($"RetrospectiveNotes: {completeRequest.RetrospectiveNotes}");
+
+            var result = await SprintService.CompleteSprintAsync(completeRequest);
+
+            if (result.Success)
+            {
+                Console.WriteLine("Спринт успешно завершен");
+                CloseCompleteModal();
+                await LoadSprint();
+                await JS.InvokeVoidAsync("alert", "Спринт успешно завершен!");
+            }
+            else
+            {
+                Console.WriteLine($"Ошибка завершения спринта: {result.Message}");
+                await ErrorHandling.TriggerError($"Ошибка: {result.Message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Исключение при завершении спринта: {ex.Message}");
+            await ErrorHandling.TriggerError($"Произошла ошибка: {ex.Message}");
         }
     }
 
     private async Task CancelSprint()
     {
-        if (await JS.InvokeAsync<bool>("confirm", "Отменить спринт?"))
+        try
         {
+            var confirmed = await JS.InvokeAsync<bool>("confirm", "Вы уверены, что хотите отменить спринт?");
+            if (!confirmed) return;
+
+            Console.WriteLine($"Отправка запроса на отмену спринта {SprintId}");
+
             var result = await SprintService.CancelSprintAsync(SprintId);
+
             if (result.Success)
             {
+                Console.WriteLine("Спринт успешно отменен");
                 await LoadSprint();
+                await JS.InvokeVoidAsync("alert", "Спринт отменен");
             }
+            else
+            {
+                Console.WriteLine($"Ошибка отмены спринта: {result.Message}");
+                await ErrorHandling.TriggerError($"Ошибка: {result.Message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Исключение при отмене спринта: {ex.Message}");
+            await ErrorHandling.TriggerError($"Произошла ошибка: {ex.Message}");
         }
     }
 
@@ -677,5 +815,19 @@
     private void GoToRetrospective()
     {
         Navigation.NavigateTo($"/retrospective/{SprintId}");
+    }
+
+    private void GoToProject()
+    {
+        if (sprint?.ProjectId != null && sprint.ProjectId != Guid.Empty)
+        {
+            Console.WriteLine($"Переход к проекту: {sprint.ProjectId}");
+            Navigation.NavigateTo($"/projects/{sprint.ProjectId}");
+        }
+        else
+        {
+            Console.WriteLine("ProjectId не найден в спринте");
+            ErrorHandling.TriggerError("Не удалось определить проект для перехода");
+        }
     }
 }

@@ -173,6 +173,19 @@
                     </button>
                 </div>
                 <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-5">
+                            <label class="form-label">Дата начала</label>
+                            <input type="date" class="form-control" @bind="teamReportStartDate" @bind:event="oninput" />
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Дата окончания</label>
+                            <input type="date" class="form-control" @bind="teamReportEndDate" @bind:event="oninput" />
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button class="btn btn-primary w-100" @onclick="LoadTeamReport">Применить</button>
+                        </div>
+                    </div>
                     @if (isTeamLoading)
                     {
                         <div class="text-center py-5">
@@ -183,22 +196,6 @@
                     }
                     else if (teamReport != null && teamReport.TeamMembers.Any())
                     {
-                        <!-- Период -->
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <label class="form-label">Дата начала</label>
-                                <input type="date" class="form-control" @bind="teamReportStartDate" 
-                                       @bind:event="oninput" />
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Дата окончания</label>
-                                <input type="date" class="form-control" @bind="teamReportEndDate" 
-                                       @bind:event="oninput" />
-                            </div>
-                        </div>
-                        <button class="btn btn-primary mb-4" @onclick="LoadTeamReport">Применить фильтр</button>
-
-                        <!-- Таблица производительности -->
                         <div class="table-responsive">
                             <table class="table table-hover">
                                 <thead>
@@ -216,27 +213,47 @@
                                     @foreach (var member in teamReport.TeamMembers)
                                     {
                                         <tr>
-                                            <td><strong>@member.User.FullName</strong><br /><small>@member.User.Role</small></td>
-                                            <td>@member.TasksCompleted</td>
-                                            <td>@member.TotalStoryPointsCompleted</td>
-                                            <td>@member.TotalEstimatedHours.ToString("F1")</td>
-                                            <td>@member.TotalActualHours.ToString("F1")</td>
                                             <td>
-                                                <div class="progress" style="height: 20px;">
-                                                    <div class="progress-bar @(member.Efficiency >= 100 ? "bg-success" : "bg-warning")" 
-                                                         role="progressbar" style="width: @Math.Min(member.Efficiency, 100)%">
-                                                        @((int)member.Efficiency)%
-                                                    </div>
-                                                </div>
-                                             </td>
+                                                <strong>@member.User.FullName</strong>
+                                                <br />
+                                                <small class="text-muted">@member.User.Role</small>
+                                            </td
+                                            <td>@member.TasksCompleted</td
+                                            <td>@member.TotalStoryPointsCompleted</td
+                                            <td>@member.TotalEstimatedHours.ToString("F1")</td
+                                            <td>@member.TotalActualHours.ToString("F1")</td
                                             <td>
-                                                <div class="progress" style="height: 20px;">
-                                                    <div class="progress-bar bg-info" role="progressbar" 
-                                                         style="width: @member.CompletionRate%">
-                                                        @((int)member.CompletionRate)%
+                                                @if (member.TotalEstimatedHours > 0)
+                                                {
+                                                    var efficiency = Math.Min(100, (double)(member.TotalEstimatedHours / (member.TotalActualHours + 0.01m)) * 100);
+                                                    <div class="progress" style="height: 20px; width: 120px;">
+                                                        <div class="progress-bar @(efficiency >= 100 ? "bg-success" : "bg-warning")" 
+                                                             role="progressbar" style="width: @efficiency%">
+                                                            @((int)efficiency)%
+                                                        </div>
                                                     </div>
-                                                </div>
-                                             </td>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">—</span>
+                                                }
+                                            </td
+                                            <td>
+                                                @if (member.TasksCompleted + member.TasksInProgress > 0)
+                                                {
+                                                    var completionRate = (double)member.TasksCompleted / (member.TasksCompleted + member.TasksInProgress) * 100;
+                                                    <div class="progress" style="height: 20px; width: 120px;">
+                                                        <div class="progress-bar bg-info" role="progressbar" 
+                                                             style="width: @completionRate%">
+                                                            @((int)completionRate)%
+                                                        </div>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">—</span>
+                                                }
+                                            </td
                                         </tr>
                                     }
                                 </tbody>
@@ -251,14 +268,14 @@
                                         <th>—</th>
                                     </tr>
                                 </tfoot>
-                            </table>
+                            </table
                         </div>
                     }
                     else
                     {
                         <div class="text-center text-muted py-5">
                             <h5>Нет данных для отображения</h5>
-                            <p>Выберите период и нажмите "Применить фильтр"</p>
+                            <p>Выберите период и нажмите "Применить"</p>
                         </div>
                     }
                 </div>
@@ -271,11 +288,27 @@
             <div class="card">
                 <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Sprint Report (Отчет по спринту)</h5>
-                    <button class="btn btn-sm btn-light" @onclick="ExportSprintReport">
+                    <button class="btn btn-sm btn-light" @onclick="ExportSprintReport" disabled="@(selectedSprintId == Guid.Empty)">
                         📥 Экспорт
                     </button>
                 </div>
                 <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Выберите завершенный спринт</label>
+                            <select value="@selectedSprintId" class="form-select" @onchange="OnSprintSelected">
+                                <option value="">-- Выберите спринт --</option>
+                                @if (completedSprints != null)
+                                {
+                                    @foreach (var sprint in completedSprints)
+                                    {
+                                        <option value="@sprint.Id">@sprint.Name (@sprint.StartDate.ToString("dd.MM.yyyy") - @sprint.EndDate.ToString("dd.MM.yyyy"))</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
+
                     @if (isSprintLoading)
                     {
                         <div class="text-center py-5">
@@ -284,85 +317,115 @@
                             </div>
                         </div>
                     }
-                    else if (sprints != null && sprints.Any())
+                    else if (sprintReport != null)
                     {
-                        <div class="row">
-                            <div class="col-md-6">
-                                <label class="form-label">Выберите спринт</label>
-                                <select value="@selectedSprintId" class="form-select" @onchange="OnSprintSelected">
-                                    <option value="">-- Выберите спринт --</option>
-                                    @foreach (var sprint in sprints.Where(s => s.Status == "Completed"))
-                                    {
-                                        <option value="@sprint.Id">@sprint.Name (@sprint.StartDate.ToString("dd.MM") - @sprint.EndDate.ToString("dd.MM"))</option>
-                                    }
-                                </select>
-                            </div>
-                        </div>
-
-                        @if (sprintReport != null)
-                        {
-                            <div class="mt-4">
-                                <h5>@sprintReport.Sprint.Name</h5>
-                                <p class="text-muted">@sprintReport.Sprint.StartDate.ToString("dd.MM.yyyy") - @sprintReport.Sprint.EndDate.ToString("dd.MM.yyyy")</p>
-                                
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <div class="card bg-light">
-                                            <div class="card-body text-center">
-                                                <h5>Выполнено задач</h5>
-                                                <h3>@sprintReport.Sprint.CompletedTasksCount / @sprintReport.Sprint.TotalTasksCount</h3>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="card bg-light">
-                                            <div class="card-body text-center">
-                                                <h5>Velocity</h5>
-                                                <h3>@sprintReport.Metrics.Velocity</h3>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="card bg-light">
-                                            <div class="card-body text-center">
-                                                <h5>Выполнение</h5>
-                                                <h3>@((int)sprintReport.Sprint.CompletionPercentage)%</h3>
+                        <div class="mt-4">
+                            <h5>@sprintReport.Sprint.Name</h5>
+                            <p class="text-muted">@sprintReport.Sprint.StartDate.ToString("dd.MM.yyyy") - @sprintReport.Sprint.EndDate.ToString("dd.MM.yyyy")</p>
+                            <p class="text-muted">Цель: @(string.IsNullOrEmpty(sprintReport.Sprint.Goal) ? "Не указана" : sprintReport.Sprint.Goal)</p>
+                    
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <h5>Выполнено задач</h5>
+                                            <h3>@sprintReport.Sprint.CompletedTasksCount / @sprintReport.Sprint.TotalTasksCount</h3>
+                                            <div class="progress">
+                                                <div class="progress-bar bg-success" role="progressbar" 
+                                                     style="width: @sprintReport.Sprint.CompletionPercentage%">
+                                                    @((int)sprintReport.Sprint.CompletionPercentage)%
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-
-                                <!-- Выполненные задачи -->
-                                @if (sprintReport.CompletedTasks.Any())
-                                {
-                                    <h6 class="mt-4 text-success">✅ Выполненные задачи</h6>
-                                    <ul>
-                                        @foreach (var task in sprintReport.CompletedTasks)
-                                        {
-                                            <li>@task.Title @(task.StoryPoints.HasValue ? $"({task.StoryPoints} SP)" : "")</li>
-                                        }
-                                    </ul>
-                                }
-
-                                <!-- Невыполненные задачи -->
-                                @if (sprintReport.IncompleteTasks.Any())
-                                {
-                                    <h6 class="mt-3 text-danger">❌ Невыполненные задачи</h6>
-                                    <ul>
-                                        @foreach (var task in sprintReport.IncompleteTasks)
-                                        {
-                                            <li>@task.Title @(task.StoryPoints.HasValue ? $"({task.StoryPoints} SP)" : "")</li>
-                                        }
-                                    </ul>
-                                }
+                                <div class="col-md-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <h5>Story Points</h5>
+                                            <h3>@sprintReport.Sprint.CompletedStoryPoints / @sprintReport.Sprint.TotalStoryPoints</h3>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <h5>Velocity</h5>
+                                            <h3>@sprintReport.Metrics.Velocity</h3>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                        }
+
+                            @if (sprintReport.CompletedTasks.Any())
+                            {
+                                <h6 class="mt-4 text-success">✅ Выполненные задачи (@sprintReport.CompletedTasks.Count)</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Задача</th>
+                                                <th>Тип</th>
+                                                <th>Story Points</th>
+                                                <th>Исполнитель</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var task in sprintReport.CompletedTasks)
+                                            {
+                                                <tr>
+                                                    <td>@task.Title</td
+                                                    <td>@task.Type</td
+                                                    <td>@task.StoryPoints</td
+                                                    <td>@task.Assignee?.FullName</td
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table
+                                </div>
+                            }
+
+                            @if (sprintReport.IncompleteTasks.Any())
+                            {
+                                <h6 class="mt-3 text-danger">❌ Невыполненные задачи (@sprintReport.IncompleteTasks.Count)</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Задача</th>
+                                                <th>Тип</th>
+                                                <th>Story Points</th>
+                                                <th>Исполнитель</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var task in sprintReport.IncompleteTasks)
+                                            {
+                                                <tr>
+                                                    <td>@task.Title</td
+                                                    <td>@task.Type</td
+                                                    <td>@task.StoryPoints</td
+                                                    <td>@task.Assignee?.FullName</td
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table
+                                </div>
+                            }
+                    
+                            @if (!string.IsNullOrEmpty(sprintReport.ReviewNotes))
+                            {
+                                <div class="mt-3">
+                                    <h6>📝 Заметки Sprint Review</h6>
+                                    <p class="text-muted">@sprintReport.ReviewNotes</p>
+                                </div>
+                            }
+                        </div>
                     }
-                    else
+                    else if (selectedSprintId != Guid.Empty && !isSprintLoading)
                     {
-                        <div class="text-center text-muted py-5">
-                            <h5>Нет завершенных спринтов</h5>
-                            <p>Завершите хотя бы один спринт, чтобы увидеть отчет</p>
+                        <div class="alert alert-info text-center mt-3">
+                            Не удалось загрузить отчет по спринту.
                         </div>
                     }
                 </div>
@@ -392,8 +455,10 @@
 
     private ProjectResponse? project;
     private List<SprintBriefResponse>? sprints;
+    private List<SprintBriefResponse>? completedSprints;
     private string activeTab = "velocity";
     private bool isLoading = true;
+    private Guid previousProjectId = Guid.Empty;
     
     // Velocity
     private VelocityReportResponse? velocityReport;
@@ -431,6 +496,12 @@
                 return;
             }
 
+            var allSprints = await SprintService.GetProjectSprintsAsync(ProjectId);
+            if (allSprints.Success && allSprints.Data != null)
+            {
+                completedSprints = allSprints.Data.Where(s => s.Status == "Completed").ToList();
+            }
+
             var sprintsResult = await SprintService.GetProjectSprintsAsync(ProjectId);
             if (sprintsResult.Success && sprintsResult.Data != null)
             {
@@ -446,28 +517,6 @@
         finally
         {
             isLoading = false;
-        }
-    }
-
-    private async Task LoadVelocityReport()
-    {
-        isVelocityLoading = true;
-        try
-        {
-            var result = await ReportService.GenerateVelocityReportAsync(ProjectId);
-            if (result.Success && result.Data != null)
-            {
-                velocityReport = result.Data;
-                await JS.InvokeVoidAsync("drawVelocityChart", velocityReport.SprintHistory);
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка загрузки Velocity: {ex.Message}");
-        }
-        finally
-        {
-            isVelocityLoading = false;
         }
     }
 
@@ -616,10 +665,20 @@
         }
     }
 
-    private void ShowVelocityTab()
+private void ShowVelocityTab()
     {
         activeTab = "velocity";
         StateHasChanged();
+        
+        // Перерисовываем график при переключении на вкладку
+        if (velocityReport != null && velocityReport.SprintHistory.Any())
+        {
+            // Даём время на рендер canvas
+            _ = Task.Delay(100).ContinueWith(async _ =>
+            {
+                await JS.InvokeVoidAsync("drawVelocityChart", velocityReport.SprintHistory);
+            });
+        }
     }
 
     private void ShowTeamTab()
@@ -628,7 +687,7 @@
         StateHasChanged();
         if (teamReport == null)
         {
-            LoadTeamReport();
+            _ = LoadTeamReport();
         }
     }
 
@@ -636,5 +695,35 @@
     {
         activeTab = "sprint";
         StateHasChanged();
+    }
+
+    private async Task LoadVelocityReport()
+    {
+        isVelocityLoading = true;
+        try
+        {
+            var result = await ReportService.GenerateVelocityReportAsync(ProjectId);
+            if (result.Success && result.Data != null && result.Data.SprintHistory.Any())
+            {
+                velocityReport = result.Data;
+                // Даём время на рендер canvas
+                await Task.Delay(100);
+                await JS.InvokeVoidAsync("drawVelocityChart", velocityReport.SprintHistory);
+            }
+            else
+            {
+                Console.WriteLine($"Нет данных для Velocity отчета");
+                velocityReport = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка загрузки Velocity: {ex.Message}");
+            velocityReport = null;
+        }
+        finally
+        {
+            isVelocityLoading = false;
+        }
     }
 }

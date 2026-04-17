@@ -1,4 +1,5 @@
-﻿using ProjectManagementBlazor.DTO.Common;
+﻿// Services/ActivityLogService.cs (клиент)
+using ProjectManagementBlazor.DTO.Common;
 using ProjectManagementBlazor.DTO.Requests;
 using ProjectManagementBlazor.DTO.Responses;
 using ProjectManagementBlazor.Interfaces;

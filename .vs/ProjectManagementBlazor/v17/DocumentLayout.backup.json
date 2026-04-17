@@ -3,40 +3,28 @@
   "WorkspaceRootPath": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|c:\\users\\sciiphoz\\source\\repos\\projectmanagementblazor\\projectmanagementblazor\\pages\\dashboard.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|solutionrelative:projectmanagementblazor\\pages\\dashboard.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+      "AbsoluteMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|c:\\users\\sciiphoz\\source\\repos\\projectmanagementblazor\\projectmanagementblazor\\pages\\sprintboard.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|solutionrelative:projectmanagementblazor\\pages\\sprintboard.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|c:\\users\\sciiphoz\\source\\repos\\projectmanagementblazor\\projectmanagementblazor\\pages\\notifications.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|solutionrelative:projectmanagementblazor\\pages\\notifications.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+      "AbsoluteMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|c:\\users\\sciiphoz\\source\\repos\\projectmanagementblazor\\projectmanagementblazor\\dto\\responses\\sprintresponses.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|solutionrelative:projectmanagementblazor\\dto\\responses\\sprintresponses.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|c:\\users\\sciiphoz\\source\\repos\\projectmanagementblazor\\projectmanagementblazor\\layout\\navmenu.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|solutionrelative:projectmanagementblazor\\layout\\navmenu.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|c:\\users\\sciiphoz\\source\\repos\\projectmanagementblazor\\projectmanagementblazor\\services\\notificationservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|solutionrelative:projectmanagementblazor\\services\\notificationservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|c:\\users\\sciiphoz\\source\\repos\\projectmanagementblazor\\projectmanagementblazor\\dto\\responses\\reportresponses.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|solutionrelative:projectmanagementblazor\\dto\\responses\\reportresponses.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|c:\\users\\sciiphoz\\source\\repos\\projectmanagementblazor\\projectmanagementblazor\\wwwroot\\index.html||{40D31677-CBC0-4297-A9EF-89D907823A98}",
       "RelativeMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|solutionrelative:projectmanagementblazor\\wwwroot\\index.html||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|c:\\users\\sciiphoz\\source\\repos\\projectmanagementblazor\\projectmanagementblazor\\services\\authservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|solutionrelative:projectmanagementblazor\\services\\authservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|c:\\users\\sciiphoz\\source\\repos\\projectmanagementblazor\\projectmanagementblazor\\pages\\reports.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|solutionrelative:projectmanagementblazor\\pages\\reports.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|c:\\users\\sciiphoz\\source\\repos\\projectmanagementblazor\\projectmanagementblazor\\pages\\activitylogs.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|solutionrelative:projectmanagementblazor\\pages\\activitylogs.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|c:\\users\\sciiphoz\\source\\repos\\projectmanagementblazor\\projectmanagementblazor\\services\\activitylogservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|solutionrelative:projectmanagementblazor\\services\\activitylogservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|c:\\users\\sciiphoz\\source\\repos\\projectmanagementblazor\\projectmanagementblazor\\interfaces\\iactivitylogservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|solutionrelative:projectmanagementblazor\\interfaces\\iactivitylogservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|c:\\users\\sciiphoz\\source\\repos\\projectmanagementblazor\\projectmanagementblazor\\services\\reportservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|solutionrelative:projectmanagementblazor\\services\\reportservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -46,7 +34,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 5,
+          "SelectedChildIndex": 1,
           "Children": [
             {
               "$type": "Bookmark",
@@ -54,119 +42,80 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "NavMenu.razor",
-              "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Layout\\NavMenu.razor",
-              "RelativeDocumentMoniker": "ProjectManagementBlazor\\Layout\\NavMenu.razor",
-              "ToolTip": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Layout\\NavMenu.razor",
-              "RelativeToolTip": "ProjectManagementBlazor\\Layout\\NavMenu.razor",
-              "ViewState": "AgIAAE4AAAAAAAAAAAAAAGIAAAAFAAAAAAAAAA==",
+              "DocumentIndex": 0,
+              "Title": "SprintBoard.razor",
+              "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\SprintBoard.razor",
+              "RelativeDocumentMoniker": "ProjectManagementBlazor\\Pages\\SprintBoard.razor",
+              "ToolTip": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\SprintBoard.razor",
+              "RelativeToolTip": "ProjectManagementBlazor\\Pages\\SprintBoard.razor",
+              "ViewState": "AgIAABACAAAAAAAAAAAAABsCAAARAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-04-13T05:59:53.987Z",
+              "WhenOpened": "2026-04-17T06:36:57.94Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 1,
-              "Title": "Notifications.razor",
-              "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\Notifications.razor",
-              "RelativeDocumentMoniker": "ProjectManagementBlazor\\Pages\\Notifications.razor",
-              "ToolTip": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\Notifications.razor",
-              "RelativeToolTip": "ProjectManagementBlazor\\Pages\\Notifications.razor",
-              "ViewState": "AgIAABgBAAAAAAAAAAAkwCoBAAAFAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-04-13T05:57:57.811Z",
+              "Title": "SprintResponses.cs",
+              "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\DTO\\Responses\\SprintResponses.cs",
+              "RelativeDocumentMoniker": "ProjectManagementBlazor\\DTO\\Responses\\SprintResponses.cs",
+              "ToolTip": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\DTO\\Responses\\SprintResponses.cs",
+              "RelativeToolTip": "ProjectManagementBlazor\\DTO\\Responses\\SprintResponses.cs",
+              "ViewState": "AgIAABsAAAAAAAAAAAAgwCkAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-17T06:36:22.967Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "ReportResponses.cs",
+              "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\DTO\\Responses\\ReportResponses.cs",
+              "RelativeDocumentMoniker": "ProjectManagementBlazor\\DTO\\Responses\\ReportResponses.cs",
+              "ToolTip": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\DTO\\Responses\\ReportResponses.cs",
+              "RelativeToolTip": "ProjectManagementBlazor\\DTO\\Responses\\ReportResponses.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-17T06:36:18.965Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 3,
-              "Title": "NotificationService.cs",
-              "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Services\\NotificationService.cs",
-              "RelativeDocumentMoniker": "ProjectManagementBlazor\\Services\\NotificationService.cs",
-              "ToolTip": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Services\\NotificationService.cs",
-              "RelativeToolTip": "ProjectManagementBlazor\\Services\\NotificationService.cs",
-              "ViewState": "AgIAABIAAAAAAAAAAAAmwAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-04-13T05:57:48.073Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
               "Title": "index.html",
               "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\wwwroot\\index.html",
               "RelativeDocumentMoniker": "ProjectManagementBlazor\\wwwroot\\index.html",
               "ToolTip": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\wwwroot\\index.html",
               "RelativeToolTip": "ProjectManagementBlazor\\wwwroot\\index.html",
-              "ViewState": "AgIAABkBAAAAAAAAAAAAABwBAAArAAAAAAAAAA==",
+              "ViewState": "AgIAANMAAAAAAAAAAAAAwCMBAAAJAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001512|",
-              "WhenOpened": "2026-04-13T05:57:17.699Z",
+              "WhenOpened": "2026-04-17T06:21:13.66Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "Dashboard.razor",
-              "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\Dashboard.razor",
-              "RelativeDocumentMoniker": "ProjectManagementBlazor\\Pages\\Dashboard.razor",
-              "ToolTip": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\Dashboard.razor",
-              "RelativeToolTip": "ProjectManagementBlazor\\Pages\\Dashboard.razor",
-              "ViewState": "AgIAAIwBAAAAAAAAAAAkwJQDAAABAAAAAAAAAA==",
+              "DocumentIndex": 4,
+              "Title": "Reports.razor",
+              "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\Reports.razor",
+              "RelativeDocumentMoniker": "ProjectManagementBlazor\\Pages\\Reports.razor",
+              "ToolTip": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\Reports.razor",
+              "RelativeToolTip": "ProjectManagementBlazor\\Pages\\Reports.razor",
+              "ViewState": "AgIAAJoCAAAAAAAAAAAAANsBAAApAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-04-13T05:45:28.5Z",
+              "WhenOpened": "2026-04-17T06:17:55.336Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 5,
-              "Title": "AuthService.cs",
-              "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Services\\AuthService.cs",
-              "RelativeDocumentMoniker": "ProjectManagementBlazor\\Services\\AuthService.cs",
-              "ToolTip": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Services\\AuthService.cs",
-              "RelativeToolTip": "ProjectManagementBlazor\\Services\\AuthService.cs",
-              "ViewState": "AgIAABAAAAAAAAAAAAAAwAQAAAApAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-04-13T05:45:05.456Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 7,
-              "Title": "ActivityLogService.cs",
-              "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Services\\ActivityLogService.cs",
-              "RelativeDocumentMoniker": "ProjectManagementBlazor\\Services\\ActivityLogService.cs",
-              "ToolTip": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Services\\ActivityLogService.cs",
-              "RelativeToolTip": "ProjectManagementBlazor\\Services\\ActivityLogService.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-04-13T05:38:28.957Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 8,
-              "Title": "IActivityLogService.cs",
-              "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Interfaces\\IActivityLogService.cs",
-              "RelativeDocumentMoniker": "ProjectManagementBlazor\\Interfaces\\IActivityLogService.cs",
-              "ToolTip": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Interfaces\\IActivityLogService.cs",
-              "RelativeToolTip": "ProjectManagementBlazor\\Interfaces\\IActivityLogService.cs",
+              "Title": "ReportService.cs",
+              "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Services\\ReportService.cs",
+              "RelativeDocumentMoniker": "ProjectManagementBlazor\\Services\\ReportService.cs",
+              "ToolTip": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Services\\ReportService.cs",
+              "RelativeToolTip": "ProjectManagementBlazor\\Services\\ReportService.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-04-13T05:38:13.96Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 6,
-              "Title": "ActivityLogs.razor",
-              "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\ActivityLogs.razor",
-              "RelativeDocumentMoniker": "ProjectManagementBlazor\\Pages\\ActivityLogs.razor",
-              "ToolTip": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\ActivityLogs.razor",
-              "RelativeToolTip": "ProjectManagementBlazor\\Pages\\ActivityLogs.razor",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABEAAAASAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-04-13T05:37:56.853Z",
+              "WhenOpened": "2026-04-17T06:17:45.222Z",
               "EditorCaption": ""
             }
           ]

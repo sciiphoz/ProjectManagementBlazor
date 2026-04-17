@@ -204,80 +204,90 @@
 <script>
     window.drawVelocityChart = (sprintHistory) => {
         try {
-            const canvas = document.getElementById('velocityChart');
-            if (!canvas) {
-                setTimeout(() => window.drawVelocityChart(sprintHistory), 100);
-                return;
-            }
+            // Несколько попыток найти canvas
+            let attempts = 0;
+            const maxAttempts = 10;
 
-            const ctx = canvas.getContext('2d');
-            if (!ctx) return;
+            function tryDraw() {
+                const canvas = document.getElementById('velocityChart');
+                if (!canvas) {
+                    attempts++;
+                    if (attempts < maxAttempts) {
+                        console.log(`Canvas не найден, повторная попытка ${attempts}...`);
+                        setTimeout(tryDraw, 100);
+                    } else {
+                        console.error('Canvas не найден после нескольких попыток');
+                    }
+                    return;
+                }
 
-            if (window.velocityChartInstance) {
-                window.velocityChartInstance.destroy();
-            }
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    console.error('Не удалось получить контекст canvas');
+                    return;
+                }
 
-            const labels = sprintHistory.map(s => s.sprintName);
-            const completedPoints = sprintHistory.map(s => s.completedStoryPoints);
-            const committedPoints = sprintHistory.map(s => s.totalStoryPoints);
+                if (!sprintHistory || sprintHistory.length === 0) {
+                    console.log('Нет данных для графика');
+                    return;
+                }
 
-            window.velocityChartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Выполнено Story Points',
-                            data: completedPoints,
-                            backgroundColor: 'rgba(40, 167, 69, 0.7)',
-                            borderColor: 'rgb(40, 167, 69)',
-                            borderWidth: 1
-                        },
-                        {
-                            label: 'Запланировано Story Points',
-                            data: committedPoints,
-                            backgroundColor: 'rgba(23, 162, 184, 0.7)',
-                            borderColor: 'rgb(23, 162, 184)',
-                            borderWidth: 1
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: { position: 'top' },
-                        title: { display: true, text: 'Velocity Chart' }
+                if (window.velocityChartInstance) {
+                    window.velocityChartInstance.destroy();
+                }
+
+                const labels = sprintHistory.map(s => s.sprintName);
+                const completedPoints = sprintHistory.map(s => s.completedStoryPoints);
+                const committedPoints = sprintHistory.map(s => s.totalStoryPoints);
+
+                window.velocityChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Выполнено Story Points',
+                                data: completedPoints,
+                                backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                                borderColor: 'rgb(40, 167, 69)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Запланировано Story Points',
+                                data: committedPoints,
+                                backgroundColor: 'rgba(23, 162, 184, 0.7)',
+                                borderColor: 'rgb(23, 162, 184)',
+                                borderWidth: 1
+                            }
+                        ]
                     },
-                    scales: {
-                        y: {
-                            title: { display: true, text: 'Story Points' },
-                            beginAtZero: true
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: { position: 'top' },
+                            title: { display: true, text: 'Velocity Chart' }
+                        },
+                        scales: {
+                            y: {
+                                title: { display: true, text: 'Story Points' },
+                                beginAtZero: true,
+                                ticks: { stepSize: 1 }
+                            },
+                            x: {
+                                title: { display: true, text: 'Спринты' }
+                            }
                         }
                     }
-                }
-            });
-        } catch (error) {
-            console.error('Ошибка создания графика Velocity:', error);
-        }
-    };
+                });
 
-    window.downloadFile = (filename, base64Data) => {
-        const link = document.createElement('a');
-        const byteCharacters = atob(base64Data);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
+                console.log('Velocity Chart успешно создан');
+            }
+
+            tryDraw();
+        } catch (error) {
+            console.error('Ошибка создания Velocity Chart:', error);
         }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: 'application/octet-stream' });
-        const url = URL.createObjectURL(blob);
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
     };
 </script>
 

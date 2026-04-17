@@ -7,6 +7,7 @@
 @inject IAuthService AuthService
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
+@inject IErrorHandlingService ErrorHandling
 
 <PageTitle>Бэклог продукта</PageTitle>
 
@@ -559,19 +560,41 @@
 
     private async Task ConfirmMoveToSprint()
     {
-        if (selectedSprintId != Guid.Empty)
+        if (selectedSprintId == Guid.Empty)
         {
+            await ErrorHandling.TriggerError("Выберите спринт");
+            return;
+        }
+
+        try
+        {
+            Console.WriteLine($"Перемещение задачи {selectedTaskId} в спринт {selectedSprintId}");
+
             var request = new MoveToSprintRequest
             {
                 BacklogItemIds = new List<Guid> { selectedTaskId },
                 SprintId = selectedSprintId
             };
+
             var result = await SprintService.MoveToSprintAsync(request);
+
             if (result.Success)
             {
+                Console.WriteLine("Задача успешно перемещена");
                 CloseMoveModal();
                 await LoadBacklog();
+                await JS.InvokeVoidAsync("alert", "Задача перемещена в спринт");
             }
+            else
+            {
+                Console.WriteLine($"Ошибка перемещения: {result.Message}");
+                await ErrorHandling.TriggerError($"Ошибка: {result.Message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Исключение при перемещении: {ex.Message}");
+            await ErrorHandling.TriggerError($"Произошла ошибка: {ex.Message}");
         }
     }
 

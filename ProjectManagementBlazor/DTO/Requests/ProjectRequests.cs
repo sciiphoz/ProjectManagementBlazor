@@ -25,8 +25,10 @@ namespace ProjectManagementBlazor.DTO.Requests
 
     public class AddProjectMemberRequest
     {
-        [Required]
-        public Guid UserId { get; set; }
+        public Guid? UserId { get; set; } 
+
+        [EmailAddress]
+        public string? Email { get; set; }
 
         [Required]
         public string Role { get; set; } = string.Empty;

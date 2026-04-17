@@ -39,9 +39,26 @@ namespace ProjectManagementBlazor.Services
             if (!string.IsNullOrEmpty(request.SearchTerm))
                 queryString += $"&searchTerm={Uri.EscapeDataString(request.SearchTerm)}";
 
-            return await SendRequestAsync<PagedResult<BacklogItemResponse>>(
+            Console.WriteLine($"Запрос к API: api/backlog/project/{projectId}{queryString}");
+
+            var result = await SendRequestAsync<PagedResult<BacklogItemResponse>>(
                 () => _httpClient.GetAsync($"api/backlog/project/{projectId}{queryString}"),
                 "Не удалось получить бэклог проекта");
+
+            if (result.Success && result.Data != null)
+            {
+                Console.WriteLine($"Получено задач: {result.Data.Items.Count}");
+                foreach (var item in result.Data.Items)
+                {
+                    Console.WriteLine($"Задача: {item.Title}, Статус: {item.Status}, Исполнитель: {item.Assignee?.Id}");
+                }
+            }
+            else
+            {
+                Console.WriteLine($"Ошибка получения бэклога: {result.Message}");
+            }
+
+            return result;
         }
 
         public async Task<ApiResponse<BacklogItemResponse>> UpdateBacklogItemAsync(Guid id, UpdateBacklogItemRequest request)

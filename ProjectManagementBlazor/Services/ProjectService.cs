@@ -93,10 +93,10 @@ namespace ProjectManagementBlazor.Services
 
         public async Task<ApiResponse<ProjectMemberResponse>> AddMemberAsync(Guid projectId, AddProjectMemberRequest request)
         {
-            if (request.UserId == Guid.Empty)
+            if (string.IsNullOrWhiteSpace(request.Email) && request.UserId == Guid.Empty)
             {
-                await _errorHandling.TriggerError("Не указан пользователь");
-                return ApiResponse<ProjectMemberResponse>.Fail("Не указан пользователь");
+                await _errorHandling.TriggerError("Не указан email или ID пользователя");
+                return ApiResponse<ProjectMemberResponse>.Fail("Не указан email или ID пользователя");
             }
 
             if (string.IsNullOrWhiteSpace(request.Role))
@@ -105,9 +105,22 @@ namespace ProjectManagementBlazor.Services
                 return ApiResponse<ProjectMemberResponse>.Fail("Не указана роль");
             }
 
-            return await SendRequestAsync<ProjectMemberResponse>(
-                () => _httpClient.PostAsJsonAsync($"api/projects/{projectId}/members", request),
-                "Не удалось добавить участника");
+            try
+            {
+                Console.WriteLine($"Добавление участника с email {request.Email} в проект {projectId} с ролью {request.Role}");
+
+                var result = await SendRequestAsync<ProjectMemberResponse>(
+                    () => _httpClient.PostAsJsonAsync($"api/projects/{projectId}/members", request),
+                    "Не удалось добавить участника");
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Исключение при добавлении участника: {ex.Message}");
+                await _errorHandling.TriggerError($"Ошибка: {ex.Message}");
+                return ApiResponse<ProjectMemberResponse>.Fail($"Ошибка: {ex.Message}");
+            }
         }
 
         public async Task<ApiResponse> UpdateMemberRoleAsync(Guid projectId, UpdateMemberRoleRequest request)

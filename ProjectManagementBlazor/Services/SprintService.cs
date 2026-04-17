@@ -8,6 +8,7 @@ namespace ProjectManagementBlazor.Services
 {
     public class SprintService : BaseApiService, ISprintService
     {
+
         public SprintService(HttpClient httpClient, IErrorHandlingService errorHandling)
             : base(httpClient, errorHandling)
         {
@@ -68,23 +69,80 @@ namespace ProjectManagementBlazor.Services
 
         public async Task<ApiResponse<SprintResponse>> StartSprintAsync(StartSprintRequest request)
         {
-            return await SendRequestAsync<SprintResponse>(
-                () => _httpClient.PostAsJsonAsync($"api/sprints/{request.SprintId}/start", request),
-                "Не удалось запустить спринт");
+            try
+            {
+                Console.WriteLine($"Запуск спринта {request.SprintId} с {request.BacklogItemIds.Count} задачами");
+
+                var result = await SendRequestAsync<SprintResponse>(
+                    () => _httpClient.PostAsJsonAsync($"api/sprints/{request.SprintId}/start", request),
+                    "Не удалось запустить спринт");
+
+                if (!result.Success)
+                {
+                    Console.WriteLine($"Ошибка запуска спринта: {result.Message}");
+                    await _errorHandling.TriggerError(result.Message);
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Исключение при запуске спринта: {ex.Message}");
+                await _errorHandling.TriggerError($"Ошибка: {ex.Message}");
+                return ApiResponse<SprintResponse>.Fail($"Ошибка: {ex.Message}");
+            }
         }
 
         public async Task<ApiResponse<SprintResponse>> CompleteSprintAsync(CompleteSprintRequest request)
         {
-            return await SendRequestAsync<SprintResponse>(
-                () => _httpClient.PostAsJsonAsync($"api/sprints/{request.SprintId}/complete", request),
-                "Не удалось завершить спринт");
+            try
+            {
+                Console.WriteLine($"Завершение спринта {request.SprintId}");
+
+                var result = await SendRequestAsync<SprintResponse>(
+                    () => _httpClient.PostAsJsonAsync($"api/sprints/{request.SprintId}/complete", request),
+                    "Не удалось завершить спринт");
+
+                if (!result.Success)
+                {
+                    Console.WriteLine($"Ошибка завершения спринта: {result.Message}");
+                    await _errorHandling.TriggerError(result.Message);
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Исключение при завершении спринта: {ex.Message}");
+                await _errorHandling.TriggerError($"Ошибка: {ex.Message}");
+                return ApiResponse<SprintResponse>.Fail($"Ошибка: {ex.Message}");
+            }
         }
 
         public async Task<ApiResponse> CancelSprintAsync(Guid sprintId)
         {
-            return await SendRequestAsync(
-                () => _httpClient.PostAsync($"api/sprints/{sprintId}/cancel", null),
-                "Не удалось отменить спринт");
+            try
+            {
+                Console.WriteLine($"Отмена спринта {sprintId}");
+
+                var result = await SendRequestAsync(
+                    () => _httpClient.PostAsync($"api/sprints/{sprintId}/cancel", null),
+                    "Не удалось отменить спринт");
+
+                if (!result.Success)
+                {
+                    Console.WriteLine($"Ошибка отмены спринта: {result.Message}");
+                    await _errorHandling.TriggerError(result.Message);
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Исключение при отмене спринта: {ex.Message}");
+                await _errorHandling.TriggerError($"Ошибка: {ex.Message}");
+                return ApiResponse.Fail($"Ошибка: {ex.Message}");
+            }
         }
 
         public async Task<ApiResponse<SprintBoardResponse>> GetSprintBoardAsync(Guid sprintId)
@@ -109,9 +167,31 @@ namespace ProjectManagementBlazor.Services
                 return ApiResponse.Fail("Не выбраны задачи для перемещения");
             }
 
-            return await SendRequestAsync(
-                () => _httpClient.PostAsJsonAsync("api/sprints/move-to-sprint", request),
-                "Не удалось переместить задачи");
+            try
+            {
+                Console.WriteLine($"Перемещение задач {string.Join(",", request.BacklogItemIds)} в спринт {request.SprintId}");
+
+                var result = await SendRequestAsync(
+                    () => _httpClient.PostAsJsonAsync("api/sprints/move-to-sprint", request),
+                    "Не удалось переместить задачи");
+
+                if (result.Success)
+                {
+                    Console.WriteLine("Задачи успешно перемещены");
+                }
+                else
+                {
+                    Console.WriteLine($"Ошибка перемещения: {result.Message}");
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Исключение при перемещении: {ex.Message}");
+                await _errorHandling.TriggerError($"Ошибка: {ex.Message}");
+                return ApiResponse.Fail($"Ошибка: {ex.Message}");
+            }
         }
 
         public async Task<ApiResponse> MoveToBacklogAsync(Guid backlogItemId)
