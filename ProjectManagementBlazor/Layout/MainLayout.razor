@@ -6,15 +6,21 @@
 <PageTitle>Project Management System</PageTitle>
 
 <div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+    @if (showSidebar)
+    {
+        <div class="sidebar">
+            <NavMenu />
+        </div>
+    }
 
     <main>
         <div class="top-row px-4">
-            <span class="ms-auto">
-                <button class="btn btn-link" @onclick="Logout">Выйти</button>
-            </span>
+            @if (showSidebar)
+            {
+                <span class="ms-auto">
+                    <button class="btn btn-link" @onclick="Logout">Выйти</button>
+                </span>
+            }
         </div>
 
         <ErrorDisplay />
@@ -26,6 +32,35 @@
 </div>
 
 @code {
+    private bool showSidebar = true;
+
+    protected override void OnInitialized()
+    {
+        Navigation.LocationChanged += OnLocationChanged;
+        CheckLocation(Navigation.Uri);
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        CheckLocation(e.Location);
+        StateHasChanged();
+    }
+
+    private void CheckLocation(string uri)
+    {
+        if (uri.Contains("/login") ||
+            uri.Contains("/register") ||
+            uri.Contains("/forgot-password") ||
+            uri.Contains("/reset-password"))
+        {
+            showSidebar = false;
+        }
+        else
+        {
+            showSidebar = true;
+        }
+    }
+
     private async Task Logout()
     {
         try
@@ -37,5 +72,10 @@
         {
             await ErrorHandling.TriggerError($"Ошибка при выходе: {ex.Message}");
         }
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
     }
 }

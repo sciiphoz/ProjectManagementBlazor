@@ -12,5 +12,8 @@ namespace ProjectManagementBlazor.Interfaces
         Task<ApiResponse> ChangePasswordAsync(ChangePasswordRequest request);
         Task<ApiResponse<PagedResult<UserResponse>>> GetAllUsersAsync(PagedRequest request);
         Task<ApiResponse<List<UserBriefResponse>>> GetProjectUsersAsync(Guid projectId);
+        Task<ApiResponse> ForgotPasswordAsync(string email);
+        Task<ApiResponse> VerifyResetCodeAsync(string email, string code);
+        Task<ApiResponse> ResetPasswordWithCodeAsync(string email, string code, string newPassword, string confirmPassword);
     }
 }

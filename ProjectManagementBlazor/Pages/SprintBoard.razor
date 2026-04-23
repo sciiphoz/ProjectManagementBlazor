@@ -22,7 +22,6 @@
     }
     else if (sprint != null)
     {
-        <!-- Заголовок спринта -->
         <div class="card mb-4">
             <div class="card-header bg-primary text-white">
                 <div class="d-flex justify-content-between align-items-center">
@@ -138,7 +137,6 @@
                 </div>
             </div>
 
-            <!-- To Do колонка -->
             <div class="col-md-3 mb-4">
                 <div class="card h-100">
                     <div class="card-header bg-info text-white">
@@ -170,7 +168,6 @@
                 </div>
             </div>
 
-            <!-- In Progress колонка -->
             <div class="col-md-3 mb-4">
                 <div class="card h-100">
                     <div class="card-header bg-warning text-dark">
@@ -235,7 +232,6 @@
             </div>
         </div>
 
-        <!-- График сгорания задач -->
         <div class="card mt-4">
             <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">📈 График сгорания задач (Burndown Chart)</h5>
@@ -434,8 +430,6 @@
     private bool showCompleteModal = false;
     private CompleteSprintRequest completeRequest = new();
 
-    // ==================== DRAG AND DROP МЕТОДЫ ====================
-
     private void OnDragStart(BacklogItemBoardResponse task)
     {
         draggedTask = task;
@@ -450,7 +444,7 @@
 
     private void OnDragOver()
     {
-        // Необходимо для разрешения drop
+
     }
 
     private async Task OnDropToBacklog()
@@ -513,8 +507,6 @@
         draggedTask = null;
     }
 
-    // ==================== ОСНОВНЫЕ МЕТОДЫ ====================
-
     protected override async Task OnInitializedAsync()
     {
         await LoadSprint();
@@ -558,7 +550,6 @@
     {
         try
         {
-            // Ждём, пока спринт загрузится
             int maxAttempts = 10;
             int attempt = 0;
             while (sprint == null && attempt < maxAttempts)
@@ -603,7 +594,6 @@
                 return;
             }
 
-            // Проверяем статус спринта перед отправкой
             if (sprint.Status != "Planned")
             {
                 await ErrorHandling.TriggerError($"Спринт можно запустить только в статусе Planned. Текущий статус: {sprint.Status}");
@@ -785,7 +775,6 @@
             if (result.Success && result.Data != null && result.Data.Any())
             {
                 burndownData = result.Data;
-                // Добавляем небольшую задержку перед отрисовкой
                 await Task.Delay(100);
                 await JS.InvokeVoidAsync("drawBurndownChart", burndownData);
             }

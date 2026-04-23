@@ -23,7 +23,6 @@
     }
     else
     {
-        <!-- Заголовок -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h2>Мой день</h2>
@@ -41,37 +40,35 @@
             <div class="alert alert-danger">@errorMessage</div>
         }
 
-        <!-- Фильтр по проекту -->
-<div class="col-md-4">
-    <label class="form-label">Фильтр по проекту</label>
-    <select class="form-select" value="@selectedProjectFilter" @onchange="OnProjectFilterChanged">
-        <option value="">Все проекты</option>
-        @foreach (var project in projects)
-        {
-            <option value="@project.Id">@project.Name</option>
-        }
-    </select>
-</div>
-<div class="col-md-4">
-    <label class="form-label">Сортировка</label>
-    <select class="form-select" value="@sortBy" @onchange="OnSortByChanged">
-        <option value="project">По проекту</option>
-        <option value="status">По статусу</option>
-        <option value="title">По названию</option>
-    </select>
-</div>
-<div class="col-md-4 d-flex align-items-end">
-    <div class="form-check">
-        <input class="form-check-input" type="checkbox" 
-               @bind="showOnlyActive" @bind:event="onchange" 
-               id="showOnlyActive" />
-        <label class="form-check-label" for="showOnlyActive">
-            Только активные (не выполненные)
-        </label>
-    </div>
-</div>
+        <div class="col-md-4">
+            <label class="form-label">Фильтр по проекту</label>
+            <select class="form-select" value="@selectedProjectFilter" @onchange="OnProjectFilterChanged">
+                <option value="">Все проекты</option>
+                @foreach (var project in projects)
+                {
+                    <option value="@project.Id">@project.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Сортировка</label>
+            <select class="form-select" value="@sortBy" @onchange="OnSortByChanged">
+                <option value="project">По проекту</option>
+                <option value="status">По статусу</option>
+                <option value="title">По названию</option>
+            </select>
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" 
+                       @bind="showOnlyActive" @bind:event="onchange" 
+                       id="showOnlyActive" />
+                <label class="form-check-label" for="showOnlyActive">
+                    Только активные (не выполненные)
+                </label>
+            </div>
+        </div>
 
-        <!-- Мои задачи -->
         <div class="card mb-4">
             <div class="card-header bg-primary text-white">
                 <h5 class="mb-0">📋 Мои задачи (@filteredTasks.Count)</h5>
@@ -152,7 +149,6 @@
             </div>
         </div>
 
-        <!-- Статистика -->
         <div class="row">
             <div class="col-md-4">
                 <div class="card bg-light">
@@ -181,7 +177,6 @@
         </div>
     }
 
-    <!-- Модальное окно добавления блокера -->
     @if (showBlockerModal)
     {
         <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5); z-index: 1050;">
@@ -254,16 +249,13 @@
     private string? errorMessage = null;
     private bool isLoading = true;
     
-    // Фильтры
     private string selectedProjectFilter = "";
     private string sortBy = "project";
     private bool showOnlyActive = true;
     
-    // Статистика
     private int allTasksCount = 0;
     private int completedTasksCount = 0;
     
-    // Блокеры
     private bool showBlockerModal = false;
     private string newBlockerDescription = "";
     private string newBlockerSeverity = "Medium";
@@ -281,6 +273,7 @@
         public string SprintName { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
         public decimal? StoryPoints { get; set; }
+        public bool IsProjectArchived { get; set; }
     }
 
     protected override async Task OnInitializedAsync()
@@ -349,6 +342,12 @@
             
             foreach (var project in projectsResult.Data.Items)
             {
+                if (project.IsArchived)
+                {
+                    Console.WriteLine($"Проект '{project.Name}' в архиве, задачи не загружаются");
+                    continue;
+                }
+                
                 var sprintsResult = await SprintService.GetProjectSprintsAsync(project.Id);
                 List<SprintBriefResponse> sprints = new();
                 if (sprintsResult.Success && sprintsResult.Data != null)
@@ -379,7 +378,8 @@
                             ProjectName = project.Name,
                             SprintName = sprintName,
                             Status = task.Status,
-                            StoryPoints = task.StoryPoints
+                            StoryPoints = task.StoryPoints,
+                            IsProjectArchived = project.IsArchived
                         });
                     }
                 }
@@ -387,6 +387,8 @@
             
             allTasksCount = myTasks.Count;
             completedTasksCount = myTasks.Count(t => t.Status == "Done");
+            
+            Console.WriteLine($"Загружено задач из активных проектов: {allTasksCount}");
         }
         catch (Exception ex)
         {

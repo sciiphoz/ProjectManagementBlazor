@@ -84,6 +84,64 @@ namespace ProjectManagementBlazor.Services
                 "Не удалось получить участников проекта");
         }
 
+        // Services/UserService.cs
+        public async Task<ApiResponse> ForgotPasswordAsync(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                await _errorHandling.TriggerError("Введите email");
+                return ApiResponse.Fail("Введите email");
+            }
+
+            return await SendRequestAsync(
+                () => _httpClient.PostAsJsonAsync("api/auth/forgot-password", new { email }),
+                "Не удалось отправить запрос");
+        }
+
+        public async Task<ApiResponse> VerifyResetCodeAsync(string email, string code)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                await _errorHandling.TriggerError("Email не указан");
+                return ApiResponse.Fail("Email не указан");
+            }
+
+            if (string.IsNullOrWhiteSpace(code))
+            {
+                await _errorHandling.TriggerError("Введите код подтверждения");
+                return ApiResponse.Fail("Введите код подтверждения");
+            }
+
+            return await SendRequestAsync(
+                () => _httpClient.PostAsJsonAsync("api/auth/verify-reset-code", new { email, code }),
+                "Не удалось проверить код");
+        }
+
+        public async Task<ApiResponse> ResetPasswordWithCodeAsync(string email, string code, string newPassword, string confirmPassword)
+        {
+            if (newPassword != confirmPassword)
+            {
+                await _errorHandling.TriggerError("Пароли не совпадают");
+                return ApiResponse.Fail("Пароли не совпадают");
+            }
+
+            if (string.IsNullOrWhiteSpace(newPassword))
+            {
+                await _errorHandling.TriggerError("Введите новый пароль");
+                return ApiResponse.Fail("Введите новый пароль");
+            }
+
+            if (newPassword.Length < 6)
+            {
+                await _errorHandling.TriggerError("Пароль должен содержать минимум 6 символов");
+                return ApiResponse.Fail("Пароль должен содержать минимум 6 символов");
+            }
+
+            return await SendRequestAsync(
+                () => _httpClient.PostAsJsonAsync("api/auth/reset-password-with-code", new { email, code, newPassword, confirmNewPassword = confirmPassword }),
+                "Не удалось сбросить пароль");
+        }
+
         #region Private Methods
 
         private bool IsValidEmail(string email)

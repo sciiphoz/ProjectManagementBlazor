@@ -53,7 +53,6 @@ namespace ProjectManagementBlazor.DTO.Requests
         [EmailAddress]
         public string Email { get; set; } = string.Empty;
     }
-
     public class ForgotPasswordRequest
     {
         [Required]
@@ -61,14 +60,24 @@ namespace ProjectManagementBlazor.DTO.Requests
         public string Email { get; set; } = string.Empty;
     }
 
-    public class ResetPasswordRequest
+    public class VerifyCodeRequest
     {
-        [Required]
-        public string Token { get; set; } = string.Empty;
-
         [Required]
         [EmailAddress]
         public string Email { get; set; } = string.Empty;
+
+        [Required]
+        public string Code { get; set; } = string.Empty;
+    }
+
+    public class ResetPasswordWithCodeRequest
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [Required]
+        public string Code { get; set; } = string.Empty;
 
         [Required]
         [MinLength(6)]

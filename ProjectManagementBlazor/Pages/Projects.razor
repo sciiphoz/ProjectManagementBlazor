@@ -3,15 +3,27 @@
 @attribute [Authorize]
 @inject IProjectService ProjectService
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
+@inject IErrorHandlingService ErrorHandling
 
 <PageTitle>Мои проекты</PageTitle>
 
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2>Мои проекты</h2>
-        <button class="btn btn-primary" @onclick="ShowCreateModal">
-            + Создать проект
-        </button>
+        <div>
+            <div class="btn-group me-2">
+                <button class="btn btn-outline-secondary btn-sm @(showArchived ? "active" : "")" @onclick="() => ToggleShowArchived(true)">
+                    📦 Все проекты
+                </button>
+                <button class="btn btn-outline-secondary btn-sm @(!showArchived ? "active" : "")" @onclick="() => ToggleShowArchived(false)">
+                    🟢 Активные
+                </button>
+            </div>
+            <button class="btn btn-primary" @onclick="ShowCreateModal">
+                + Создать проект
+            </button>
+        </div>
     </div>
 
     @if (isLoading)
@@ -22,15 +34,21 @@
             </div>
         </div>
     }
-    else if (projects != null && projects.Any())
+    else if (displayProjects != null && displayProjects.Any())
     {
         <div class="row">
-            @foreach (var project in projects)
+            @foreach (var project in displayProjects)
             {
                 <div class="col-md-4 mb-3">
-                    <div class="card h-100">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0">@project.Name</h5>
+                    <div class="card h-100 @(project.IsArchived ? "archived-card" : "")">
+                        <div class="card-header @(project.IsArchived ? "bg-secondary text-white" : "bg-primary text-white")">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">@project.Name</h5>
+                                @if (project.IsArchived)
+                                {
+                                    <span class="badge bg-warning text-dark">📦 Архив</span>
+                                }
+                            </div>
                         </div>
                         <div class="card-body">
                             <p class="card-text">@(project.Description ?? "Нет описания")</p>
@@ -41,34 +59,90 @@
                                 <span class="badge bg-info">Участников: @project.MembersCount</span>
                                 <span class="badge bg-success">Задач: @project.TotalTasksCount</span>
                             </div>
+                            @if (project.IsArchived)
+                            {
+                                <div class="alert alert-warning mt-2 mb-0 py-1 small">
+                                    <i class="bi bi-archive-fill"></i> Проект в архиве
+                                </div>
+                            }
                         </div>
                         <div class="card-footer">
-                            <button class="btn btn-sm btn-outline-primary w-100"
-                                    @onclick="() => OpenProject(project.Id)">
-                                Открыть проект
-                            </button>
+                            <div class="btn-group w-100">
+                                <button class="btn btn-sm btn-outline-primary"
+                                        @onclick="() => OpenProject(project.Id)">
+                                    Открыть
+                                </button>
+                                @if (project.IsArchived)
+                                {
+                                    <button class="btn btn-sm btn-outline-success"
+                                            @onclick="() => RestoreProject(project.Id)">
+                                        Восстановить
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-sm btn-outline-warning"
+                                            @onclick="() => ArchiveProject(project.Id)">
+                                        Архивировать
+                                    </button>
+                                }
+                                <button class="btn btn-sm btn-outline-danger"
+                                        @onclick="() => DeleteProject(project.Id, project.Name)">
+                                    Удалить
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             }
         </div>
+
+        <!-- Статистика -->
+        <div class="row mt-4">
+            <div class="col-md-4">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h3>@allProjectsCount</h3>
+                        <span>Всего проектов</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h3>@activeProjectsCount</h3>
+                        <span>Активных проектов</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h3>@archivedProjectsCount</h3>
+                        <span>В архиве</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     }
     else
     {
         <div class="alert alert-info text-center">
-            У вас пока нет проектов. Создайте первый проект!
+            <h5>У вас пока нет проектов</h5>
+            <p>Создайте первый проект, чтобы начать работу</p>
+            <button class="btn btn-primary" @onclick="ShowCreateModal">+ Создать проект</button>
         </div>
     }
 
     <!-- Модальное окно создания проекта -->
     @if (showCreateModal)
     {
-        <div class="modal show d-block" tabindex="-1" role="dialog">
+        <div class="modal show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0,0,0,0.5);">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header bg-primary text-white">
                         <h5 class="modal-title">Создание проекта</h5>
-                        <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                        <button type="button" class="btn-close btn-close-white" @onclick="CloseModal"></button>
                     </div>
                     <div class="modal-body">
                         <EditForm Model="@newProject" OnValidSubmit="@CreateProject">
@@ -94,16 +168,46 @@
                 </div>
             </div>
         </div>
-        <div class="modal-backdrop show"></div>
     }
 </div>
 
+<style>
+    .archived-card {
+        opacity: 0.85;
+        background-color: #f8f9fa;
+    }
+
+        .archived-card:hover {
+            opacity: 1;
+        }
+
+    .btn-group {
+        gap: 5px;
+    }
+
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        z-index: 1050;
+    }
+</style>
+
 @code {
-    private List<ProjectResponse>? projects;
+    private List<ProjectResponse>? allProjects;
+    private List<ProjectResponse>? displayProjects;
+    private bool showArchived = true;
     private bool isLoading = true;
     private bool showCreateModal = false;
     private bool isCreating = false;
     private CreateProjectRequest newProject = new();
+
+    private int allProjectsCount => allProjects?.Count ?? 0;
+    private int activeProjectsCount => allProjects?.Count(p => !p.IsArchived) ?? 0;
+    private int archivedProjectsCount => allProjects?.Count(p => p.IsArchived) ?? 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -115,20 +219,43 @@
         isLoading = true;
         try
         {
-            var result = await ProjectService.GetUserProjectsAsync(new PagedRequest { PageNumber = 1, PageSize = 50 });
+            var result = await ProjectService.GetUserProjectsAsync(new PagedRequest { PageNumber = 1, PageSize = 100 });
             if (result.Success && result.Data != null)
             {
-                projects = result.Data.Items;
+                allProjects = result.Data.Items;
+                ApplyFilter();
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Ошибка: {ex.Message}");
+            await ErrorHandling.TriggerError("Не удалось загрузить проекты");
         }
         finally
         {
             isLoading = false;
         }
+    }
+
+    private void ApplyFilter()
+    {
+        if (allProjects == null) return;
+
+        if (showArchived)
+        {
+            displayProjects = allProjects.ToList();
+        }
+        else
+        {
+            displayProjects = allProjects.Where(p => !p.IsArchived).ToList();
+        }
+        StateHasChanged();
+    }
+
+    private void ToggleShowArchived(bool show)
+    {
+        showArchived = show;
+        ApplyFilter();
     }
 
     private void ShowCreateModal()
@@ -144,6 +271,12 @@
 
     private async Task CreateProject()
     {
+        if (string.IsNullOrWhiteSpace(newProject.Name))
+        {
+            await ErrorHandling.TriggerError("Название проекта обязательно");
+            return;
+        }
+
         isCreating = true;
         try
         {
@@ -152,15 +285,93 @@
             {
                 CloseModal();
                 await LoadProjects();
+                await JS.InvokeVoidAsync("alert", "Проект создан");
+            }
+            else
+            {
+                await ErrorHandling.TriggerError($"Ошибка: {result.Message}");
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Ошибка: {ex.Message}");
+            await ErrorHandling.TriggerError("Произошла ошибка");
         }
         finally
         {
             isCreating = false;
+        }
+    }
+
+    private async Task ArchiveProject(Guid projectId)
+    {
+        if (await JS.InvokeAsync<bool>("confirm", "Архивировать проект? Он будет скрыт из списка активных проектов."))
+        {
+            try
+            {
+                var result = await ProjectService.ArchiveProjectAsync(projectId);
+                if (result.Success)
+                {
+                    await LoadProjects();
+                    await JS.InvokeVoidAsync("alert", "Проект архивирован");
+                }
+                else
+                {
+                    await ErrorHandling.TriggerError($"Ошибка: {result.Message}");
+                }
+            }
+            catch (Exception ex)
+            {
+                await ErrorHandling.TriggerError("Произошла ошибка");
+            }
+        }
+    }
+
+    private async Task RestoreProject(Guid projectId)
+    {
+        if (await JS.InvokeAsync<bool>("confirm", "Восстановить проект из архива?"))
+        {
+            try
+            {
+                var result = await ProjectService.RestoreProjectAsync(projectId);
+                if (result.Success)
+                {
+                    await LoadProjects();
+                    await JS.InvokeVoidAsync("alert", "Проект восстановлен");
+                }
+                else
+                {
+                    await ErrorHandling.TriggerError($"Ошибка: {result.Message}");
+                }
+            }
+            catch (Exception ex)
+            {
+                await ErrorHandling.TriggerError("Произошла ошибка");
+            }
+        }
+    }
+
+    private async Task DeleteProject(Guid projectId, string projectName)
+    {
+        if (await JS.InvokeAsync<bool>("confirm", $"Удалить проект '{projectName}'? Это действие необратимо."))
+        {
+            try
+            {
+                var result = await ProjectService.DeleteProjectAsync(projectId);
+                if (result.Success)
+                {
+                    await LoadProjects();
+                    await JS.InvokeVoidAsync("alert", "Проект удален");
+                }
+                else
+                {
+                    await ErrorHandling.TriggerError($"Ошибка: {result.Message}");
+                }
+            }
+            catch (Exception ex)
+            {
+                await ErrorHandling.TriggerError("Произошла ошибка");
+            }
         }
     }
 

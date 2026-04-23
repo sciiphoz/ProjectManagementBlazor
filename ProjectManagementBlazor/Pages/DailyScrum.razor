@@ -37,7 +37,6 @@
             </div>
         </div>
 
-        <!-- Выбор проекта -->
         <div class="card mb-4">
             <div class="card-body">
                 <div class="row align-items-end">
@@ -66,7 +65,6 @@
 
         @if (selectedProjectId != Guid.Empty && dailyScrum != null)
         {
-            <!-- Прогресс спринта -->
             <div class="card mb-4">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0">📊 Прогресс спринта</h5>
@@ -108,7 +106,6 @@
                 </div>
             </div>
 
-            <!-- Командные блокеры -->
             @if (dailyScrum.TeamBlockers != null && dailyScrum.TeamBlockers.Any())
             {
                 <div class="card mb-4 border-danger">
@@ -132,7 +129,6 @@
                 </div>
             }
 
-            <!-- Таблица участников -->
             <div class="card">
                 <div class="card-header bg-success text-white">
                     <h5 class="mb-0">👥 Участники команды</h5>
@@ -224,7 +220,6 @@
                 </div>
             </div>
 
-            <!-- Краткая инструкция -->
             <div class="alert alert-info mt-4">
                 <strong>📌 Как использовать страницу для Daily Scrum:</strong>
                 <ol class="mb-0 mt-2">
