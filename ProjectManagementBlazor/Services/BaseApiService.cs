@@ -1,4 +1,6 @@
-﻿using ProjectManagementBlazor.DTO.Common;
+﻿using Microsoft.AspNetCore.Components;
+using ProjectManagementBlazor.DTO.Common;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -9,11 +11,23 @@ namespace ProjectManagementBlazor.Services
         protected readonly HttpClient _httpClient;
         protected readonly IErrorHandlingService _errorHandling;
         protected readonly JsonSerializerOptions _options;
+        private readonly NavigationManager? _navigationManager;
 
         protected BaseApiService(HttpClient httpClient, IErrorHandlingService errorHandling)
         {
             _httpClient = httpClient;
             _errorHandling = errorHandling;
+            _options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+        }
+
+        protected BaseApiService(HttpClient httpClient, IErrorHandlingService errorHandling, NavigationManager navigationManager)
+        {
+            _httpClient = httpClient;
+            _errorHandling = errorHandling;
+            _navigationManager = navigationManager;
             _options = new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
@@ -28,6 +42,13 @@ namespace ProjectManagementBlazor.Services
             {
                 var response = await requestFunc();
                 var content = await response.Content.ReadAsStringAsync();
+
+                // Проверка 401 — токен истёк
+                if (response.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    _navigationManager?.NavigateTo("/login", true);
+                    return ApiResponse<T>.Fail("Требуется авторизация");
+                }
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -69,6 +90,13 @@ namespace ProjectManagementBlazor.Services
             {
                 var response = await requestFunc();
                 var content = await response.Content.ReadAsStringAsync();
+
+                // Проверка 401 — токен истёк
+                if (response.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    _navigationManager?.NavigateTo("/login", true);
+                    return ApiResponse.Fail("Требуется авторизация");
+                }
 
                 if (!response.IsSuccessStatusCode)
                 {

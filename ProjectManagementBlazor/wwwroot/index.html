@@ -6,9 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ProjectManagementBlazor</title>
     <base href="/" />
-    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
     <link rel="stylesheet" href="css/app.css" />
+    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link href="ProjectManagementBlazor.styles.css" rel="stylesheet" />
 </head>
 
@@ -35,7 +36,6 @@
 <script>
     window.drawBurndownChart = (burndownData) => {
         try {
-            // Ждем появления canvas элемента
             const canvas = document.getElementById('burndownChart');
             if (!canvas) {
                 console.log('Canvas элемент еще не загружен, повторная попытка через 100мс');
@@ -163,7 +163,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-    // Проверка загрузки Chart.js
     if (typeof Chart === 'undefined') {
         console.error('Chart.js не загружен!');
     } else {
@@ -204,7 +203,6 @@
 <script>
     window.drawVelocityChart = (sprintHistory) => {
         try {
-            // Несколько попыток найти canvas
             let attempts = 0;
             const maxAttempts = 10;
 
@@ -301,6 +299,275 @@
             } else {
                 badge.style.display = 'none';
             }
+        }
+    };
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script>
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js не загружен!');
+    } else {
+        console.log('Chart.js загружен успешно');
+    }
+</script>
+
+<script>
+    let ganttDrawAttempt = 0;
+    const maxGanttAttempts = 5;
+
+    window.drawGanttChart = (tasks, sprintStartDate, sprintEndDate) => {
+        try {
+            const canvas = document.getElementById('ganttChart');
+            if (!canvas) {
+                ganttDrawAttempt++;
+                if (ganttDrawAttempt < maxGanttAttempts) {
+                    setTimeout(() => window.drawGanttChart(tasks, sprintStartDate, sprintEndDate), 200);
+                }
+                return;
+            }
+
+            if (window.ganttChartInstance) {
+                window.ganttChartInstance.destroy();
+                window.ganttChartInstance = null;
+            }
+
+            if (!tasks || tasks.length === 0) {
+                const ctx = canvas.getContext('2d');
+                if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ganttDrawAttempt = 0;
+                return;
+            }
+
+            const sprintStart = new Date(sprintStartDate);
+            const sprintEnd = new Date(sprintEndDate);
+
+            const getColor = (status) => {
+                switch (status) {
+                    case 'Done': return { bg: 'rgba(40, 167, 69, 0.7)', border: 'rgb(40, 167, 69)' };
+                    case 'InProgress': return { bg: 'rgba(255, 193, 7, 0.7)', border: 'rgb(255, 193, 7)' };
+                    case 'ToDo': return { bg: 'rgba(108, 117, 125, 0.7)', border: 'rgb(108, 117, 125)' };
+                    default: return { bg: 'rgba(173, 181, 189, 0.7)', border: 'rgb(173, 181, 189)' };
+                }
+            };
+
+            const getStatusText = (status) => {
+                switch (status) {
+                    case 'Done': return '✅ Выполнено';
+                    case 'InProgress': return '🔄 В работе';
+                    case 'ToDo': return '📌 К выполнению';
+                    default: return status;
+                }
+            };
+
+            const datasets = tasks.map((task, index) => {
+                const taskStart = new Date(task.startDate);
+                const taskEnd = new Date(task.endDate);
+                const colors = getColor(task.status);
+
+                return {
+                    label: task.title,
+                    data: [{ x: [taskStart.getTime(), taskEnd.getTime()], y: index }],
+                    backgroundColor: colors.bg,
+                    borderColor: colors.border,
+                    borderWidth: 1,
+                    borderRadius: 3,
+                    borderSkipped: false,
+                    taskInfo: {
+                        fullTitle: task.fullTitle,
+                        status: task.status,
+                        storyPoints: task.storyPoints,
+                        estimatedHours: task.estimatedHours,
+                        assignee: task.assignee,
+                        startDate: task.startDate,
+                        endDate: task.endDate
+                    }
+                };
+            });
+
+            datasets.reverse();
+
+            window.ganttChartInstance = new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels: tasks.map(t => t.title).reverse(),
+                    datasets: datasets
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: function (items) {
+                                    return items[0].dataset.taskInfo.fullTitle;
+                                },
+                                label: function (context) {
+                                    const info = context.dataset.taskInfo;
+                                    const start = new Date(info.startDate).toLocaleDateString('ru-RU');
+                                    const end = new Date(info.endDate).toLocaleDateString('ru-RU');
+                                    return [
+                                        `Статус: ${getStatusText(info.status)}`,
+                                        `Период: ${start} — ${end}`,
+                                        `Story Points: ${info.storyPoints}`,
+                                        `Оценка: ${info.estimatedHours} ч.`,
+                                        `Исполнитель: ${info.assignee}`
+                                    ];
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Диаграмма Ганта спринта',
+                            font: { size: 14, weight: 'bold' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            min: sprintStart.getTime(),
+                            max: sprintEnd.getTime(),
+                            title: {
+                                display: true,
+                                text: 'Дата'
+                            },
+                            ticks: {
+                                callback: function (value) {
+                                    return new Date(value).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+                                },
+                                maxTicksLimit: 10
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Задачи'
+                            },
+                            ticks: {
+                                font: { size: 11 }
+                            }
+                        }
+                    }
+                }
+            });
+
+            ganttDrawAttempt = 0;
+            console.log('Диаграмма Ганта создана, задач: ' + tasks.length);
+        } catch (error) {
+            console.error('Ошибка создания диаграммы Ганта:', error.message);
+            ganttDrawAttempt = 0;
+        }
+    };
+</script>
+
+<script>
+    document.addEventListener('dragover', function (event) {
+        const dropZone = event.target.closest('.drop-zone');
+        if (dropZone) event.preventDefault();
+    });
+
+    document.addEventListener('dragenter', function (event) {
+        const dropZone = event.target.closest('.drop-zone');
+        if (dropZone) dropZone.classList.add('drag-over');
+    });
+
+    document.addEventListener('dragleave', function (event) {
+        const dropZone = event.target.closest('.drop-zone');
+        if (dropZone && !dropZone.contains(event.relatedTarget)) dropZone.classList.remove('drag-over');
+    });
+
+    document.addEventListener('drop', function (event) {
+        const dropZone = event.target.closest('.drop-zone');
+        if (dropZone) dropZone.classList.remove('drag-over');
+    });
+</script>
+
+<script>
+    window.drawBurndownTrendChart = (sprintData) => {
+        try {
+            const canvas = document.getElementById('burndownTrendChart');
+            if (!canvas) {
+                setTimeout(() => window.drawBurndownTrendChart(sprintData), 100);
+                return;
+            }
+
+            if (window.burndownTrendChartInstance) {
+                window.burndownTrendChartInstance.destroy();
+            }
+
+            if (!sprintData || sprintData.length === 0) {
+                console.log('Нет данных для Burndown Trend');
+                return;
+            }
+
+            const labels = sprintData.map(s => s.sprintName);
+            const actual = sprintData.map(s => s.completionPercentage);
+            const ideal = sprintData.map(s => s.idealCompletionPercentage);
+
+            window.burndownTrendChartInstance = new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Фактическое завершение %',
+                            data: actual,
+                            backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                            borderColor: 'rgb(40, 167, 69)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Идеальное завершение %',
+                            data: ideal,
+                            type: 'line',
+                            borderColor: 'rgb(23, 162, 184)',
+                            backgroundColor: 'rgba(23, 162, 184, 0.1)',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            pointRadius: 4,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        title: { display: true, text: 'Сравнение завершения спринтов' }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: { display: true, text: '% завершения' },
+                            ticks: { callback: function (v) { return v + '%'; } }
+                        },
+                        x: {
+                            title: { display: true, text: 'Спринты' }
+                        }
+                    }
+                }
+            });
+
+            console.log('Burndown Trend Chart успешно создан');
+        } catch (error) {
+            console.error('Ошибка создания Burndown Trend Chart:', error);
+        }
+    };
+</script>
+
+<script>
+    window.shakeElement = (elementClass) => {
+        const element = document.querySelector('.' + elementClass);
+        if (element) {
+            element.classList.add('shake');
+            setTimeout(() => {
+                element.classList.remove('shake');
+            }, 500);
         }
     };
 </script>

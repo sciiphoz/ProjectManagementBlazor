@@ -28,6 +28,14 @@ build_property.EnableCodeStyleSeverity =
 build_metadata.AdditionalFiles.TargetPath = QXBwLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Users/sciiphoz/source/repos/ProjectManagementBlazor/ProjectManagementBlazor/Layout/AlertDialog.razor]
+build_metadata.AdditionalFiles.TargetPath = TGF5b3V0XEFsZXJ0RGlhbG9nLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/sciiphoz/source/repos/ProjectManagementBlazor/ProjectManagementBlazor/Layout/ConfirmDialog.razor]
+build_metadata.AdditionalFiles.TargetPath = TGF5b3V0XENvbmZpcm1EaWFsb2cucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/sciiphoz/source/repos/ProjectManagementBlazor/ProjectManagementBlazor/Layout/ErrorDisplay.razor]
 build_metadata.AdditionalFiles.TargetPath = TGF5b3V0XEVycm9yRGlzcGxheS5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 

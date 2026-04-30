@@ -2,6 +2,7 @@
 @inject NavigationManager Navigation
 @inject IAuthService AuthService
 @inject IErrorHandlingService ErrorHandling
+@inject DialogService DialogService
 
 <PageTitle>Project Management System</PageTitle>
 
@@ -14,15 +15,6 @@
     }
 
     <main>
-        <div class="top-row px-4">
-            @if (showSidebar)
-            {
-                <span class="ms-auto">
-                    <button class="btn btn-link" @onclick="Logout">Выйти</button>
-                </span>
-            }
-        </div>
-
         <ErrorDisplay />
 
         <article class="content px-4">
@@ -31,13 +23,56 @@
     </main>
 </div>
 
+<ConfirmDialog @ref="confirmDialog" />
+<AlertDialog @ref="alertDialog" />
+
+<style>
+    .page {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+    }
+
+    main {
+        flex: 1;
+    }
+
+    .sidebar {
+        background-color: #F8F9FB !important;
+        background-image: none !important;
+        border-right: 1px solid #E2E8F0;
+    }
+
+    @@media (min-width: 641px) {
+        .page {
+            flex-direction: row;
+        }
+
+        .sidebar {
+            width: 240px;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+        }
+
+        .top-row, article {
+            padding-left: 2rem !important;
+            padding-right: 1.5rem !important;
+        }
+    }
+</style>
+
 @code {
     private bool showSidebar = true;
+    private ConfirmDialog confirmDialog = default!;
+    private AlertDialog alertDialog = default!;
 
     protected override void OnInitialized()
     {
         Navigation.LocationChanged += OnLocationChanged;
         CheckLocation(Navigation.Uri);
+        DialogService.OnConfirm += HandleConfirm;
+        DialogService.OnAlert += HandleAlert;
     }
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
@@ -61,21 +96,27 @@
         }
     }
 
-    private async Task Logout()
+    private async Task<bool> HandleConfirm(string message, string title, string confirmText, string type)
     {
-        try
+        var tcs = new TaskCompletionSource<bool>();
+
+        await confirmDialog.ShowAsync(message, title, confirmText, "Отмена", type, result =>
         {
-            await AuthService.LogoutAsync();
-            Navigation.NavigateTo("/login", true);
-        }
-        catch (Exception ex)
-        {
-            await ErrorHandling.TriggerError($"Ошибка при выходе: {ex.Message}");
-        }
+            tcs.SetResult(result);
+        });
+
+        return await tcs.Task;
+    }
+
+    private async Task HandleAlert(string message, string title, string icon, string type)
+    {
+        await alertDialog.ShowAsync(message, title, icon, type);
     }
 
     public void Dispose()
     {
+        DialogService.OnConfirm -= HandleConfirm;
+        DialogService.OnAlert -= HandleAlert;
         Navigation.LocationChanged -= OnLocationChanged;
     }
 }

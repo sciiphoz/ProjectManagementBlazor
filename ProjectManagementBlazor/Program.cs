@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
@@ -12,35 +13,102 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7000";
 
-// HTTP клиенты
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(apiBaseUrl) });
-
 builder.Services.AddHttpClient("AuthorizedClient", client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
 }).AddHttpMessageHandler<AuthorizationMessageHandler>();
 
-// Сервисы обработки ошибок
-builder.Services.AddScoped<IErrorHandlingService, ErrorHandlingService>();
+builder.Services.AddScoped<AuthorizationMessageHandler>();
+builder.Services.AddScoped(sp =>
+{
+    var localStorage = sp.GetRequiredService<ILocalStorageService>();
+    var navigationManager = sp.GetRequiredService<NavigationManager>();
+    return new AuthorizationMessageHandler(localStorage, navigationManager);
+});
 
+builder.Services.AddScoped<IErrorHandlingService, ErrorHandlingService>();
 builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
-builder.Services.AddScoped<AuthorizationMessageHandler>();
-
-// Базовые сервисы
 builder.Services.AddScoped<ILocalStorageService, LocalStorageService>();
+builder.Services.AddSingleton<INotificationCounterService, NotificationCounterService>();
+builder.Services.AddSingleton<DialogService>();
 
-// Сервисы API
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IProjectService, ProjectService>();
-builder.Services.AddScoped<ISprintService, SprintService>();
-builder.Services.AddScoped<IBacklogService, BacklogService>();
-builder.Services.AddScoped<ISubTaskService, SubTaskService>();
-builder.Services.AddScoped<IDashboardService, DashboardService>();
-builder.Services.AddScoped<IReportService, ReportService>();
-builder.Services.AddScoped<IRetrospectiveService, RetrospectiveService>();
-builder.Services.AddScoped<INotificationService, NotificationService>();
-builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
+builder.Services.AddScoped<IAuthService>(sp =>
+{
+    var clientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    var client = clientFactory.CreateClient("AuthorizedClient");
+    var errorHandling = sp.GetRequiredService<IErrorHandlingService>();
+    return new AuthService(client, errorHandling, sp.GetRequiredService<AuthenticationStateProvider>());
+});
+
+builder.Services.AddScoped<IUserService>(sp =>
+{
+    var clientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    var client = clientFactory.CreateClient("AuthorizedClient");
+    return new UserService(client, sp.GetRequiredService<IErrorHandlingService>());
+});
+
+builder.Services.AddScoped<IProjectService>(sp =>
+{
+    var clientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    var client = clientFactory.CreateClient("AuthorizedClient");
+    return new ProjectService(client, sp.GetRequiredService<IErrorHandlingService>());
+});
+
+builder.Services.AddScoped<ISprintService>(sp =>
+{
+    var clientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    var client = clientFactory.CreateClient("AuthorizedClient");
+    return new SprintService(client, sp.GetRequiredService<IErrorHandlingService>());
+});
+
+builder.Services.AddScoped<IBacklogService>(sp =>
+{
+    var clientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    var client = clientFactory.CreateClient("AuthorizedClient");
+    return new BacklogService(client, sp.GetRequiredService<IErrorHandlingService>());
+});
+
+builder.Services.AddScoped<ISubTaskService>(sp =>
+{
+    var clientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    var client = clientFactory.CreateClient("AuthorizedClient");
+    return new SubTaskService(client, sp.GetRequiredService<IErrorHandlingService>());
+});
+
+builder.Services.AddScoped<IDashboardService>(sp =>
+{
+    var clientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    var client = clientFactory.CreateClient("AuthorizedClient");
+    return new DashboardService(client, sp.GetRequiredService<IErrorHandlingService>());
+});
+
+builder.Services.AddScoped<IReportService>(sp =>
+{
+    var clientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    var client = clientFactory.CreateClient("AuthorizedClient");
+    return new ReportService(client, sp.GetRequiredService<IErrorHandlingService>());
+});
+
+builder.Services.AddScoped<IRetrospectiveService>(sp =>
+{
+    var clientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    var client = clientFactory.CreateClient("AuthorizedClient");
+    return new RetrospectiveService(client, sp.GetRequiredService<IErrorHandlingService>());
+});
+
+builder.Services.AddScoped<INotificationService>(sp =>
+{
+    var clientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    var client = clientFactory.CreateClient("AuthorizedClient");
+    return new NotificationService(client, sp.GetRequiredService<IErrorHandlingService>());
+});
+
+builder.Services.AddScoped<IActivityLogService>(sp =>
+{
+    var clientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    var client = clientFactory.CreateClient("AuthorizedClient");
+    return new ActivityLogService(client, sp.GetRequiredService<IErrorHandlingService>());
+});
 
 await builder.Build().RunAsync();

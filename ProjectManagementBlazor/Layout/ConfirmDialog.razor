@@ -1,0 +1,77 @@
+﻿@if (isVisible)
+{
+    <div class="modal show d-block confirm-dialog" tabindex="-1" style="background-color: rgba(0,0,0,0.5); z-index: 1060;">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header @(headerClass)">
+                    <h6 class="modal-title">@Title</h6>
+                    <button type="button" class="btn-close @(string.IsNullOrEmpty(headerClass) ? "" : "btn-close-white")" @onclick="OnCancel"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0">@Message</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary btn-sm" @onclick="OnCancel">@CancelText</button>
+                    <button class="btn btn-sm @confirmButtonClass" @onclick="OnConfirm">@ConfirmText</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop show"></div>
+}
+
+@code {
+    [Parameter] public bool isVisible { get; set; }
+    [Parameter] public string Title { get; set; } = "Подтверждение";
+    [Parameter] public string Message { get; set; } = "";
+    [Parameter] public string ConfirmText { get; set; } = "Да";
+    [Parameter] public string CancelText { get; set; } = "Отмена";
+    [Parameter] public EventCallback<bool> OnResult { get; set; }
+    [Parameter] public string Type { get; set; } = "default";
+    private TaskCompletionSource<bool>? _tcs;
+
+    private string headerClass => Type switch
+    {
+        "danger" => "bg-danger text-white",
+        "warning" => "bg-warning",
+        "info" => "bg-info text-white",
+        _ => ""
+    };
+
+    private string confirmButtonClass => Type switch
+    {
+        "danger" => "btn-danger",
+        "warning" => "btn-warning",
+        "info" => "btn-info",
+        _ => "btn-primary"
+    };
+
+    public async Task ShowAsync(string message, string title, string confirmText, string cancelText, string type, Action<bool> callback)
+    {
+        Message = message;
+        Title = title;
+        ConfirmText = confirmText;
+        CancelText = cancelText;
+        Type = type;
+        isVisible = true;
+        StateHasChanged();
+
+        _tcs = new TaskCompletionSource<bool>();
+        var result = await _tcs.Task;
+        callback(result);
+    }
+
+    private async Task OnConfirm()
+    {
+        isVisible = false;
+        _tcs?.SetResult(true);
+        StateHasChanged();
+    }
+
+    private async Task OnCancel()
+    {
+        isVisible = false;
+        _tcs?.SetResult(false);
+        StateHasChanged();
+    }
+}

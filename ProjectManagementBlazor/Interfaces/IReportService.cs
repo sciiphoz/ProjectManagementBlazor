@@ -10,6 +10,5 @@ namespace ProjectManagementBlazor.Interfaces
         Task<ApiResponse<SprintReportResponse>> GenerateSprintReportAsync(Guid sprintId);
         Task<ApiResponse<TeamPerformanceReportResponse>> GenerateTeamPerformanceReportAsync(GenerateReportRequest request);
         Task<ApiResponse<VelocityReportResponse>> GenerateVelocityReportAsync(Guid projectId, int lastSprintsCount = 5);
-        Task<byte[]> ExportReportAsync(GenerateReportRequest request);
     }
 }

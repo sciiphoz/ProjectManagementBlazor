@@ -1,11 +1,11 @@
-﻿@page "/daily-scrum"
+﻿@page "/projects/{ProjectId:guid}/daily-scrum"
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize]
 @inject IDashboardService DashboardService
 @inject IProjectService ProjectService
 @inject IAuthService AuthService
-@inject NavigationManager Navigation
 @inject ISprintService SprintService
+@inject NavigationManager Navigation
 @inject IJSRuntime JS
 
 <PageTitle>Daily Scrum</PageTitle>
@@ -20,92 +20,96 @@
             <p class="mt-2">Загрузка данных...</p>
         </div>
     }
-    else if (currentUser != null && currentUser.Role != "Developer")
+    else if (!isAuthorized)
     {
+        <div class="alert alert-warning text-center">
+            <h5>⛔ Доступ ограничен</h5>
+            <p>Страница Daily Scrum доступна только для Scrum Master и Product Owner.</p>
+            <button class="btn btn-primary" @onclick="GoBack">
+                ← Вернуться к проекту
+            </button>
+        </div>
+    }
+    else if (project == null)
+    {
+        <div class="alert alert-warning text-center">
+            <h5>Проект не найден</h5>
+            <button class="btn btn-primary" @onclick="GoBack">
+                ← Вернуться назад
+            </button>
+        </div>
+    }
+    else
+    {
+        <!-- Заголовок -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h2>Ежедневная встреча (Daily Scrum)</h2>
-                <p class="text-muted">@DateTime.Now.ToString("dddd, dd MMMM yyyy", new System.Globalization.CultureInfo("ru-RU"))</p>
+                <h2>📅 Ежедневная встреча (Daily Scrum)</h2>
+                <p class="text-muted">
+                    Проект: <strong>@project.Name</strong> |
+                    @DateTime.Now.ToString("dddd, dd MMMM yyyy", new System.Globalization.CultureInfo("ru-RU"))
+                </p>
             </div>
             <div>
                 <button class="btn btn-outline-primary me-2" @onclick="RefreshData">
                     🔄 Обновить
                 </button>
-                <button class="btn btn-primary" @onclick="ExportToExcel">
-                    📊 Экспорт в Excel
+                <button class="btn btn-outline-info me-2" @onclick="CopyToClipboard"
+                        disabled="@(dailyScrum == null)">
+                    📋 Копировать сводку
+                </button>
+                <button class="btn btn-outline-secondary" @onclick="GoBack">
+                    ← К проекту
                 </button>
             </div>
         </div>
 
-        <div class="card mb-4">
-            <div class="card-body">
-                <div class="row align-items-end">
-                    <div class="col-md-6">
-                        <label class="form-label">Выберите проект</label>
-                        <select value="@selectedProjectId" class="form-select" @onchange="OnProjectChanged">
-                            <option value="">-- Выберите проект --</option>
-                            @foreach (var project in myProjects)
-                            {
-                                <option value="@project.Id">@project.Name</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Активный спринт</label>
-                        <input type="text" class="form-control" value="@activeSprintName" disabled />
-                    </div>
-                    <div class="col-md-2">
-                        <button class="btn btn-outline-info w-100" @onclick="CopyToClipboard" disabled="@(selectedProjectId == Guid.Empty)">
-                            📋 Копировать сводку
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        @if (selectedProjectId != Guid.Empty && dailyScrum != null)
+        @if (activeSprint == null)
         {
+            <div class="alert alert-warning text-center">
+                <h5>Нет активного спринта</h5>
+                <p>Для просмотра Daily Scrum запустите спринт.</p>
+            </div>
+        }
+        else if (dailyScrum != null)
+        {
+            <!-- Прогресс спринта -->
             <div class="card mb-4">
                 <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">📊 Прогресс спринта</h5>
+                    <h5 class="mb-0">📊 Прогресс спринта: @activeSprint.Name</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-3">
-                            <div class="text-center">
-                                <h5>Выполнено задач</h5>
-                                <h3>@dailyScrum.SprintProgress.CompletedTasks / @dailyScrum.SprintProgress.TotalTasks</h3>
-                                <div class="progress">
-                                    <div class="progress-bar bg-success" role="progressbar"
-                                         style="width: @dailyScrum.SprintProgress.CompletionPercentage%">
-                                        @((int)dailyScrum.SprintProgress.CompletionPercentage)%
-                                    </div>
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3">
+                            <h6>Выполнено задач</h6>
+                            <h3>@dailyScrum.SprintProgress.CompletedTasks / @dailyScrum.SprintProgress.TotalTasks</h3>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar bg-success" role="progressbar"
+                                     style="width: @dailyScrum.SprintProgress.CompletionPercentage%">
+                                    @((int)dailyScrum.SprintProgress.CompletionPercentage)%
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="text-center">
-                                <h5>В работе</h5>
-                                <h3>@dailyScrum.SprintProgress.InProgressTasks</h3>
-                            </div>
+                        <div class="col-md-3 mb-3">
+                            <h6>В работе</h6>
+                            <h3>@dailyScrum.SprintProgress.InProgressTasks</h3>
                         </div>
-                        <div class="col-md-3">
-                            <div class="text-center">
-                                <h5>Осталось дней</h5>
-                                <h3>@dailyScrum.SprintProgress.DaysRemaining</h3>
-                            </div>
+                        <div class="col-md-3 mb-3">
+                            <h6>Осталось дней</h6>
+                            <h3>@dailyScrum.SprintProgress.DaysRemaining</h3>
                         </div>
-                        <div class="col-md-3">
-                            <div class="text-center">
-                                <h5>Спринт</h5>
-                                <h6>@dailyScrum.SprintProgress.SprintName</h6>
-                                <small>@dailyScrum.SprintProgress.StartDate.ToString("dd.MM") - @dailyScrum.SprintProgress.EndDate.ToString("dd.MM")</small>
-                            </div>
+                        <div class="col-md-3 mb-3">
+                            <h6>Даты спринта</h6>
+                            <p class="mb-0">
+                                @dailyScrum.SprintProgress.StartDate.ToString("dd.MM") -
+                                @dailyScrum.SprintProgress.EndDate.ToString("dd.MM")
+                            </p>
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- Командные блокеры -->
             @if (dailyScrum.TeamBlockers != null && dailyScrum.TeamBlockers.Any())
             {
                 <div class="card mb-4 border-danger">
@@ -120,7 +124,7 @@
                                     <div class="alert alert-danger mb-0">
                                         <strong>@blocker.Description</strong>
                                         <br />
-                                        <small>Серьезность: @blocker.Severity | Создан: @blocker.CreatedAt.ToString("dd.MM HH:mm")</small>
+                                        <small>Серьезность: @blocker.Severity | @blocker.CreatedAt.ToString("dd.MM HH:mm")</small>
                                     </div>
                                 </div>
                             }
@@ -129,13 +133,14 @@
                 </div>
             }
 
+            <!-- Таблица участников -->
             <div class="card">
                 <div class="card-header bg-success text-white">
                     <h5 class="mb-0">👥 Участники команды</h5>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover mb-0" id="dailyScrumTable">
+                        <table class="table table-hover mb-0">
                             <thead class="table-light">
                                 <tr>
                                     <th style="width: 15%">Участник</th>
@@ -148,19 +153,19 @@
                             <tbody>
                                 @foreach (var member in dailyScrum.TeamMembers)
                                 {
-                                    <tr class="@(!member.IsAvailable ? "table-secondary" : "")">
+                                    <tr class="@(member.IsAvailable ? "" : "table-secondary")">
                                         <td>
                                             <strong>@member.User.FullName</strong>
                                             <br />
                                             <small class="text-muted">@member.User.Role</small>
                                         </td>
                                         <td>
-                                            @if (member.WorkedYesterday != null && member.WorkedYesterday.Any())
+                                            @if (member.WorkedYesterday?.Any() == true)
                                             {
                                                 <ul class="mb-0 ps-3">
                                                     @foreach (var task in member.WorkedYesterday)
                                                     {
-                                                        <li>@task.Title <small class="text-muted">(@task.ProjectName)</small></li>
+                                                        <li>@task.Title</li>
                                                     }
                                                 </ul>
                                             }
@@ -170,12 +175,12 @@
                                             }
                                         </td>
                                         <td>
-                                            @if (member.PlanForToday != null && member.PlanForToday.Any())
+                                            @if (member.PlanForToday?.Any() == true)
                                             {
                                                 <ul class="mb-0 ps-3">
                                                     @foreach (var task in member.PlanForToday)
                                                     {
-                                                        <li>@task.Title <small class="text-muted">(@task.ProjectName)</small></li>
+                                                        <li>@task.Title</li>
                                                     }
                                                 </ul>
                                             }
@@ -185,7 +190,7 @@
                                             }
                                         </td>
                                         <td>
-                                            @if (member.Blockers != null && member.Blockers.Any())
+                                            @if (member.Blockers?.Any() == true)
                                             {
                                                 @foreach (var blocker in member.Blockers)
                                                 {
@@ -206,11 +211,6 @@
                                             {
                                                 <span class="badge bg-secondary">Отсутствует</span>
                                             }
-                                            @if (!string.IsNullOrEmpty(member.StatusNote))
-                                            {
-                                                <br />
-                                                <small class="text-muted">@member.StatusNote</small>
-                                            }
                                         </td>
                                     </tr>
                                 }
@@ -220,46 +220,18 @@
                 </div>
             </div>
 
+            <!-- Инструкция -->
             <div class="alert alert-info mt-4">
-                <strong>📌 Как использовать страницу для Daily Scrum:</strong>
+                <strong>📌 Как провести Daily Scrum:</strong>
                 <ol class="mb-0 mt-2">
-                    <li>Участники команды заранее заполняют свой дашборд <strong>"Мой день"</strong></li>
-                    <li>Scrum-мастер открывает эту страницу и выводит на экран</li>
-                    <li>
-                        Каждый участник по очереди отвечает на три вопроса:
-                        <ul>
-                            <li>Что сделал вчера?</li>
-                            <li>Что планирует сделать сегодня?</li>
-                            <li>Есть ли блокеры?</li>
-                        </ul>
-                    </li>
-                    <li>Scrum-мастер фиксирует блокеры и помогает их решить</li>
-                    <li>После встречи можно скопировать сводку или экспортировать в Excel</li>
+                    <li>Каждый участник заполняет свой дашборд <strong>"Мой день"</strong></li>
+                    <li>Выводите эту страницу на общий экран</li>
+                    <li>Участники по очереди отвечают на 3 вопроса</li>
+                    <li>Фиксируйте блокеры и помогайте их решать</li>
+                    <li>Используйте кнопку «📋 Копировать сводку» для отчёта</li>
                 </ol>
             </div>
         }
-        else if (selectedProjectId == Guid.Empty && myProjects.Any())
-        {
-            <div class="alert alert-info text-center">
-                <h5>Выберите проект для просмотра Daily Scrum</h5>
-            </div>
-        }
-        else if (!myProjects.Any())
-        {
-            <div class="alert alert-warning text-center">
-                <h5>У вас нет проектов</h5>
-                <p>Создайте проект, чтобы начать работу</p>
-                <button class="btn btn-primary" @onclick="GoToProjects">Создать проект</button>
-            </div>
-        }
-    }
-    else if (currentUser != null && currentUser.Role == "Developer")
-    {
-        <div class="alert alert-warning text-center">
-            <h5>⛔ Доступ ограничен</h5>
-            <p>Эта страница доступна только для Scrum Master и Product Owner</p>
-            <button class="btn btn-primary" @onclick="GoToDashboard">Перейти к "Мой день"</button>
-        </div>
     }
 </div>
 
@@ -273,66 +245,80 @@
         padding: 0.3rem 0.6rem;
     }
 
-    .alert ul {
-        padding-left: 20px;
+    .progress {
+        background-color: #e9ecef;
     }
 </style>
 
 @code {
-    private List<ProjectResponse> myProjects = new();
+    [Parameter] public Guid ProjectId { get; set; }
+
+    private ProjectResponse? project;
+    private SprintBriefResponse? activeSprint;
     private DailyScrumResponse? dailyScrum;
     private UserResponse? currentUser;
-    private Guid selectedProjectId = Guid.Empty;
-    private string activeSprintName = "Нет активного спринта";
     private bool isLoading = true;
+    private bool isAuthorized = false;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadCurrentUser();
-        if (currentUser != null && currentUser.Role != "Developer")
-        {
-            await LoadProjects();
-        }
-        isLoading = false;
-    }
-
-    private async Task LoadCurrentUser()
-    {
         try
         {
-            var result = await AuthService.GetCurrentUserAsync();
-            if (result.Success && result.Data != null)
+            // Загружаем проект
+            var projectResult = await ProjectService.GetProjectByIdAsync(ProjectId);
+            if (projectResult.Success && projectResult.Data != null)
             {
-                currentUser = result.Data;
+                project = projectResult.Data;
             }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка загрузки пользователя: {ex.Message}");
-        }
-    }
-
-    private async Task LoadProjects()
-    {
-        isLoading = true;
-        try
-        {
-            var result = await ProjectService.GetUserProjectsAsync(new PagedRequest { PageNumber = 1, PageSize = 50 });
-            if (result.Success && result.Data != null)
+            else
             {
-                myProjects = result.Data.Items;
+                isLoading = false;
+                return;
+            }
 
-                if (myProjects.Any())
+            // Загружаем текущего пользователя
+            var userResult = await AuthService.GetCurrentUserAsync();
+            if (userResult.Success && userResult.Data != null)
+            {
+                currentUser = userResult.Data;
+
+                // Проверяем роль в проекте (ScrumMaster или ProductOwner)
+                var membersResult = await ProjectService.GetProjectMembersAsync(ProjectId);
+                if (membersResult.Success && membersResult.Data != null)
                 {
-                    selectedProjectId = myProjects.First().Id;
-                    await LoadSprints();
-                    await LoadDailyScrum();
+                    var currentMember = membersResult.Data
+                        .FirstOrDefault(m => m.UserId == currentUser.Id);
+
+                    if (currentMember != null)
+                    {
+                        var role = currentMember.Role ?? "";
+                        isAuthorized = role == "ScrumMaster" || role == "ProductOwner";
+                    }
+                }
+            }
+
+            if (isAuthorized)
+            {
+                // Загружаем активный спринт
+                var sprintsResult = await SprintService.GetProjectSprintsAsync(ProjectId);
+                if (sprintsResult.Success && sprintsResult.Data != null)
+                {
+                    activeSprint = sprintsResult.Data.FirstOrDefault(s => s.IsActive);
+                }
+
+                // Загружаем данные Daily Scrum
+                var dashboardResult = await DashboardService.GetDailyScrumViewAsync(
+                    ProjectId,
+                    activeSprint?.Id);
+                if (dashboardResult.Success && dashboardResult.Data != null)
+                {
+                    dailyScrum = dashboardResult.Data;
                 }
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Ошибка загрузки проектов: {ex.Message}");
+            Console.WriteLine($"Ошибка загрузки: {ex.Message}");
         }
         finally
         {
@@ -340,89 +326,66 @@
         }
     }
 
-    private async Task LoadSprints()
-    {
-        try
-        {
-            var result = await SprintService.GetProjectSprintsAsync(selectedProjectId);
-            if (result.Success && result.Data != null)
-            {
-                var activeSprint = result.Data.FirstOrDefault(s => s.IsActive);
-                activeSprintName = activeSprint != null ? activeSprint.Name : "Нет активного спринта";
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка загрузки спринтов: {ex.Message}");
-        }
-    }
-
-    private async Task LoadDailyScrum()
-    {
-        try
-        {
-            var sprintsResult = await SprintService.GetProjectSprintsAsync(selectedProjectId);
-            var activeSprint = sprintsResult.Data?.FirstOrDefault(s => s.IsActive);
-            var result = await DashboardService.GetDailyScrumViewAsync(selectedProjectId, activeSprint?.Id);
-            if (result.Success && result.Data != null)
-            {
-                dailyScrum = result.Data;
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка загрузки Daily Scrum: {ex.Message}");
-        }
-    }
-
-    private async Task OnProjectChanged(ChangeEventArgs e)
-    {
-        if (e.Value != null && Guid.TryParse(e.Value.ToString(), out var projectId))
-        {
-            selectedProjectId = projectId;
-            await LoadSprints();
-            await LoadDailyScrum();
-            StateHasChanged();
-        }
-    }
-
     private async Task RefreshData()
     {
-        await LoadSprints();
-        await LoadDailyScrum();
+        isLoading = true;
         StateHasChanged();
+
+        try
+        {
+            var sprintsResult = await SprintService.GetProjectSprintsAsync(ProjectId);
+            if (sprintsResult.Success && sprintsResult.Data != null)
+            {
+                activeSprint = sprintsResult.Data.FirstOrDefault(s => s.IsActive);
+            }
+
+            if (activeSprint != null)
+            {
+                var result = await DashboardService.GetDailyScrumViewAsync(
+                    ProjectId,
+                    activeSprint.Id);
+                if (result.Success && result.Data != null)
+                {
+                    dailyScrum = result.Data;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка обновления: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 
     private async Task CopyToClipboard()
     {
+        if (dailyScrum == null) return;
+
         try
         {
-            // Формируем текст для копирования
             var sb = new System.Text.StringBuilder();
-            sb.AppendLine($"Daily Scrum - {DateTime.Now:dd.MM.yyyy HH:mm}");
-            sb.AppendLine($"Проект: {myProjects.FirstOrDefault(p => p.Id == selectedProjectId)?.Name}");
-            sb.AppendLine($"Спринт: {activeSprintName}");
+            sb.AppendLine($"Daily Scrum — {DateTime.Now:dd.MM.yyyy HH:mm}");
+            sb.AppendLine($"Проект: {project?.Name}");
+            sb.AppendLine($"Спринт: {activeSprint?.Name}");
             sb.AppendLine();
-            sb.AppendLine("=== Прогресс спринта ===");
-            sb.AppendLine($"Выполнено задач: {dailyScrum?.SprintProgress.CompletedTasks}/{dailyScrum?.SprintProgress.TotalTasks}");
-            sb.AppendLine($"Осталось дней: {dailyScrum?.SprintProgress.DaysRemaining}");
-            sb.AppendLine();
-            sb.AppendLine("=== Команда ===");
 
-            foreach (var member in dailyScrum?.TeamMembers ?? new List<TeamMemberDailyStatus>())
+            sb.AppendLine("=== Прогресс спринта ===");
+            sb.AppendLine($"Выполнено: {dailyScrum.SprintProgress.CompletedTasks}/{dailyScrum.SprintProgress.TotalTasks} задач");
+            sb.AppendLine($"В работе: {dailyScrum.SprintProgress.InProgressTasks}");
+            sb.AppendLine($"Осталось дней: {dailyScrum.SprintProgress.DaysRemaining}");
+            sb.AppendLine();
+
+            sb.AppendLine("=== Команда ===");
+            foreach (var member in dailyScrum.TeamMembers)
             {
                 sb.AppendLine();
                 sb.AppendLine($"👤 {member.User.FullName} ({member.User.Role})");
-                sb.AppendLine($"  Вчера: {string.Join(", ", member.WorkedYesterday?.Select(t => t.Title) ?? new List<string>())}");
-                sb.AppendLine($"  Сегодня: {string.Join(", ", member.PlanForToday?.Select(t => t.Title) ?? new List<string>())}");
-                sb.AppendLine($"  Блокеры: {string.Join(", ", member.Blockers?.Select(b => b.Description) ?? new List<string>())}");
-            }
-
-            sb.AppendLine();
-            sb.AppendLine("=== Блокеры команды ===");
-            foreach (var blocker in dailyScrum?.TeamBlockers ?? new List<BlockerResponse>())
-            {
-                sb.AppendLine($"- {blocker.Description} ({blocker.Severity})");
+                sb.AppendLine($"   Вчера: {string.Join(", ", member.WorkedYesterday?.Select(t => t.Title) ?? new[] { "—" })}");
+                sb.AppendLine($"   Сегодня: {string.Join(", ", member.PlanForToday?.Select(t => t.Title) ?? new[] { "—" })}");
+                sb.AppendLine($"   Блокеры: {string.Join(", ", member.Blockers?.Select(b => b.Description) ?? new[] { "Нет" })}");
             }
 
             await JS.InvokeVoidAsync("navigator.clipboard.writeText", sb.ToString());
@@ -431,29 +394,11 @@
         catch (Exception ex)
         {
             Console.WriteLine($"Ошибка копирования: {ex.Message}");
-            await JS.InvokeVoidAsync("alert", "Ошибка при копировании");
         }
     }
 
-    private async Task ExportToExcel()
+    private void GoBack()
     {
-        try
-        {
-            await JS.InvokeVoidAsync("alert", "Экспорт в Excel выполнен");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка экспорта: {ex.Message}");
-        }
-    }
-
-    private void GoToProjects()
-    {
-        Navigation.NavigateTo("/projects");
-    }
-
-    private void GoToDashboard()
-    {
-        Navigation.NavigateTo("/dashboard");
+        Navigation.NavigateTo($"/projects/{ProjectId}");
     }
 }

@@ -1,241 +1,291 @@
 ﻿@page "/projects/{ProjectId:guid}/logs"
 @using Microsoft.AspNetCore.Authorization
-@using System.Globalization
 @attribute [Authorize]
 @inject IProjectService ProjectService
 @inject IActivityLogService ActivityLogService
 @inject NavigationManager Navigation
-@inject IJSRuntime JS
 
 <PageTitle>Логи активности</PageTitle>
 
-<div class="container-fluid mt-3">
+<div class="logs-page">
     @if (isLoading)
     {
-        <div class="text-center mt-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Загрузка...</span>
-            </div>
-            <p class="mt-2">Загрузка логов...</p>
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary opacity-50" role="status"></div>
         </div>
     }
     else if (project != null)
     {
         <!-- Заголовок -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="logs-header">
             <div>
                 <h2>Логи активности</h2>
-                <p class="text-muted">@project.Name</p>
+                <span class="text-muted small">@project.Name</span>
             </div>
-            <div>
-                <button class="btn btn-outline-primary me-2" @onclick="ExportLogs">
-                    📥 Экспорт
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-secondary btn-sm" @onclick="RefreshData">
+                    <i class="bi bi-arrow-repeat"></i>
                 </button>
-                <button class="btn btn-outline-secondary" @onclick="RefreshData">
-                    🔄 Обновить
-                </button>
-                <button class="btn btn-outline-secondary ms-2" @onclick="GoBack">
-                    ← Назад к проекту
+                <button class="btn btn-outline-secondary btn-sm" @onclick="GoBack">
+                    <i class="bi bi-arrow-left me-1"></i> К проекту
                 </button>
             </div>
         </div>
 
         <!-- Фильтры -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3">
-                        <label class="form-label">Пользователь</label>
-                        <select value="@filterUserId" class="form-select" @onchange="OnUserFilterChange">
-                            <option value="">Все пользователи</option>
-                            @foreach (var user in projectUsers)
-                            {
-                                <option value="@user.Id">@user.FullName</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Тип действия</label>
-                        <select value="@filterActionType" class="form-select" @onchange="OnActionFilterChange">
-                            <option value="">Все действия</option>
-                            <option value="TaskCreated">Создание задачи</option>
-                            <option value="TaskUpdated">Обновление задачи</option>
-                            <option value="TaskStatusChanged">Изменение статуса</option>
-                            <option value="TaskDeleted">Удаление задачи</option>
-                            <option value="SubTaskCreated">Создание подзадачи</option>
-                            <option value="SubTaskUpdated">Обновление подзадачи</option>
-                            <option value="SubTaskStatusChanged">Изменение статуса подзадачи</option>
-                            <option value="SprintStarted">Запуск спринта</option>
-                            <option value="SprintCompleted">Завершение спринта</option>
-                            <option value="SprintCancelled">Отмена спринта</option>
-                            <option value="CommentAdded">Добавление комментария</option>
-                            <option value="CommentUpdated">Обновление комментария</option>
-                            <option value="AttachmentAdded">Добавление вложения</option>
-                            <option value="BlockerCreated">Создание блокера</option>
-                            <option value="BlockerResolved">Разрешение блокера</option>
-                            <option value="UserAssigned">Назначение исполнителя</option>
-                            <option value="UserUnassigned">Снятие исполнителя</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Дата от</label>
-                        <input type="date" class="form-control" value="@filterDateFrom" @oninput="OnDateFromChange" />
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Дата до</label>
-                        <input type="date" class="form-control" value="@filterDateTo" @oninput="OnDateToChange" />
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">&nbsp;</label>
-                        <button class="btn btn-primary w-100" @onclick="ApplyFilters">Применить</button>
-                    </div>
-                </div>
-            </div>
+        <div class="logs-filters">
+            <select value="@filterUserId" class="form-select form-select-sm" @onchange="OnUserFilterChange">
+                <option value="">Все пользователи</option>
+                @foreach (var user in projectUsers)
+                {
+                    <option value="@user.Id">@user.FullName</option>
+                }
+            </select>
+            <select value="@filterActionType" class="form-select form-select-sm" @onchange="OnActionFilterChange">
+                <option value="">Все действия</option>
+                <option value="TaskCreated">Создание задачи</option>
+                <option value="TaskStatusChanged">Изменение статуса</option>
+                <option value="SprintStarted">Запуск спринта</option>
+                <option value="SprintCompleted">Завершение спринта</option>
+                <option value="CommentAdded">Комментарий</option>
+                <option value="BlockerCreated">Блокер</option>
+                <option value="UserAssigned">Назначение</option>
+            </select>
+            <input type="date" class="form-control form-control-sm" value="@filterDateFrom" @onchange="OnDateFromChange" style="width: auto;">
+            <span class="text-muted small">—</span>
+            <input type="date" class="form-control form-control-sm" value="@filterDateTo" @onchange="OnDateToChange" style="width: auto;">
+            <button class="btn btn-outline-secondary btn-sm" @onclick="ClearFilters">
+                <i class="bi bi-x"></i> Сбросить
+            </button>
         </div>
 
         <!-- Список логов -->
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">📋 История действий (@totalCount записей)</h5>
-            </div>
-            <div class="card-body p-0">
-                @if (logs != null && logs.Any())
+        <div class="logs-list">
+            <div class="text-muted small mb-2">@totalCount записей</div>
+            @if (logs != null && logs.Any())
+            {
+                @foreach (var log in logs)
                 {
-                    <div class="timeline">
-                        @foreach (var log in logs)
-                        {
-                            <div class="timeline-item">
-                                <div class="timeline-badge @GetBadgeClass(log.ActionType)">
-                                    @GetActionIcon(log.ActionType)
-                                </div>
-                                <div class="timeline-content">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div>
-                                            <strong>@log.User.FullName</strong>
-                                            <span class="text-muted">(@log.User.Username)</span>
-                                            <p class="mb-1 mt-1">@log.Description</p>
-                                            @if (!string.IsNullOrEmpty(log.OldValue) || !string.IsNullOrEmpty(log.NewValue))
-                                            {
-                                                <details class="mt-1">
-                                                    <summary class="text-muted small">Детали изменения</summary>
-                                                    <div class="small bg-light p-2 mt-1 rounded">
-                                                        @if (!string.IsNullOrEmpty(log.OldValue))
-                                                        {
-                                                            <div><strong>Было:</strong> @log.OldValue</div>
-                                                        }
-                                                        @if (!string.IsNullOrEmpty(log.NewValue))
-                                                        {
-                                                            <div><strong>Стало:</strong> @log.NewValue</div>
-                                                        }
-                                                    </div>
-                                                </details>
-                                            }
-                                        </div>
-                                        <small class="text-muted">@log.CreatedAt.ToString("dd.MM.yyyy HH:mm:ss")</small>
-                                    </div>
-                                </div>
+                    <div class="log-entry">
+                        <div class="log-icon @GetLogClass(log.ActionType)">
+                            <i class="bi @GetLogIcon(log.ActionType)"></i>
+                        </div>
+                        <div class="log-body">
+                            <div class="log-title">
+                                <strong>@log.User.FullName</strong>
+                                <span class="text-muted">@log.Description</span>
                             </div>
-                        }
+                            <div class="log-meta">
+                                <span class="text-muted">@log.CreatedAt.ToString("dd.MM.yyyy HH:mm")</span>
+                                @if (!string.IsNullOrEmpty(log.OldValue) || !string.IsNullOrEmpty(log.NewValue))
+                                {
+                                    <span class="log-details-toggle" @onclick="() => ToggleDetails(log.Id)">
+                                        <i class="bi bi-chevron-down"></i> Детали
+                                    </span>
+                                }
+                            </div>
+                            @if (expandedLogId == log.Id && (!string.IsNullOrEmpty(log.OldValue) || !string.IsNullOrEmpty(log.NewValue)))
+                            {
+                                <div class="log-details">
+                                    @if (!string.IsNullOrEmpty(log.OldValue))
+                                    {
+                                        <div class="log-detail-row">
+                                            <span class="text-danger">−</span>
+                                            <span>@FormatLogValue(log.OldValue)</span>
+                                        </div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(log.NewValue))
+                                    {
+                                        <div class="log-detail-row">
+                                            <span class="text-success">+</span>
+                                            <span>@FormatLogValue(log.NewValue)</span>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
                     </div>
                 }
-                else
-                {
-                    <div class="text-center text-muted py-5">
-                        <div style="font-size: 48px;">📭</div>
-                        <h5 class="mt-3">Нет записей в логах</h5>
-                        <p>Выполните какие-либо действия, чтобы они отобразились здесь</p>
-                    </div>
-                }
-            </div>
+            }
+            else
+            {
+                <div class="text-center py-4 text-muted small">Нет записей</div>
+            }
         </div>
 
         <!-- Пагинация -->
         @if (totalPages > 1)
         {
-            <div class="mt-3 d-flex justify-content-center">
-                <nav>
-                    <ul class="pagination">
-                        <li class="page-item @(currentPage == 1 ? "disabled" : "")">
-                            <button class="page-link" @onclick="() => GoToPage(currentPage - 1)">Назад</button>
-                        </li>
-                        @for (int i = 1; i <= totalPages; i++)
-                        {
-                            <li class="page-item @(currentPage == i ? "active" : "")">
-                                <button class="page-link" @onclick="() => GoToPage(i)">@i</button>
-                            </li>
-                        }
-                        <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
-                            <button class="page-link" @onclick="() => GoToPage(currentPage + 1)">Вперед</button>
-                        </li>
-                    </ul>
-                </nav>
+            <div class="logs-pagination">
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-secondary" @onclick="() => GoToPage(currentPage - 1)" disabled="@(currentPage == 1)">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                    @for (int i = 1; i <= totalPages; i++)
+                    {
+                        <button class="btn btn-outline-secondary @(currentPage == i ? "active" : "")" @onclick="() => GoToPage(i)">@i</button>
+                    }
+                    <button class="btn btn-outline-secondary" @onclick="() => GoToPage(currentPage + 1)" disabled="@(currentPage == totalPages)">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                </div>
             </div>
         }
     }
     else
     {
-        <div class="alert alert-warning text-center">
-            <h5>Проект не найден</h5>
-            <button class="btn btn-primary mt-2" @onclick="GoBack">Вернуться назад</button>
+        <div class="text-center py-4">
+            <p class="text-muted">Проект не найден</p>
+            <button class="btn btn-primary btn-sm" @onclick="GoBack">Назад</button>
         </div>
     }
 </div>
 
 <style>
-    .timeline {
-        position: relative;
-        padding: 20px 0;
+    .logs-page {
+        max-width: 700px;
+        margin: 0 auto;
     }
 
-    .timeline-item {
+    .logs-header {
         display: flex;
-        margin-bottom: 20px;
-        position: relative;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
     }
 
-    .timeline-badge {
-        width: 40px;
-        height: 40px;
+        .logs-header h2 {
+            font-size: 1.25rem;
+            margin: 0;
+        }
+
+    .logs-filters {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .logs-list {
+    }
+
+    .log-entry {
+        display: flex;
+        gap: 0.75rem;
+        padding: 0.625rem 0;
+        border-bottom: 1px solid var(--border-color, #E2E8F0);
+    }
+
+        .log-entry:first-child {
+            border-top: 1px solid var(--border-color, #E2E8F0);
+        }
+
+    .log-icon {
+        width: 32px;
+        height: 32px;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-right: 15px;
         flex-shrink: 0;
-        color: white;
-        font-size: 18px;
+        font-size: 0.85rem;
     }
 
-    .timeline-content {
+        .log-icon.success {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10B981;
+        }
+
+        .log-icon.info {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3B82F6;
+        }
+
+        .log-icon.danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: #EF4444;
+        }
+
+        .log-icon.warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: #F59E0B;
+        }
+
+        .log-icon.primary {
+            background: rgba(79, 70, 229, 0.1);
+            color: #4F46E5;
+        }
+
+    .log-body {
         flex: 1;
-        background-color: #f8f9fa;
-        padding: 12px 16px;
-        border-radius: 8px;
-        border-left: 3px solid;
+        min-width: 0;
     }
 
-    .timeline-item::before {
-        content: '';
-        position: absolute;
-        left: 20px;
-        top: 40px;
-        bottom: -20px;
-        width: 2px;
-        background-color: #dee2e6;
+    .log-title {
+        font-size: 0.85rem;
     }
 
-    .timeline-item:last-child::before {
-        display: none;
+    .log-meta {
+        font-size: 0.75rem;
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        margin-top: 0.125rem;
     }
 
-    details summary {
+    .log-details-toggle {
         cursor: pointer;
-        outline: none;
+        color: var(--primary-color);
+        font-size: 0.7rem;
     }
 
-        details summary:hover {
+        .log-details-toggle:hover {
             text-decoration: underline;
         }
+
+    .log-details {
+        margin-top: 0.375rem;
+        font-size: 0.75rem;
+        background: var(--bg-light, #F8F9FB);
+        padding: 0.5rem;
+        border-radius: 0.375rem;
+    }
+
+    .log-detail-row {
+        margin-bottom: 0.125rem;
+        display: flex;
+        gap: 0.25rem;
+    }
+
+        .log-detail-row span:last-child {
+            word-break: break-all;
+        }
+
+    .logs-pagination {
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+        display: flex;
+        justify-content: center;
+    }
+
+        .logs-pagination .btn-group {
+            gap: 0.25rem;
+        }
+
+        .logs-pagination .btn {
+            border-radius: 0.375rem;
+            padding: 0.25rem 0.5rem;
+            min-width: 32px;
+        }
+
+    [data-bs-theme="dark"] .log-entry {
+        border-color: #334155;
+    }
+
+    [data-bs-theme="dark"] .log-details {
+        background: #1E293B;
+    }
 </style>
 
 @code {
@@ -249,201 +299,111 @@
     private int pageSize = 20;
     private int totalPages = 1;
     private bool isLoading = true;
+    private long? expandedLogId = null;
 
     private string filterUserId = "";
     private string filterActionType = "";
     private string filterDateFrom = "";
     private string filterDateTo = "";
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadData();
-    }
+    protected override async Task OnInitializedAsync() { await LoadData(); }
 
     private async Task LoadData()
     {
         isLoading = true;
         try
         {
-            var projectResult = await ProjectService.GetProjectByIdAsync(ProjectId);
-            if (projectResult.Success && projectResult.Data != null)
-            {
-                project = projectResult.Data;
-            }
-            else
-            {
-                Navigation.NavigateTo("/projects");
-                return;
-            }
+            var pr = await ProjectService.GetProjectByIdAsync(ProjectId);
+            if (pr.Success && pr.Data != null) project = pr.Data;
+            else { Navigation.NavigateTo("/projects"); return; }
 
-            var membersResult = await ProjectService.GetProjectMembersAsync(ProjectId);
-            if (membersResult.Success && membersResult.Data != null)
-            {
-                projectUsers = membersResult.Data.Select(m => new UserBriefResponse
-                {
-                    Id = m.UserId,
-                    FullName = m.FullName,
-                    Username = m.Username,
-                    Email = m.Email
-                }).ToList();
-            }
+            var m = await ProjectService.GetProjectMembersAsync(ProjectId);
+            if (m.Success && m.Data != null)
+                projectUsers = m.Data.Select(x => new UserBriefResponse { Id = x.UserId, FullName = x.FullName, Username = x.Username, Email = x.Email }).ToList();
 
             await LoadLogs();
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка загрузки: {ex.Message}");
-        }
-        finally
-        {
-            isLoading = false;
-        }
+        catch { }
+        finally { isLoading = false; }
     }
 
     private async Task LoadLogs()
     {
         try
         {
-            DateTime? dateFrom = null;
-            if (!string.IsNullOrEmpty(filterDateFrom) && DateTime.TryParse(filterDateFrom, out var parsedFrom))
-            {
-                dateFrom = parsedFrom;
-            }
+            DateTime? df = null, dt = null;
+            if (!string.IsNullOrEmpty(filterDateFrom) && DateTime.TryParse(filterDateFrom, out var pf)) df = pf;
+            if (!string.IsNullOrEmpty(filterDateTo) && DateTime.TryParse(filterDateTo, out var pt)) dt = pt.AddDays(1);
 
-            DateTime? dateTo = null;
-            if (!string.IsNullOrEmpty(filterDateTo) && DateTime.TryParse(filterDateTo, out var parsedTo))
-            {
-                dateTo = parsedTo.AddDays(1);
-            }
-
-            var request = new GetActivityLogsRequest
+            var r = await ActivityLogService.GetProjectLogsAsync(new GetActivityLogsRequest
             {
                 ProjectId = ProjectId,
                 PageNumber = currentPage,
                 PageSize = pageSize,
                 UserId = string.IsNullOrEmpty(filterUserId) ? null : Guid.Parse(filterUserId),
                 ActionType = string.IsNullOrEmpty(filterActionType) ? null : filterActionType,
-                DateFrom = dateFrom,
-                DateTo = dateTo
-            };
+                DateFrom = df,
+                DateTo = dt
+            });
+            if (r.Success && r.Data != null) { logs = r.Data.Items; totalCount = r.Data.TotalCount; totalPages = r.Data.TotalPages; }
+        }
+        catch { logs = new(); }
+    }
 
-            var result = await ActivityLogService.GetProjectLogsAsync(request);
-            if (result.Success && result.Data != null)
+    private string FormatLogValue(string json)
+    {
+        if (string.IsNullOrEmpty(json)) return json;
+        if (json.StartsWith("{") || json.StartsWith("["))
+        {
+            try
             {
-                logs = result.Data.Items;
-                totalCount = result.Data.TotalCount;
-                totalPages = result.Data.TotalPages;
+                var doc = System.Text.Json.JsonDocument.Parse(json);
+                var formatted = System.Text.Json.JsonSerializer.Serialize(doc.RootElement, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                return formatted;
             }
+            catch { }
         }
-        catch (Exception ex)
+        if (json.Contains("\"AssigneeId\":null"))
         {
-            Console.WriteLine($"Ошибка загрузки логов: {ex.Message}");
-            logs = new List<ActivityLogResponse>();
+            json = json.Replace("\"AssigneeId\":null", "\"AssigneeId\": \"снят\"");
         }
+        return json;
     }
 
-    private async Task OnUserFilterChange(ChangeEventArgs e)
+    private async Task ApplyFilters() { currentPage = 1; await LoadLogs(); StateHasChanged(); }
+    private async Task ClearFilters() { filterUserId = ""; filterActionType = ""; filterDateFrom = ""; filterDateTo = ""; await ApplyFilters(); }
+    private async Task RefreshData() { await LoadLogs(); StateHasChanged(); }
+    private async Task GoToPage(int p) { if (p >= 1 && p <= totalPages) { currentPage = p; await LoadLogs(); StateHasChanged(); } }
+    private void GoBack() { Navigation.NavigateTo($"/projects/{ProjectId}"); }
+    private void ToggleDetails(long id) { expandedLogId = expandedLogId == id ? null : id; }
+
+    private async Task OnUserFilterChange(ChangeEventArgs e) { filterUserId = e.Value?.ToString() ?? ""; await ApplyFilters(); }
+    private async Task OnActionFilterChange(ChangeEventArgs e) { filterActionType = e.Value?.ToString() ?? ""; await ApplyFilters(); }
+    private async Task OnDateFromChange(ChangeEventArgs e) { filterDateFrom = e.Value?.ToString() ?? ""; await ApplyFilters(); }
+    private async Task OnDateToChange(ChangeEventArgs e) { filterDateTo = e.Value?.ToString() ?? ""; await ApplyFilters(); }
+
+    private string GetLogClass(string t)
     {
-        filterUserId = e.Value?.ToString() ?? "";
-        await ApplyFilters();
+        if (t.Contains("Created")) return "success";
+        if (t.Contains("Deleted")) return "danger";
+        if (t.Contains("Started")) return "primary";
+        if (t.Contains("Completed")) return "success";
+        if (t.Contains("Cancelled")) return "danger";
+        if (t.Contains("Status")) return "info";
+        return "info";
     }
 
-    private async Task OnActionFilterChange(ChangeEventArgs e)
+    private string GetLogIcon(string t)
     {
-        filterActionType = e.Value?.ToString() ?? "";
-        await ApplyFilters();
-    }
-
-    private async Task OnDateFromChange(ChangeEventArgs e)
-    {
-        filterDateFrom = e.Value?.ToString() ?? "";
-        await ApplyFilters();
-    }
-
-    private async Task OnDateToChange(ChangeEventArgs e)
-    {
-        filterDateTo = e.Value?.ToString() ?? "";
-        await ApplyFilters();
-    }
-
-    private async Task ApplyFilters()
-    {
-        currentPage = 1;
-        await LoadLogs();
-        StateHasChanged();
-    }
-
-    private async Task RefreshData()
-    {
-        await LoadLogs();
-        StateHasChanged();
-    }
-
-    private async Task GoToPage(int page)
-    {
-        if (page >= 1 && page <= totalPages)
-        {
-            currentPage = page;
-            await LoadLogs();
-            StateHasChanged();
-        }
-    }
-
-    private async Task ExportLogs()
-    {
-        try
-        {
-            await JS.InvokeVoidAsync("alert", "Экспорт логов выполнен");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка экспорта: {ex.Message}");
-        }
-    }
-
-    private void GoBack()
-    {
-        Navigation.NavigateTo($"/projects/{ProjectId}");
-    }
-
-    private string GetBadgeClass(string actionType)
-    {
-        if (string.IsNullOrEmpty(actionType)) return "bg-secondary";
-
-        if (actionType.Contains("Created")) return "bg-success";
-        if (actionType.Contains("Updated")) return "bg-info";
-        if (actionType.Contains("Deleted")) return "bg-danger";
-        if (actionType.Contains("Started")) return "bg-primary";
-        if (actionType.Contains("Completed")) return "bg-success";
-        if (actionType.Contains("Cancelled")) return "bg-danger";
-        if (actionType.Contains("Status")) return "bg-warning";
-        return "bg-secondary";
-    }
-
-    private string GetActionIcon(string actionType)
-    {
-        if (string.IsNullOrEmpty(actionType)) return "📌";
-
-        return actionType switch
-        {
-            "TaskCreated" => "➕",
-            "TaskUpdated" => "✏️",
-            "TaskStatusChanged" => "🔄",
-            "TaskDeleted" => "🗑️",
-            "SubTaskCreated" => "📝",
-            "SubTaskUpdated" => "✏️",
-            "SubTaskStatusChanged" => "🔄",
-            "SprintStarted" => "🚀",
-            "SprintCompleted" => "✅",
-            "SprintCancelled" => "❌",
-            "CommentAdded" => "💬",
-            "CommentUpdated" => "✏️",
-            "AttachmentAdded" => "📎",
-            "BlockerCreated" => "⚠️",
-            "BlockerResolved" => "✔️",
-            "UserAssigned" => "👤",
-            "UserUnassigned" => "👤❌",
-            _ => "📌"
-        };
+        if (t.Contains("Created")) return "bi-plus-circle";
+        if (t.Contains("Deleted")) return "bi-trash";
+        if (t.Contains("Status")) return "bi-arrow-left-right";
+        if (t.Contains("Started")) return "bi-play-circle";
+        if (t.Contains("Completed")) return "bi-check-circle";
+        if (t.Contains("Cancelled")) return "bi-x-circle";
+        if (t.Contains("Comment")) return "bi-chat";
+        if (t.Contains("Blocker")) return "bi-exclamation-triangle";
+        if (t.Contains("Assigned") || t.Contains("Unassigned")) return "bi-person";
+        return "bi-dot";
     }
 }

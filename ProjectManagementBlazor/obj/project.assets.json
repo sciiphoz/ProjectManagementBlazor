@@ -611,13 +611,13 @@
           }
         }
       },
-      "Microsoft.NET.ILLink.Tasks/8.0.24": {
+      "Microsoft.NET.ILLink.Tasks/8.0.26": {
         "type": "package",
         "build": {
           "build/Microsoft.NET.ILLink.Tasks.props": {}
         }
       },
-      "Microsoft.NET.Sdk.WebAssembly.Pack/9.0.13": {
+      "Microsoft.NET.Sdk.WebAssembly.Pack/9.0.15": {
         "type": "package",
         "build": {
           "build/Microsoft.NET.Sdk.WebAssembly.Pack.props": {},
@@ -1300,13 +1300,13 @@
           }
         }
       },
-      "Microsoft.NET.ILLink.Tasks/8.0.24": {
+      "Microsoft.NET.ILLink.Tasks/8.0.26": {
         "type": "package",
         "build": {
           "build/Microsoft.NET.ILLink.Tasks.props": {}
         }
       },
-      "Microsoft.NET.Sdk.WebAssembly.Pack/9.0.13": {
+      "Microsoft.NET.Sdk.WebAssembly.Pack/9.0.15": {
         "type": "package",
         "build": {
           "build/Microsoft.NET.Sdk.WebAssembly.Pack.props": {},
@@ -2448,10 +2448,10 @@
         "microsoft.jsinterop.webassembly.nuspec"
       ]
     },
-    "Microsoft.NET.ILLink.Tasks/8.0.24": {
-      "sha512": "1gnadp//+DoGJvV4AFdzPqYPxkypaWYjYMCr7KAacV0iadsHz1nU+rrkoxBCna4FCmeKH49CisEwa7g94/MbEg==",
+    "Microsoft.NET.ILLink.Tasks/8.0.26": {
+      "sha512": "o7/yVssM2r9Wyln2s9edBd5ANZXqdSdBI+g7JqXkyJmXrhs2WsJp25K5yPnYrTgdKBCjKB8bg+O2oew4sgzFaA==",
       "type": "package",
-      "path": "microsoft.net.illink.tasks/8.0.24",
+      "path": "microsoft.net.illink.tasks/8.0.26",
       "hasTools": true,
       "files": [
         ".nupkg.metadata",
@@ -2465,7 +2465,7 @@
         "build/Microsoft.NET.ILLink.Analyzers.props",
         "build/Microsoft.NET.ILLink.Tasks.props",
         "build/Microsoft.NET.ILLink.targets",
-        "microsoft.net.illink.tasks.8.0.24.nupkg.sha512",
+        "microsoft.net.illink.tasks.8.0.26.nupkg.sha512",
         "microsoft.net.illink.tasks.nuspec",
         "tools/net472/ILLink.Tasks.dll",
         "tools/net472/ILLink.Tasks.dll.config",
@@ -2499,10 +2499,10 @@
         "useSharedDesignerContext.txt"
       ]
     },
-    "Microsoft.NET.Sdk.WebAssembly.Pack/9.0.13": {
-      "sha512": "e+CleofN1umJh1DnidTL8EHkSjvXV9sryL5Eq55lizHp7T+Kt8aL0cprh+vXet2pKfO0N7Cb89hxKHBkGR2Mfg==",
+    "Microsoft.NET.Sdk.WebAssembly.Pack/9.0.15": {
+      "sha512": "DE4Z/tttKeJp6fXwgbeqcidI7FHKBBFYIC2gCXtm9Aa7FjDYmWKFlAPVXhWK0250DRNlhJwtkq9ziim1QRViyw==",
       "type": "package",
-      "path": "microsoft.net.sdk.webassembly.pack/9.0.13",
+      "path": "microsoft.net.sdk.webassembly.pack/9.0.15",
       "hasTools": true,
       "files": [
         ".nupkg.metadata",
@@ -2533,7 +2533,7 @@
         "build/Microsoft.NET.Sdk.WebAssembly.Pack.targets",
         "build/Wasm.web.config",
         "build/browser.runtimeconfig.template.json",
-        "microsoft.net.sdk.webassembly.pack.9.0.13.nupkg.sha512",
+        "microsoft.net.sdk.webassembly.pack.9.0.15.nupkg.sha512",
         "microsoft.net.sdk.webassembly.pack.nuspec",
         "tools/net472/Microsoft.NET.Sdk.WebAssembly.Pack.Tasks.dll",
         "tools/net472/Microsoft.NET.WebAssembly.Webcil.dll",
@@ -2707,8 +2707,8 @@
       "Microsoft.AspNetCore.Components.WebAssembly.Authentication >= 8.0.2",
       "Microsoft.AspNetCore.Components.WebAssembly.DevServer >= 8.0.24",
       "Microsoft.Extensions.Http >= 8.0.1",
-      "Microsoft.NET.ILLink.Tasks >= 8.0.24",
-      "Microsoft.NET.Sdk.WebAssembly.Pack >= 9.0.13",
+      "Microsoft.NET.ILLink.Tasks >= 8.0.26",
+      "Microsoft.NET.Sdk.WebAssembly.Pack >= 9.0.15",
       "System.IdentityModel.Tokens.Jwt >= 8.17.0",
       "System.Net.Http.Json >= 8.0.1",
       "System.Text.Json >= 8.0.5"
@@ -2788,13 +2788,13 @@
           "Microsoft.NET.ILLink.Tasks": {
             "suppressParent": "All",
             "target": "Package",
-            "version": "[8.0.24, )",
+            "version": "[8.0.26, )",
             "autoReferenced": true
           },
           "Microsoft.NET.Sdk.WebAssembly.Pack": {
             "suppressParent": "All",
             "target": "Package",
-            "version": "[9.0.13, )",
+            "version": "[9.0.15, )",
             "autoReferenced": true
           },
           "System.IdentityModel.Tokens.Jwt": {
@@ -2826,7 +2826,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.311/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.313/PortableRuntimeIdentifierGraph.json"
       }
     },
     "runtimes": {

@@ -2,167 +2,236 @@
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize]
 @inject IProjectService ProjectService
+@inject IAuthService AuthService
 @inject NavigationManager Navigation
-@inject IJSRuntime JS
 @inject IErrorHandlingService ErrorHandling
+@inject DialogService DialogService
 
-<PageTitle>Мои проекты</PageTitle>
+<PageTitle>Проекты</PageTitle>
 
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>Мои проекты</h2>
+<div class="projects-page">
+    <!-- Заголовок -->
+    <div class="projects-header">
         <div>
-            <div class="btn-group me-2">
-                <button class="btn btn-outline-secondary btn-sm @(showArchived ? "active" : "")" @onclick="() => ToggleShowArchived(true)">
-                    📦 Все проекты
-                </button>
-                <button class="btn btn-outline-secondary btn-sm @(!showArchived ? "active" : "")" @onclick="() => ToggleShowArchived(false)">
-                    🟢 Активные
-                </button>
-            </div>
-            <button class="btn btn-primary" @onclick="ShowCreateModal">
-                + Создать проект
+            <h2>Проекты</h2>
+            <span class="text-muted small">@allProjectsCount проект(ов)</span>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm @(viewMode == "grid" ? "active" : "")" @onclick="ShowGridView" title="Сетка">
+                <i class="bi bi-grid-3x3-gap"></i>
             </button>
+            <button class="btn btn-outline-secondary btn-sm @(viewMode == "list" ? "active" : "")" @onclick="ShowListView" title="Список">
+                <i class="bi bi-list-ul"></i>
+            </button>
+            <button class="btn btn-primary btn-sm" @onclick="ShowCreateModal">
+                <i class="bi bi-plus me-1"></i> Новый проект
+            </button>
+        </div>
+    </div>
+
+    <!-- Фильтры -->
+    <div class="projects-filters">
+        <div class="search-box">
+            <i class="bi bi-search"></i>
+            <input type="text" class="form-control-plaintext"
+                   value="@searchTerm"
+                   @oninput="OnSearchInput"
+                   placeholder="Поиск проектов..." />
+            @if (!string.IsNullOrEmpty(searchTerm))
+            {
+                <button class="btn btn-link btn-sm text-muted p-0" @onclick="ClearSearch">
+                    <i class="bi bi-x"></i>
+                </button>
+            }
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-secondary @(showArchived ? "active" : "")" @onclick="() => ToggleShowArchived(true)">Все</button>
+                <button class="btn btn-outline-secondary @(!showArchived ? "active" : "")" @onclick="() => ToggleShowArchived(false)">Активные</button>
+            </div>
+            <select value="@sortBy" class="form-select form-select-sm" style="width: auto;" @onchange="OnSortChanged">
+                <option value="name">По названию</option>
+                <option value="created">По дате</option>
+                <option value="tasks">По задачам</option>
+            </select>
         </div>
     </div>
 
     @if (isLoading)
     {
-        <div class="text-center">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Загрузка...</span>
-            </div>
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary opacity-50" role="status"></div>
         </div>
     }
     else if (displayProjects != null && displayProjects.Any())
     {
-        <div class="row">
-            @foreach (var project in displayProjects)
-            {
-                <div class="col-md-4 mb-3">
-                    <div class="card h-100 @(project.IsArchived ? "archived-card" : "")">
-                        <div class="card-header @(project.IsArchived ? "bg-secondary text-white" : "bg-primary text-white")">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0">@project.Name</h5>
-                                @if (project.IsArchived)
-                                {
-                                    <span class="badge bg-warning text-dark">📦 Архив</span>
-                                }
+        @if (viewMode == "grid")
+        {
+            <div class="projects-grid">
+                @foreach (var project in displayProjects)
+                {
+                    // Определяем права на проект
+                    var isOwner = project.Owner?.Id == currentUserId;
+
+                    <div class="project-card @(project.IsArchived ? "archived" : "")" @onclick="() => OpenProject(project.Id)">
+                        <div class="project-card-header">
+                            <div class="project-icon @(project.IsArchived ? "bg-secondary" : "bg-primary")">
+                                @project.Name[..Math.Min(2, project.Name.Length)].ToUpper()
                             </div>
-                        </div>
-                        <div class="card-body">
-                            <p class="card-text">@(project.Description ?? "Нет описания")</p>
-                            <p class="small text-muted">
-                                Создан: @project.CreatedAt.ToString("dd.MM.yyyy")
-                            </p>
-                            <div class="d-flex justify-content-between">
-                                <span class="badge bg-info">Участников: @project.MembersCount</span>
-                                <span class="badge bg-success">Задач: @project.TotalTasksCount</span>
-                            </div>
-                            @if (project.IsArchived)
+                            @* Меню — только если есть права на действия *@
+                            @if (isOwner)
                             {
-                                <div class="alert alert-warning mt-2 mb-0 py-1 small">
-                                    <i class="bi bi-archive-fill"></i> Проект в архиве
+                                <div class="project-menu" @onclick:stopPropagation="true">
+                                    <button class="btn btn-link btn-sm text-muted p-0" @onclick="() => ToggleProjectDropdown(project.Id)">
+                                        <i class="bi bi-three-dots"></i>
+                                    </button>
+                                    @if (openDropdownId == project.Id)
+                                    {
+                                        <div class="dropdown-menu dropdown-menu-end show" style="position: absolute; right: 0; top: 100%;">
+                                            <button class="dropdown-item" @onclick="() => { ToggleProjectDropdown(project.Id); OpenProject(project.Id); }">
+                                                <i class="bi bi-box-arrow-in-right me-2"></i> Открыть
+                                            </button>
+                                            @if (project.IsArchived)
+                                            {
+                                                <button class="dropdown-item text-success" @onclick="() => { ToggleProjectDropdown(project.Id); RestoreProject(project.Id); }">
+                                                    <i class="bi bi-arrow-counterclockwise me-2"></i> Восстановить
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button class="dropdown-item text-warning" @onclick="() => { ToggleProjectDropdown(project.Id); ArchiveProject(project.Id); }">
+                                                    <i class="bi bi-archive me-2"></i> Архивировать
+                                                </button>
+                                            }
+                                            <div class="dropdown-divider"></div>
+                                            <button class="dropdown-item text-danger" @onclick="() => { ToggleProjectDropdown(project.Id); DeleteProject(project.Id, project.Name); }">
+                                                <i class="bi bi-trash me-2"></i> Удалить
+                                            </button>
+                                        </div>
+                                    }
                                 </div>
                             }
                         </div>
-                        <div class="card-footer">
-                            <div class="btn-group w-100">
-                                <button class="btn btn-sm btn-outline-primary"
-                                        @onclick="() => OpenProject(project.Id)">
-                                    Открыть
-                                </button>
-                                @if (project.IsArchived)
-                                {
-                                    <button class="btn btn-sm btn-outline-success"
-                                            @onclick="() => RestoreProject(project.Id)">
-                                        Восстановить
-                                    </button>
-                                }
-                                else
-                                {
-                                    <button class="btn btn-sm btn-outline-warning"
-                                            @onclick="() => ArchiveProject(project.Id)">
-                                        Архивировать
-                                    </button>
-                                }
-                                <button class="btn btn-sm btn-outline-danger"
-                                        @onclick="() => DeleteProject(project.Id, project.Name)">
-                                    Удалить
-                                </button>
-                            </div>
+                        <h5 class="project-name">@project.Name</h5>
+                        @if (!string.IsNullOrEmpty(project.Description))
+                        {
+                            <p class="project-desc">@project.Description</p>
+                        }
+                        <div class="project-meta">
+                            <span><i class="bi bi-people me-1"></i>@project.MembersCount</span>
+                            <span><i class="bi bi-list-check me-1"></i>@project.TotalTasksCount</span>
+                            <span class="ms-auto text-muted small">@project.CreatedAt.ToString("dd.MM.yyyy")</span>
                         </div>
                     </div>
-                </div>
-            }
-        </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="projects-list">
+                @foreach (var project in displayProjects)
+                {
+                    var isOwner = project.Owner?.Id == currentUserId;
 
-        <!-- Статистика -->
-        <div class="row mt-4">
-            <div class="col-md-4">
-                <div class="card bg-light">
-                    <div class="card-body text-center">
-                        <h3>@allProjectsCount</h3>
-                        <span>Всего проектов</span>
+                    <div class="project-row @(project.IsArchived ? "archived" : "")" @onclick="() => OpenProject(project.Id)">
+                        <div class="project-icon-sm @(project.IsArchived ? "bg-secondary" : "bg-primary")">
+                            @project.Name[..Math.Min(1, project.Name.Length)].ToUpper()
+                        </div>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="fw-medium">@project.Name</div>
+                            @if (!string.IsNullOrEmpty(project.Description))
+                            {
+                                <div class="text-muted small text-truncate">@project.Description</div>
+                            }
+                        </div>
+                        <div class="d-flex align-items-center gap-3 text-muted small">
+                            <span><i class="bi bi-people me-1"></i>@project.MembersCount</span>
+                            <span><i class="bi bi-list-check me-1"></i>@project.TotalTasksCount</span>
+                            <span>@project.CreatedAt.ToString("dd.MM.yyyy")</span>
+                        </div>
+                        @if (isOwner)
+                        {
+                            <div class="dropdown" @onclick:stopPropagation="true">
+                                <button class="btn btn-link btn-sm text-muted p-0" @onclick="() => ToggleProjectDropdown(project.Id)">
+                                    <i class="bi bi-three-dots"></i>
+                                </button>
+                                @if (openDropdownId == project.Id)
+                                {
+                                    <div class="dropdown-menu dropdown-menu-end show" style="position: absolute; right: 0; top: 100%;">
+                                        <button class="dropdown-item" @onclick="() => { ToggleProjectDropdown(project.Id); OpenProject(project.Id); }">
+                                            <i class="bi bi-box-arrow-in-right me-2"></i> Открыть
+                                        </button>
+                                        @if (project.IsArchived)
+                                        {
+                                            <button class="dropdown-item text-success" @onclick="() => { ToggleProjectDropdown(project.Id); RestoreProject(project.Id); }">
+                                                <i class="bi bi-arrow-counterclockwise me-2"></i> Восстановить
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button class="dropdown-item text-warning" @onclick="() => { ToggleProjectDropdown(project.Id); ArchiveProject(project.Id); }">
+                                                <i class="bi bi-archive me-2"></i> Архивировать
+                                            </button>
+                                        }
+                                        <div class="dropdown-divider"></div>
+                                        <button class="dropdown-item text-danger" @onclick="() => { ToggleProjectDropdown(project.Id); DeleteProject(project.Id, project.Name); }">
+                                            <i class="bi bi-trash me-2"></i> Удалить
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        }
                     </div>
-                </div>
+                }
             </div>
-            <div class="col-md-4">
-                <div class="card bg-light">
-                    <div class="card-body text-center">
-                        <h3>@activeProjectsCount</h3>
-                        <span>Активных проектов</span>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card bg-light">
-                    <div class="card-body text-center">
-                        <h3>@archivedProjectsCount</h3>
-                        <span>В архиве</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+        }
     }
     else
     {
-        <div class="alert alert-info text-center">
-            <h5>У вас пока нет проектов</h5>
-            <p>Создайте первый проект, чтобы начать работу</p>
-            <button class="btn btn-primary" @onclick="ShowCreateModal">+ Создать проект</button>
+        <div class="empty-state">
+            <div class="empty-icon"><i class="bi bi-folder2-open"></i></div>
+            <h5>@(string.IsNullOrEmpty(searchTerm) ? "Нет проектов" : "Ничего не найдено")</h5>
+            <p class="text-muted">@(string.IsNullOrEmpty(searchTerm) ? "Создайте первый проект, чтобы начать работу" : "Попробуйте изменить параметры поиска")</p>
+            @if (string.IsNullOrEmpty(searchTerm))
+            {
+                <button class="btn btn-primary btn-sm" @onclick="ShowCreateModal">
+                    <i class="bi bi-plus me-1"></i> Новый проект
+                </button>
+            }
         </div>
     }
 
-    <!-- Модальное окно создания проекта -->
+    <!-- Модалка создания -->
     @if (showCreateModal)
     {
-        <div class="modal show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0,0,0,0.5);">
-            <div class="modal-dialog">
+        <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-sm modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header bg-primary text-white">
-                        <h5 class="modal-title">Создание проекта</h5>
+                        <h6 class="modal-title">Новый проект</h6>
                         <button type="button" class="btn-close btn-close-white" @onclick="CloseModal"></button>
                     </div>
                     <div class="modal-body">
                         <EditForm Model="@newProject" OnValidSubmit="@CreateProject">
                             <div class="mb-3">
-                                <label class="form-label">Название проекта *</label>
-                                <InputText @bind-Value="newProject.Name" class="form-control" />
+                                <label class="form-label small">Название *</label>
+                                <InputText @bind-Value="newProject.Name" class="form-control form-control-sm" placeholder="Введите название" />
                                 <ValidationMessage For="@(() => newProject.Name)" />
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Описание</label>
-                                <InputTextArea @bind-Value="newProject.Description" class="form-control" rows="3" />
+                                <label class="form-label small">Описание</label>
+                                <InputTextArea @bind-Value="newProject.Description" class="form-control form-control-sm" rows="2" placeholder="Краткое описание" />
                             </div>
-                            <button type="submit" class="btn btn-primary" disabled="@isCreating">
-                                @if (isCreating)
-                                {
-                                    <span class="spinner-border spinner-border-sm me-2"></span>
-                                }
-                                Создать
-                            </button>
-                            <button type="button" class="btn btn-secondary" @onclick="CloseModal">Отмена</button>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary btn-sm" disabled="@isCreating">
+                                    @if (isCreating)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-1"></span>
+                                    }
+                                    Создать
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-sm" @onclick="CloseModal">Отмена</button>
+                            </div>
                         </EditForm>
                     </div>
                 </div>
@@ -172,27 +241,185 @@
 </div>
 
 <style>
-    .archived-card {
-        opacity: 0.85;
-        background-color: #f8f9fa;
+    .projects-page {
+        max-width: 900px;
+        margin: 0 auto;
     }
 
-        .archived-card:hover {
-            opacity: 1;
+    .projects-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+        .projects-header h2 {
+            font-size: 1.25rem;
+            margin: 0;
         }
 
-    .btn-group {
-        gap: 5px;
+    .projects-filters {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        margin-bottom: 1.25rem;
     }
 
-    .modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        overflow: auto;
-        z-index: 1050;
+    .search-box {
+        display: flex;
+        align-items: center;
+        flex: 1;
+        background: var(--bg-light, #F8F9FB);
+        border: 1px solid var(--border-color, #E2E8F0);
+        border-radius: 0.5rem;
+        padding: 0.25rem 0.75rem;
+    }
+
+        .search-box i {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .search-box input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 0.85rem;
+            background: transparent;
+            padding: 0.25rem 0.5rem;
+            color: var(--text-primary);
+        }
+
+            .search-box input::placeholder {
+                color: var(--text-secondary);
+            }
+
+    .projects-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 0.75rem;
+    }
+
+    .project-card {
+        background: #fff;
+        border: 1px solid var(--border-color, #E2E8F0);
+        border-radius: 0.5rem;
+        padding: 0.875rem;
+        cursor: pointer;
+        transition: box-shadow 0.15s;
+    }
+
+        .project-card:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .project-card.archived {
+            opacity: 0.65;
+        }
+
+    .project-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.5rem;
+    }
+
+    .project-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+
+    .project-menu {
+        position: relative;
+    }
+
+    .project-name {
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin: 0 0 0.25rem;
+    }
+
+    .project-desc {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        margin: 0 0 0.5rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .project-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 0.7rem;
+        color: var(--text-secondary);
+    }
+
+    .projects-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .project-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.375rem;
+        cursor: pointer;
+        transition: background-color 0.1s;
+    }
+
+        .project-row:hover {
+            background: rgba(0,0,0,0.02);
+        }
+
+        .project-row.archived {
+            opacity: 0.6;
+        }
+
+    .project-icon-sm {
+        width: 24px;
+        height: 24px;
+        border-radius: 5px;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.65rem;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem 0;
+    }
+
+    .empty-icon {
+        font-size: 3rem;
+        color: var(--text-secondary);
+        opacity: 0.5;
+        margin-bottom: 0.75rem;
+    }
+
+    .dropdown-menu {
+        z-index: 1060;
+    }
+
+    .min-w-0 {
+        min-width: 0;
     }
 </style>
 
@@ -204,14 +431,25 @@
     private bool showCreateModal = false;
     private bool isCreating = false;
     private CreateProjectRequest newProject = new();
+    private Guid currentUserId;
+
+    private string searchTerm = "";
+    private string sortBy = "name";
+    private string viewMode = "grid";
+    private Guid openDropdownId = Guid.Empty;
 
     private int allProjectsCount => allProjects?.Count ?? 0;
-    private int activeProjectsCount => allProjects?.Count(p => !p.IsArchived) ?? 0;
-    private int archivedProjectsCount => allProjects?.Count(p => p.IsArchived) ?? 0;
+    private int displayProjectsCount => displayProjects?.Count ?? 0;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadProjects();
+        try
+        {
+            var u = await AuthService.GetCurrentUserAsync();
+            if (u.Success && u.Data != null) currentUserId = u.Data.Id;
+            await LoadProjects();
+        }
+        catch (UnauthorizedAccessException) { }
     }
 
     private async Task LoadProjects()
@@ -220,163 +458,79 @@
         try
         {
             var result = await ProjectService.GetUserProjectsAsync(new PagedRequest { PageNumber = 1, PageSize = 100 });
-            if (result.Success && result.Data != null)
-            {
-                allProjects = result.Data.Items;
-                ApplyFilter();
-            }
+            if (result.Success && result.Data != null) { allProjects = result.Data.Items; ApplyFilter(); }
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка: {ex.Message}");
-            await ErrorHandling.TriggerError("Не удалось загрузить проекты");
-        }
-        finally
-        {
-            isLoading = false;
-        }
+        catch (Exception ex) { Console.WriteLine($"Ошибка: {ex.Message}"); await ErrorHandling.TriggerError("Не удалось загрузить проекты"); }
+        finally { isLoading = false; }
     }
 
     private void ApplyFilter()
     {
-        if (allProjects == null) return;
-
-        if (showArchived)
+        if (allProjects == null) { displayProjects = null; return; }
+        var query = allProjects.AsQueryable();
+        if (!showArchived) query = query.Where(p => !p.IsArchived);
+        if (!string.IsNullOrWhiteSpace(searchTerm))
         {
-            displayProjects = allProjects.ToList();
+            var term = searchTerm.Trim();
+            query = query.Where(p => (!string.IsNullOrEmpty(p.Name) && p.Name.Contains(term, StringComparison.OrdinalIgnoreCase)) || (!string.IsNullOrEmpty(p.Description) && p.Description.Contains(term, StringComparison.OrdinalIgnoreCase)));
         }
-        else
+        displayProjects = sortBy switch
         {
-            displayProjects = allProjects.Where(p => !p.IsArchived).ToList();
-        }
+            "created" => query.OrderByDescending(p => p.CreatedAt).ToList(),
+            "tasks" => query.OrderByDescending(p => p.TotalTasksCount).ToList(),
+            _ => query.OrderBy(p => p.Name).ToList()
+        };
         StateHasChanged();
     }
 
-    private void ToggleShowArchived(bool show)
-    {
-        showArchived = show;
-        ApplyFilter();
-    }
-
-    private void ShowCreateModal()
-    {
-        newProject = new CreateProjectRequest();
-        showCreateModal = true;
-    }
-
-    private void CloseModal()
-    {
-        showCreateModal = false;
-    }
+    private void ShowGridView() { viewMode = "grid"; StateHasChanged(); }
+    private void ShowListView() { viewMode = "list"; StateHasChanged(); }
+    private async Task ClearSearch() { searchTerm = ""; ApplyFilter(); StateHasChanged(); }
+    private async Task ResetFilters() { searchTerm = ""; sortBy = "name"; showArchived = true; viewMode = "grid"; ApplyFilter(); StateHasChanged(); }
+    private void ToggleShowArchived(bool show) { showArchived = show; ApplyFilter(); }
+    private async Task OnSearchInput(ChangeEventArgs e) { searchTerm = e.Value?.ToString() ?? ""; ApplyFilter(); }
+    private async Task OnSortChanged(ChangeEventArgs e) { sortBy = e.Value?.ToString() ?? "name"; ApplyFilter(); }
+    private void ToggleProjectDropdown(Guid projectId) { openDropdownId = openDropdownId == projectId ? Guid.Empty : projectId; StateHasChanged(); }
+    private void ShowCreateModal() { newProject = new CreateProjectRequest(); showCreateModal = true; }
+    private void CloseModal() { showCreateModal = false; }
 
     private async Task CreateProject()
     {
-        if (string.IsNullOrWhiteSpace(newProject.Name))
-        {
-            await ErrorHandling.TriggerError("Название проекта обязательно");
-            return;
-        }
-
+        if (string.IsNullOrWhiteSpace(newProject.Name)) { await ErrorHandling.TriggerError("Название проекта обязательно"); return; }
         isCreating = true;
         try
         {
             var result = await ProjectService.CreateProjectAsync(newProject);
-            if (result.Success)
-            {
-                CloseModal();
-                await LoadProjects();
-                await JS.InvokeVoidAsync("alert", "Проект создан");
-            }
-            else
-            {
-                await ErrorHandling.TriggerError($"Ошибка: {result.Message}");
-            }
+            if (result.Success) { CloseModal(); await LoadProjects(); await DialogService.AlertAsync("Проект успешно создан", "Готово", "bi bi-check-circle", "success"); }
+            else await ErrorHandling.TriggerError($"Ошибка: {result.Message}");
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка: {ex.Message}");
-            await ErrorHandling.TriggerError("Произошла ошибка");
-        }
-        finally
-        {
-            isCreating = false;
-        }
+        catch (Exception ex) { await ErrorHandling.TriggerError("Произошла ошибка"); }
+        finally { isCreating = false; }
     }
 
     private async Task ArchiveProject(Guid projectId)
     {
-        if (await JS.InvokeAsync<bool>("confirm", "Архивировать проект? Он будет скрыт из списка активных проектов."))
-        {
-            try
-            {
-                var result = await ProjectService.ArchiveProjectAsync(projectId);
-                if (result.Success)
-                {
-                    await LoadProjects();
-                    await JS.InvokeVoidAsync("alert", "Проект архивирован");
-                }
-                else
-                {
-                    await ErrorHandling.TriggerError($"Ошибка: {result.Message}");
-                }
-            }
-            catch (Exception ex)
-            {
-                await ErrorHandling.TriggerError("Произошла ошибка");
-            }
-        }
+        var confirmed = await DialogService.ConfirmAsync("Переместить проект в архив?", "Архивирование", "Архивировать", "warning");
+        if (!confirmed) return;
+        try { var r = await ProjectService.ArchiveProjectAsync(projectId); if (r.Success) { await LoadProjects(); await DialogService.AlertAsync("Проект в архиве", "", "bi bi-archive", "info"); } else await ErrorHandling.TriggerError(r.Message); }
+        catch { await ErrorHandling.TriggerError("Ошибка"); }
     }
 
     private async Task RestoreProject(Guid projectId)
     {
-        if (await JS.InvokeAsync<bool>("confirm", "Восстановить проект из архива?"))
-        {
-            try
-            {
-                var result = await ProjectService.RestoreProjectAsync(projectId);
-                if (result.Success)
-                {
-                    await LoadProjects();
-                    await JS.InvokeVoidAsync("alert", "Проект восстановлен");
-                }
-                else
-                {
-                    await ErrorHandling.TriggerError($"Ошибка: {result.Message}");
-                }
-            }
-            catch (Exception ex)
-            {
-                await ErrorHandling.TriggerError("Произошла ошибка");
-            }
-        }
+        var confirmed = await DialogService.ConfirmAsync("Восстановить проект?", "Восстановление", "Восстановить", "info");
+        if (!confirmed) return;
+        try { var r = await ProjectService.RestoreProjectAsync(projectId); if (r.Success) { await LoadProjects(); await DialogService.AlertAsync("Проект восстановлен", "", "bi bi-arrow-counterclockwise", "success"); } else await ErrorHandling.TriggerError(r.Message); }
+        catch { await ErrorHandling.TriggerError("Ошибка"); }
     }
 
     private async Task DeleteProject(Guid projectId, string projectName)
     {
-        if (await JS.InvokeAsync<bool>("confirm", $"Удалить проект '{projectName}'? Это действие необратимо."))
-        {
-            try
-            {
-                var result = await ProjectService.DeleteProjectAsync(projectId);
-                if (result.Success)
-                {
-                    await LoadProjects();
-                    await JS.InvokeVoidAsync("alert", "Проект удален");
-                }
-                else
-                {
-                    await ErrorHandling.TriggerError($"Ошибка: {result.Message}");
-                }
-            }
-            catch (Exception ex)
-            {
-                await ErrorHandling.TriggerError("Произошла ошибка");
-            }
-        }
+        var confirmed = await DialogService.ConfirmAsync($"Удалить «{projectName}» навсегда?", "Удаление", "Удалить", "danger");
+        if (!confirmed) return;
+        try { var r = await ProjectService.DeleteProjectAsync(projectId); if (r.Success) { await LoadProjects(); await DialogService.AlertAsync("Проект удалён", "", "bi bi-trash", "info"); } else await ErrorHandling.TriggerError(r.Message); }
+        catch { await ErrorHandling.TriggerError("Ошибка"); }
     }
 
-    private void OpenProject(Guid projectId)
-    {
-        Navigation.NavigateTo($"/projects/{projectId}");
-    }
+    private void OpenProject(Guid projectId) { Navigation.NavigateTo($"/projects/{projectId}"); }
 }

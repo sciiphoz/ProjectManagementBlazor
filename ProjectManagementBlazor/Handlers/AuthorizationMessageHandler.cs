@@ -1,15 +1,22 @@
-﻿using System.Net.Http.Headers;
+﻿using Microsoft.AspNetCore.Components;
+using ProjectManagementBlazor.DTO.Common;
+using ProjectManagementBlazor.DTO.Responses;
 using ProjectManagementBlazor.Services;
+using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 
 namespace ProjectManagementBlazor.Handlers
 {
     public class AuthorizationMessageHandler : DelegatingHandler
     {
         private readonly ILocalStorageService _localStorage;
+        private readonly NavigationManager _navigationManager;
 
-        public AuthorizationMessageHandler(ILocalStorageService localStorage)
+        public AuthorizationMessageHandler(ILocalStorageService localStorage, NavigationManager navigationManager)
         {
             _localStorage = localStorage;
+            _navigationManager = navigationManager;
         }
 
         protected override async Task<HttpResponseMessage> SendAsync(
@@ -21,7 +28,89 @@ namespace ProjectManagementBlazor.Handlers
             {
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
             }
-            return await base.SendAsync(request, cancellationToken);
+
+            var response = await base.SendAsync(request, cancellationToken);
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                var newToken = await TryRefreshToken();
+
+                if (!string.IsNullOrEmpty(newToken))
+                {
+                    var retryRequest = await CloneRequest(request);
+                    retryRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", newToken);
+                    return await base.SendAsync(retryRequest, cancellationToken);
+                }
+
+                await _localStorage.RemoveItemAsync("authToken");
+                await _localStorage.RemoveItemAsync("refreshToken");
+                _navigationManager.NavigateTo("/login", true);
+            }
+
+            return response;
+        }
+
+        private async Task<string?> TryRefreshToken()
+        {
+            try
+            {
+                var refreshToken = await _localStorage.GetItemAsStringAsync("refreshToken");
+                if (string.IsNullOrEmpty(refreshToken))
+                    return null;
+
+                var refreshRequest = new HttpRequestMessage(HttpMethod.Post, "api/auth/refresh-token")
+                {
+                    Content = JsonContent.Create(new { RefreshToken = refreshToken })
+                };
+
+                var response = await base.SendAsync(refreshRequest, CancellationToken.None);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    var result = System.Text.Json.JsonSerializer.Deserialize<ApiResponse<AuthResponse>>(
+                        content,
+                        new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                    if (result?.Success == true && result.Data != null)
+                    {
+                        await _localStorage.SetItemAsStringAsync("authToken", result.Data.Token);
+
+                        if (!string.IsNullOrEmpty(result.Data.RefreshToken))
+                        {
+                            await _localStorage.SetItemAsStringAsync("refreshToken", result.Data.RefreshToken);
+                        }
+
+                        return result.Data.Token;
+                    }
+                }
+            }
+            catch { }
+
+            return null;
+        }
+
+        private async Task<HttpRequestMessage> CloneRequest(HttpRequestMessage request)
+        {
+            var clone = new HttpRequestMessage(request.Method, request.RequestUri);
+
+            if (request.Content != null)
+            {
+                var content = await request.Content.ReadAsStringAsync();
+                clone.Content = new StringContent(content);
+
+                if (request.Content.Headers.ContentType != null)
+                {
+                    clone.Content.Headers.ContentType = request.Content.Headers.ContentType;
+                }
+            }
+
+            foreach (var header in request.Headers)
+            {
+                clone.Headers.TryAddWithoutValidation(header.Key, header.Value);
+            }
+
+            return clone;
         }
     }
 }

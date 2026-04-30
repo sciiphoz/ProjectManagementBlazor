@@ -8,120 +8,234 @@
 
 <PageTitle>Главная</PageTitle>
 
-<div class="container mt-4">
+<div class="home-page">
     @if (isLoading)
     {
-        <div class="text-center mt-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Загрузка...</span>
-            </div>
-            <p class="mt-2">Загрузка данных...</p>
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary opacity-50" role="status"></div>
         </div>
     }
     else if (currentUser != null)
     {
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h4>Добро пожаловать в систему управления проектами!</h4>
-            </div>
-            <div class="card-body">
-                @if (currentUser != null)
-                {
-                    <h5>Здравствуйте, @currentUser.FullName!</h5>
-                    <p>Вы вошли как: <strong>@currentUser.Username</strong></p>
-                    <p>Роль: <strong>@currentUser.Role</strong></p>
-                    <p>Email: <strong>@currentUser.Email</strong></p>
-                }
+        <div class="welcome-card">
+            <div class="d-flex align-items-center gap-3">
+                <div class="avatar-circle-lg">@GetInitials(currentUser.FullName)</div>
+                <div>
+                    <h2 class="mb-1">Добрый день, @currentUser.FullName</h2>
+                    <p class="text-muted mb-0">@currentUser.Email · @GetRoleText(currentUser.Role)</p>
+                </div>
             </div>
         </div>
 
-        <div class="row mt-4">
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-header bg-info text-white">
-                        <h5>Мои проекты</h5>
-                    </div>
-                    <div class="card-body">
-                        <p>Количество проектов: <strong>@(myProjects?.Count ?? 0)</strong></p>
-                        <button class="btn btn-primary" @onclick="GoToProjects">
-                            Перейти к проектам
-                        </button>
-                    </div>
+        <!-- Быстрые действия -->
+        <div class="quick-actions">
+            <div class="action-card" @onclick="GoToProjects">
+                <div class="action-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="bi bi-folder2"></i>
                 </div>
+                <div>
+                    <div class="fw-medium">Проекты</div>
+                    <div class="text-muted small">@(myProjects?.Count ?? 0) активных</div>
+                </div>
+                <i class="bi bi-chevron-right text-muted ms-auto"></i>
             </div>
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-header bg-success text-white">
-                        <h5>Активные спринты</h5>
-                    </div>
-                    <div class="card-body">
-                        <p>Отслеживайте прогресс команды</p>
-                        <button class="btn btn-success" @onclick="GoToSprints">
-                            К спринтам
-                        </button>
-                    </div>
+            <div class="action-card" @onclick="GoToDashboard">
+                <div class="action-icon bg-warning bg-opacity-10 text-warning">
+                    <i class="bi bi-calendar-check"></i>
                 </div>
+                <div>
+                    <div class="fw-medium">Мой день</div>
+                    <div class="text-muted small">План на сегодня</div>
+                </div>
+                <i class="bi bi-chevron-right text-muted ms-auto"></i>
             </div>
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-header bg-warning text-dark">
-                        <h5>Мой день</h5>
-                    </div>
-                    <div class="card-body">
-                        <p>Планируйте свои задачи</p>
-                        <button class="btn btn-warning" @onclick="GoToDashboard">
-                            Открыть дашборд
-                        </button>
-                    </div>
+            <div class="action-card" @onclick="GoToSprints">
+                <div class="action-icon bg-success bg-opacity-10 text-success">
+                    <i class="bi bi-rocket-takeoff"></i>
                 </div>
+                <div>
+                    <div class="fw-medium">Спринты</div>
+                    <div class="text-muted small">Активные спринты</div>
+                </div>
+                <i class="bi bi-chevron-right text-muted ms-auto"></i>
             </div>
         </div>
+
+        <!-- Последние проекты -->
+        @if (myProjects != null && myProjects.Any())
+        {
+            <div class="section-title">Недавние проекты</div>
+            <div class="recent-projects">
+                @foreach (var project in myProjects.Take(4))
+                {
+                    <div class="project-chip @(project.IsArchived ? "archived" : "")" @onclick="() => OpenProject(project.Id)">
+                        <div class="project-chip-icon @(project.IsArchived ? "bg-secondary" : "bg-primary")">
+                            @project.Name[..Math.Min(1, project.Name.Length)].ToUpper()
+                        </div>
+                        <span class="project-chip-name">@project.Name</span>
+                        <span class="project-chip-meta">@project.TotalTasksCount задач</span>
+                    </div>
+                }
+            </div>
+        }
     }
 </div>
+
+<style>
+    .home-page {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .welcome-card {
+        margin-bottom: 1.5rem;
+    }
+
+    .avatar-circle-lg {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary-color), #3730A3);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+
+    .quick-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .action-card {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--border-color, #E2E8F0);
+        border-radius: 0.5rem;
+        cursor: pointer;
+        transition: box-shadow 0.1s;
+    }
+
+        .action-card:hover {
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        }
+
+    .action-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+
+    .section-title {
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-secondary);
+        margin-bottom: 0.5rem;
+    }
+
+    .recent-projects {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .project-chip {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color, #E2E8F0);
+        border-radius: 2rem;
+        cursor: pointer;
+        transition: box-shadow 0.1s;
+        font-size: 0.8rem;
+    }
+
+        .project-chip:hover {
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        }
+
+        .project-chip.archived {
+            opacity: 0.5;
+        }
+
+    .project-chip-icon {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.6rem;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+
+    .project-chip-meta {
+        color: var(--text-secondary);
+        font-size: 0.7rem;
+    }
+
+    [data-bs-theme="dark"] .action-card {
+        background: #1E293B;
+        border-color: #334155;
+    }
+
+    [data-bs-theme="dark"] .project-chip {
+        background: #1E293B;
+        border-color: #334155;
+    }
+</style>
 
 @code {
     private UserResponse? currentUser;
     private List<ProjectResponse>? myProjects;
     private bool isLoading = true;
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadData();
-    }
+    protected override async Task OnInitializedAsync() { await LoadData(); }
 
     private async Task LoadData()
     {
         isLoading = true;
         try
         {
-            var userResult = await AuthService.GetCurrentUserAsync();
-            if (userResult.Success && userResult.Data != null)
-            {
-                currentUser = userResult.Data;
-            }
-            else
-            {
-                await ErrorHandling.TriggerError(userResult.Message ?? "Не удалось загрузить данные пользователя");
-            }
+            var u = await AuthService.GetCurrentUserAsync();
+            if (u.Success && u.Data != null) currentUser = u.Data;
+            else await ErrorHandling.TriggerError(u.Message ?? "Ошибка загрузки");
 
-            var projectsResult = await ProjectService.GetUserProjectsAsync(new PagedRequest { PageNumber = 1, PageSize = 10 });
-            if (projectsResult.Success && projectsResult.Data != null)
-            {
-                myProjects = projectsResult.Data.Items;
-            }
+            var p = await ProjectService.GetUserProjectsAsync(new PagedRequest { PageNumber = 1, PageSize = 10 });
+            if (p.Success && p.Data != null) myProjects = p.Data.Items;
         }
-        catch (Exception ex)
-        {
-            await ErrorHandling.TriggerError($"Ошибка загрузки данных: {ex.Message}");
-        }
-        finally
-        {
-            isLoading = false;
-            StateHasChanged();
-        }
+        catch (Exception ex) { await ErrorHandling.TriggerError($"Ошибка: {ex.Message}"); }
+        finally { isLoading = false; StateHasChanged(); }
     }
+
+    private string GetInitials(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return "?";
+        var parts = name.Split(' ');
+        return parts.Length >= 2 ? $"{parts[0][0]}{parts[1][0]}".ToUpper() : name[..Math.Min(2, name.Length)].ToUpper();
+    }
+
+    private string GetRoleText(string role) => role switch { "Admin" => "Администратор", _ => "Пользователь" };
 
     private void GoToProjects() => Navigation.NavigateTo("/projects");
     private void GoToSprints() => Navigation.NavigateTo("/sprints");
     private void GoToDashboard() => Navigation.NavigateTo("/dashboard");
+    private void OpenProject(Guid id) => Navigation.NavigateTo($"/projects/{id}");
 }

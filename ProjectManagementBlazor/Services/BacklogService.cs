@@ -125,7 +125,25 @@ namespace ProjectManagementBlazor.Services
                 () => _httpClient.PutAsJsonAsync($"api/backlog/comments/{commentId}", request),
                 "Не удалось обновить комментарий");
         }
+        public async Task<ApiResponse<PagedResult<BacklogItemResponse>>> SearchBacklogItemsAsync(BacklogSearchRequest request)
+        {
+            var queryString = $"?projectId={request.ProjectId}&pageNumber={request.PageNumber}&pageSize={request.PageSize}";
 
+            if (!string.IsNullOrEmpty(request.SearchTerm))
+                queryString += $"&searchTerm={Uri.EscapeDataString(request.SearchTerm)}";
+            if (!string.IsNullOrEmpty(request.Type))
+                queryString += $"&type={Uri.EscapeDataString(request.Type)}";
+            if (!string.IsNullOrEmpty(request.Status))
+                queryString += $"&status={Uri.EscapeDataString(request.Status)}";
+            if (request.AssigneeId.HasValue)
+                queryString += $"&assigneeId={request.AssigneeId.Value}";
+            if (!string.IsNullOrEmpty(request.SortBy))
+                queryString += $"&sortBy={Uri.EscapeDataString(request.SortBy)}&sortDescending={request.SortDescending}";
+
+            return await SendRequestAsync<PagedResult<BacklogItemResponse>>(
+                () => _httpClient.GetAsync($"api/backlog/search{queryString}"),
+                "Не удалось выполнить поиск задач");
+        }
         public async Task<ApiResponse> DeleteCommentAsync(Guid commentId)
         {
             return await SendRequestAsync(

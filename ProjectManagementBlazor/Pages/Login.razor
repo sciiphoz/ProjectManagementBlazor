@@ -1,42 +1,57 @@
 ﻿@page "/login"
 @using System.ComponentModel.DataAnnotations
 @using ProjectManagementBlazor.DTO.Requests
-@using ProjectManagementBlazor.DTO.Responses
 @inject IAuthService AuthService
 @inject NavigationManager Navigation
-@inject ISprintService SprintService
 
 <PageTitle>Вход в систему</PageTitle>
 
-<div class="row justify-content-center mt-5">
-    <div class="col-md-6 col-lg-4">
-        <div class="card shadow">
-            <div class="card-header bg-primary text-white text-center">
-                <h4>Вход в систему</h4>
-            </div>
-            <div class="card-body">
+<div class="auth-container">
+    <div class="auth-split">
+        <!-- Левая сторона — форма -->
+        <div class="auth-form-side">
+            <div class="auth-form-wrapper">
+                <h3 class="mb-3">Вход в систему</h3>
+                <p class="text-muted mb-4">Войдите в свою учётную запись</p>
+
                 <EditForm Model="@loginModel" OnValidSubmit="@HandleLogin">
                     <DataAnnotationsValidator />
-                    <ValidationSummary class="text-danger" />
 
                     <div class="mb-3">
                         <label class="form-label">Логин или Email</label>
-                        <InputText @bind-Value="loginModel.UsernameOrEmail" class="form-control" />
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-person"></i></span>
+                            <InputText @bind-Value="loginModel.UsernameOrEmail" class="form-control" placeholder="Введите логин или email" />
+                        </div>
                         <ValidationMessage For="@(() => loginModel.UsernameOrEmail)" />
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Пароль</label>
-                        <InputText type="password" @bind-Value="loginModel.Password" class="form-control" />
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                            <InputText type="@(showPassword ? "text" : "password")"
+                                       @bind-Value="loginModel.Password"
+                                       class="form-control" placeholder="Введите пароль" />
+                            <button class="btn btn-outline-secondary"
+                                    type="button"
+                                    @onclick="TogglePasswordVisibility"
+                                    title="@(showPassword ? "Скрыть пароль" : "Показать пароль")">
+                                <i class="bi @(showPassword ? "bi-eye-slash" : "bi-eye")"></i>
+                            </button>
+                        </div>
                         <ValidationMessage For="@(() => loginModel.Password)" />
                     </div>
 
-                    <div class="mb-3 form-check">
-                        <InputCheckbox @bind-Value="loginModel.RememberMe" class="form-check-input" />
-                        <label class="form-check-label">Запомнить меня</label>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div class="form-check">
+                            <InputCheckbox @bind-Value="loginModel.RememberMe" class="form-check-input" />
+                            <label class="form-check-label small">Запомнить меня</label>
+                        </div>
+                        <a href="/forgot-password" class="text-decoration-none small">Забыли пароль?</a>
                     </div>
 
-                    <button type="submit" class="btn btn-primary w-100" disabled="@isLoading">
+                    <button type="submit" class="btn btn-primary w-100 py-2" disabled="@isLoading">
                         @if (isLoading)
                         {
                             <span class="spinner-border spinner-border-sm me-2"></span>
@@ -47,24 +62,131 @@
 
                 @if (!string.IsNullOrEmpty(errorMessage))
                 {
-                    <div class="alert alert-danger mt-3">@errorMessage</div>
+                    <div class="alert alert-danger mt-3 small" style="white-space: pre-line;">@errorMessage</div>
                 }
 
-                <hr />
+                <p class="text-center mt-3 mb-0 small">
+                    Нет аккаунта? <a href="/register" class="fw-bold">Зарегистрироваться</a>
+                </p>
+            </div>
+        </div>
 
-                <div class="text-center">
-                    <p>Нет аккаунта? <a href="/register">Зарегистрироваться</a></p>
-                    <a href="/forgot-password">Забыли пароль?</a>
+        <!-- Правая сторона — брендинг -->
+        <div class="auth-brand-side">
+            <div class="auth-brand-content">
+                <h2>Project Management</h2>
+                <p class="lead">Система управления проектами по методологии SCRUM</p>
+                <hr class="my-4" style="border-color: rgba(255,255,255,0.2);">
+                <div class="d-flex flex-column gap-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-kanban"></i>
+                        <span class="small">Канбан-доски с drag-and-drop</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-graph-up"></i>
+                        <span class="small">Burndown-графики и отчёты</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-people"></i>
+                        <span class="small">Командная работа и Daily Scrum</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-chat-dots"></i>
+                        <span class="small">Комментарии и обсуждения задач</span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<style>
+    .auth-container {
+        min-height: 100vh;
+        display: flex;
+        margin: -1.1rem;
+    }
+
+    .auth-split {
+        display: flex;
+        width: 100%;
+    }
+
+    .auth-form-side {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 3rem;
+        background: #fff;
+    }
+
+    .auth-form-wrapper {
+        width: 100%;
+        max-width: 420px;
+    }
+
+        .auth-form-wrapper h3 {
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+    .auth-brand-side {
+        flex: 1;
+        background: linear-gradient(135deg, var(--primary-color) 0%, #3730A3 100%);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem;
+    }
+
+    .auth-brand-content {
+        max-width: 420px;
+    }
+
+        .auth-brand-content h2 {
+            color: #fff !important;
+            font-weight: 700;
+            font-size: 1.75rem;
+        }
+
+        .auth-brand-content .lead {
+            color: rgba(255,255,255,0.9) !important;
+            font-size: 0.95rem;
+        }
+
+        .auth-brand-content i {
+            font-size: 1.2rem;
+            opacity: 0.85;
+            width: 1.5rem;
+            text-align: center;
+        }
+
+    @@media (max-width: 768px) {
+        .auth-split {
+            flex-direction: column;
+        }
+
+        .auth-brand-side {
+            display: none;
+        }
+
+        .auth-form-side {
+            padding: 2rem 1.5rem;
+        }
+
+        .auth-container {
+            margin: 0;
+        }
+    }
+</style>
+
 @code {
     private LoginRequest loginModel = new();
     private bool isLoading = false;
     private string errorMessage = string.Empty;
+    private bool showPassword = false;
 
     private async Task HandleLogin()
     {
@@ -82,6 +204,11 @@
             else
             {
                 errorMessage = result.Message;
+
+                if (result.Errors != null && result.Errors.Any())
+                {
+                    errorMessage += "\n\n" + string.Join("\n", result.Errors.Select(e => $"• {e}"));
+                }
             }
         }
         catch (Exception ex)
@@ -92,5 +219,10 @@
         {
             isLoading = false;
         }
+    }
+
+    private void TogglePasswordVisibility()
+    {
+        showPassword = !showPassword;
     }
 }

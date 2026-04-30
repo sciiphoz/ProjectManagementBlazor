@@ -12,6 +12,7 @@ namespace ProjectManagementBlazor.Interfaces
         Task<ApiResponse<PagedResult<BacklogItemResponse>>> GetProjectBacklogAsync(Guid projectId, PagedRequest request);
         Task<ApiResponse<BacklogItemResponse>> UpdateBacklogItemAsync(Guid id, UpdateBacklogItemRequest request);
         Task<ApiResponse> DeleteBacklogItemAsync(Guid id);
+        Task<ApiResponse<PagedResult<BacklogItemResponse>>> SearchBacklogItemsAsync(BacklogSearchRequest request);
 
         // Управление статусом
         Task<ApiResponse<BacklogItemResponse>> ChangeStatusAsync(Guid id, ChangeTaskStatusRequest request);

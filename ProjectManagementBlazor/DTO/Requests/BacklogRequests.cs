@@ -18,7 +18,18 @@ namespace ProjectManagementBlazor.DTO.Requests
         Review = 3,
         Done = 4
     }
-
+    public class BacklogSearchRequest
+    {
+        public Guid ProjectId { get; set; }
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 20;
+        public string? SearchTerm { get; set; }
+        public string? Type { get; set; }
+        public string? Status { get; set; }
+        public Guid? AssigneeId { get; set; }
+        public string? SortBy { get; set; }
+        public bool SortDescending { get; set; } = false;
+    }
     public class CreateBacklogItemRequest
     {
         [Required]

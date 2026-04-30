@@ -2,106 +2,301 @@
 @inject IAuthService AuthService
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+@inject INotificationCounterService CounterService
+@implements IDisposable
 
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">Project Management</a>
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
+<div class="nav-container">
+    <div class="nav-logo">
+        <i class="bi bi-kanban me-2" style="position: relative; top: 1px;"></i>
+        <span>PM System</span>
     </div>
+
+    <nav class="nav-links">
+        <NavLink class="nav-link-item" href="" Match="NavLinkMatch.All">
+            <i class="bi bi-house-door"></i>
+            <span>Главная</span>
+        </NavLink>
+        <NavLink class="nav-link-item" href="projects">
+            <i class="bi bi-folder2"></i>
+            <span>Проекты</span>
+        </NavLink>
+        <NavLink class="nav-link-item" href="dashboard">
+            <i class="bi bi-calendar-check"></i>
+            <span>Мой день</span>
+        </NavLink>
+        <NavLink class="nav-link-item" href="notifications">
+            <i class="bi bi-bell"></i>
+            <span>Уведомления</span>
+            @if (isAuthenticated && unreadCount > 0)
+            {
+                <span class="badge bg-danger ms-auto">@(unreadCount > 99 ? "99+" : unreadCount.ToString())</span>
+            }
+        </NavLink>
+    </nav>
+
+    @if (isAuthenticated)
+    {
+        <div class="nav-profile" @onclick="GoToProfile">
+            <div class="avatar-circle-sm">@GetInitials()</div>
+            <div class="profile-info">
+                <span class="profile-name">@currentUserName</span>
+                <span class="profile-email">@currentUserEmail</span>
+            </div>
+            <span class="theme-toggle" @onclick="HandleThemeToggle" @onclick:stopPropagation="true" title="Переключить тему">
+                <i class="bi @(isDarkTheme ? "bi-sun" : "bi-moon")"></i>
+            </span>
+        </div>
+    }
 </div>
 
-<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
-    <nav class="flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="oi oi-home" aria-hidden="true"></span> Главная
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="projects">
-                <span class="oi oi-list-rich" aria-hidden="true"></span> Проекты
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="dashboard">
-                <span class="oi oi-dashboard" aria-hidden="true"></span> Мой день
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="profile">
-                <span class="oi oi-person" aria-hidden="true"></span> Профиль
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="notifications">
-                <span class="oi oi-bell" aria-hidden="true"></span>
-                Уведомления
-                @if (unreadCount > 0)
-                {
-                    <span class="badge bg-danger ms-1">@unreadCount</span>
-                }
-            </NavLink>
-        </div>
-    </nav>
-</div>
+<style>
+    .nav-container {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        padding: 0;
+    }
+
+    .nav-logo {
+        display: flex;
+        align-items: center;
+        padding: 1.25rem 1.25rem 1rem;
+        font-weight: 700;
+        font-size: 1rem;
+        color: var(--text-primary);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+        .nav-logo i {
+            font-size: 1.3rem;
+            color: var(--primary-color);
+            display: inline-block;
+            line-height: 1;
+            vertical-align: middle;
+        }
+
+    .nav-links {
+        flex: 1;
+        padding: 0.75rem 0.75rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+    }
+
+    .nav-link-item {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.5rem;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.12s ease;
+        gap: 0.625rem;
+    }
+
+        .nav-link-item i {
+            font-size: 1.1rem;
+            width: 1.25rem;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .nav-link-item:hover {
+            background-color: rgba(79, 70, 229, 0.06);
+            color: var(--primary-color);
+        }
+
+        .nav-link-item.active {
+            background-color: rgba(79, 70, 229, 0.1);
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .nav-link-item .badge {
+            font-size: 0.65rem;
+            padding: 0.2em 0.5em;
+        }
+
+    .nav-profile {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        margin: 0.75rem;
+        border-radius: 0.75rem;
+        cursor: pointer;
+        transition: background-color 0.12s ease;
+        gap: 0.625rem;
+        line-height: 1;
+    }
+
+        .nav-profile:hover {
+            background-color: rgba(79, 70, 229, 0.06);
+        }
+
+    .avatar-circle-sm {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary-color), #3730A3);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+
+    .profile-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .profile-name {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .profile-email {
+        display: block;
+        font-size: 0.7rem;
+        color: var(--text-secondary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .theme-toggle {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.5rem;
+        background: transparent;
+        color: var(--text-secondary);
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+        .theme-toggle:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+    [data-bs-theme="dark"] .theme-toggle:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .theme-toggle i {
+        font-size: 1.1rem;
+        display: block;
+        line-height: 0;
+    }
+</style>
 
 @code {
     private bool collapseNavMenu = true;
     private int unreadCount = 0;
-    private bool isInitialized = false;
+    private bool isAuthenticated = false;
+    private Timer? refreshTimer;
+    private bool isDarkTheme = false;
+    private string currentUserName = "";
+    private string currentUserEmail = "";
 
     protected override async Task OnInitializedAsync()
     {
-        if (!isInitialized)
+        CounterService.OnUnreadCountChanged += OnUnreadCountChanged;
+        AuthStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        isAuthenticated = authState.User.Identity?.IsAuthenticated == true;
+        if (isAuthenticated) { await LoadUnreadCount(); StartAutoRefresh(); await LoadUserInfo(); }
+
+        try
         {
-            await LoadUnreadCount();
-            isInitialized = true;
+            var savedTheme = await JS.InvokeAsync<string>("localStorage.getItem", "theme");
+            if (savedTheme == "dark") { isDarkTheme = true; await JS.InvokeVoidAsync("document.documentElement.setAttribute", "data-bs-theme", "dark"); }
         }
+        catch { }
+    }
+
+    private async Task LoadUserInfo()
+    {
+        try
+        {
+            var result = await AuthService.GetCurrentUserAsync();
+            if (result.Success && result.Data != null)
+            {
+                currentUserName = result.Data.FullName;
+                currentUserEmail = result.Data.Email;  // заменить Role
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex) { Console.WriteLine($"Ошибка загрузки пользователя: {ex.Message}"); }
+    }
+
+    private string GetInitials()
+    {
+        if (string.IsNullOrEmpty(currentUserName)) return "?";
+        var parts = currentUserName.Split(' ');
+        if (parts.Length >= 2) return $"{parts[0][0]}{parts[1][0]}".ToUpper();
+        return currentUserName[..Math.Min(2, currentUserName.Length)].ToUpper();
+    }
+
+    private void OnUnreadCountChanged(int count) { unreadCount = count; InvokeAsync(StateHasChanged); }
+
+    private async void OnAuthenticationStateChanged(Task<AuthenticationState> task)
+    {
+        var authState = await task;
+        var wasAuthenticated = isAuthenticated;
+        isAuthenticated = authState.User.Identity?.IsAuthenticated == true;
+        if (!wasAuthenticated && isAuthenticated) { await LoadUnreadCount(); StartAutoRefresh(); await LoadUserInfo(); }
+        else if (wasAuthenticated && !isAuthenticated) { unreadCount = 0; StopAutoRefresh(); currentUserName = ""; currentUserEmail = ""; }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void GoToProfile()
+    {
+        Navigation.NavigateTo("/profile");
+    }
+
+    private async Task HandleThemeToggle()
+    {
+        await ToggleTheme();
     }
 
     private async Task LoadUnreadCount()
     {
         try
         {
-            // Проверяем, есть ли токен в localStorage
-            var token = await GetTokenFromLocalStorage();
-            if (string.IsNullOrEmpty(token))
-            {
-                return;
-            }
-
             var result = await NotificationService.GetUnreadCountAsync();
-            if (result.Success)
-            {
-                unreadCount = result.Data;
-            }
+            if (result.Success) { unreadCount = result.Data; await CounterService.UpdateUnreadCount(result.Data); }
         }
-        catch (Exception ex)
-        {
-            // Игнорируем ошибки авторизации
-            Console.WriteLine($"Ошибка загрузки уведомлений: {ex.Message}");
-            unreadCount = 0;
-        }
+        catch (Exception ex) { Console.WriteLine($"Ошибка загрузки уведомлений: {ex.Message}"); unreadCount = 0; }
     }
 
-    private async Task<string?> GetTokenFromLocalStorage()
+    private void StartAutoRefresh() { refreshTimer?.Dispose(); refreshTimer = new Timer(async _ => { await LoadUnreadCount(); }, null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5)); }
+    private void StopAutoRefresh() { refreshTimer?.Dispose(); refreshTimer = null; }
+
+    private async Task ToggleTheme()
     {
-        try
-        {
-            return await JS.InvokeAsync<string?>("localStorage.getItem", "authToken");
-        }
-        catch
-        {
-            return null;
-        }
+        isDarkTheme = !isDarkTheme;
+        if (isDarkTheme) { await JS.InvokeVoidAsync("document.documentElement.setAttribute", "data-bs-theme", "dark"); await JS.InvokeVoidAsync("localStorage.setItem", "theme", "dark"); }
+        else { await JS.InvokeVoidAsync("document.documentElement.removeAttribute", "data-bs-theme"); await JS.InvokeVoidAsync("localStorage.setItem", "theme", "light"); }
+        StateHasChanged();
     }
 
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
-
-    private void ToggleNavMenu()
+    public void Dispose()
     {
-        collapseNavMenu = !collapseNavMenu;
+        CounterService.OnUnreadCountChanged -= OnUnreadCountChanged;
+        AuthStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
+        StopAutoRefresh();
     }
 }

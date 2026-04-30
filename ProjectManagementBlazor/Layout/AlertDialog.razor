@@ -1,0 +1,73 @@
+﻿@if (isVisible)
+{
+    <div class="modal show d-block alert-dialog" tabindex="-1" style="background-color: rgba(0,0,0,0.5); z-index: 1060;">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header @headerClass">
+                    <h6 class="modal-title">@Title</h6>
+                    <button type="button" class="btn-close @(string.IsNullOrEmpty(headerClass) ? "" : "btn-close-white")" @onclick="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    @if (!string.IsNullOrEmpty(Icon))
+                    {
+                        <div style="font-size: 3rem; margin-bottom: 0.5rem;">@Icon</div>
+                    }
+                    <p class="mb-0">@Message</p>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button class="btn btn-sm @buttonClass" @onclick="Close">@ButtonText</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop show"></div>
+}
+
+@code {
+    [Parameter] public bool isVisible { get; set; }
+    [Parameter] public string Title { get; set; } = "Уведомление";
+    [Parameter] public string Message { get; set; } = "";
+    [Parameter] public string Icon { get; set; } = "";
+    [Parameter] public string ButtonText { get; set; } = "OK";
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public string Type { get; set; } = "default";
+    private TaskCompletionSource? _tcs;
+
+    private string headerClass => Type switch
+    {
+        "success" => "bg-success text-white",
+        "error" => "bg-danger text-white",
+        "warning" => "bg-warning",
+        "info" => "bg-info text-white",
+        _ => ""
+    };
+
+    private string buttonClass => Type switch
+    {
+        "success" => "btn-success",
+        "error" => "btn-danger",
+        "warning" => "btn-warning",
+        "info" => "btn-info",
+        _ => "btn-primary"
+    };
+
+    public async Task ShowAsync(string message, string title, string icon, string type)
+    {
+        Message = message;
+        Title = title;
+        Icon = icon;
+        Type = type;
+        isVisible = true;
+        StateHasChanged();
+
+        _tcs = new TaskCompletionSource();
+        await _tcs.Task;
+    }
+
+    private async Task Close()
+    {
+        isVisible = false;
+        _tcs?.SetResult();
+        StateHasChanged();
+    }
+}

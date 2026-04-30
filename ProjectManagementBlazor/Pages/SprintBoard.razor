@@ -1,6 +1,7 @@
 ﻿@page "/sprints/{SprintId:guid}"
 @page "/sprints/{SprintId:guid}/{TaskId:guid}"
 @using Microsoft.AspNetCore.Authorization
+@using System.Security.Claims
 @attribute [Authorize]
 @inject ISprintService SprintService
 @inject IBacklogService BacklogService
@@ -8,365 +9,309 @@
 @inject NavigationManager Navigation
 @inject IErrorHandlingService ErrorHandling
 @inject IJSRuntime JS
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject DialogService DialogService
 
-<PageTitle>Доска спринта</PageTitle>
+<PageTitle>@(sprint?.Name ?? "Доска")</PageTitle>
 
-<div class="container-fluid mt-3">
+<div class="sprint-page">
     @if (isLoading)
     {
-        <div class="text-center mt-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Загрузка...</span>
-            </div>
-        </div>
+        <div class="text-center py-5"><div class="spinner-border text-primary opacity-50"></div></div>
     }
     else if (sprint != null)
     {
-        <div class="card mb-4">
-            <div class="card-header bg-primary text-white">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h3 class="mb-0">@sprint.Name</h3>
-                        @if (!string.IsNullOrEmpty(sprint.Goal))
-                        {
-                            <p class="mb-0 mt-2"><strong>Цель спринта:</strong> @sprint.Goal</p>
-                        }
-                    </div>
-                    <div class="text-end">
-                        <div class="mb-2">
-                            @if (sprint.IsActive)
-                            {
-                                <span class="badge bg-success fs-6">Активен</span>
-                            }
-                            else if (sprint.Status == "Completed")
-                            {
-                                <span class="badge bg-secondary fs-6">Завершен</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-info fs-6">Планируется</span>
-                            }
-                        </div>
-                        <div class="small">
-                            <div>@sprint.StartDate.ToString("dd.MM.yyyy") - @sprint.EndDate.ToString("dd.MM.yyyy")</div>
-                            <div>Осталось дней: <strong>@sprint.DaysRemaining</strong></div>
-                        </div>
-                        <div class="mt-2">
-                            <button class="btn btn-sm btn-secondary me-2" @onclick="GoToProject">
-                                📁 К проекту
-                            </button>
-                            <button class="btn btn-sm btn-info" @onclick="GoToRetrospective">
-                                📊 Ретроспектива
-                            </button>
-                        </div>
-                    </div>
+        <!-- Компактная шапка -->
+        <div class="sprint-topbar">
+            <div class="d-flex align-items-center gap-3">
+                <a @onclick="GoToProject" class="text-muted small cursor-pointer" title="К проекту">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <div>
+                    <h5 class="mb-0">@sprint.Name</h5>
+                    <div class="small text-muted">@sprint.StartDate.ToString("dd.MM") — @sprint.EndDate.ToString("dd.MM") · @sprint.DaysRemaining дн.</div>
                 </div>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3">
-                        <div class="text-center">
-                            <h5>Прогресс</h5>
-                            <div class="progress mb-2" style="height: 25px;">
-                                <div class="progress-bar bg-success" role="progressbar" style="width: @sprint.CompletionPercentage%">
-                                    @((int)sprint.CompletionPercentage)%
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="text-center">
-                            <h5>Story Points</h5>
-                            <h4>@sprint.CompletedStoryPoints / @sprint.TotalStoryPoints</h4>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="text-center">
-                            <h5>Задачи</h5>
-                            <h4>@sprint.CompletedTasksCount / @sprint.TotalTasksCount</h4>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="text-center">
-                            @if (!sprint.IsActive && sprint.Status != "Completed")
-                            {
-                                <button class="btn btn-success me-2" @onclick="StartSprint">Запустить спринт</button>
-                            }
-                            @if (sprint.IsActive)
-                            {
-                                <button class="btn btn-warning me-2" @onclick="ShowCompleteModal">Завершить спринт</button>
-                                <button class="btn btn-danger" @onclick="CancelSprint">Отменить</button>
-                            }
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Канбан-доска с Drag and Drop -->
-        <div class="row">
-            <!-- Backlog колонка -->
-            <div class="col-md-3 mb-4">
-                <div class="card h-100">
-                    <div class="card-header bg-secondary text-white">
-                        <h5 class="mb-0">Бэклог</h5>
-                    </div>
-                    <div class="card-body drop-zone"
-                         style="min-height: 500px;"
-                         @ondragover="OnDragOver"
-                         @ondrop="OnDropToBacklog">
-                        @foreach (var task in sprint.Tasks.Where(t => t.Status == "Backlog"))
-                        {
-                            <div class="card mb-2 task-card"
-                                 draggable="true"
-                                 @ondragstart="() => OnDragStart(task)"
-                                 @ondragend="OnDragEnd">
-                                <div class="card-body p-2">
-                                    <div class="d-flex justify-content-between">
-                                        <span class="badge bg-secondary">@task.Type</span>
-                                        <small class="text-muted">@task.StoryPoints SP</small>
-                                    </div>
-                                    <div class="mt-1"><strong>@task.Title</strong></div>
-                                    <div class="mt-2">
-                                        <button class="btn btn-sm btn-outline-primary" @onclick="() => OpenTaskDetail(task.Id)">Подробнее</button>
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-3 mb-4">
-                <div class="card h-100">
-                    <div class="card-header bg-info text-white">
-                        <h5 class="mb-0">To Do</h5>
-                    </div>
-                    <div class="card-body drop-zone"
-                         style="min-height: 500px;"
-                         @ondragover="OnDragOver"
-                         @ondrop="OnDropToDo">
-                        @foreach (var task in sprint.Tasks.Where(t => t.Status == "ToDo"))
-                        {
-                            <div class="card mb-2 task-card"
-                                 draggable="true"
-                                 @ondragstart="() => OnDragStart(task)"
-                                 @ondragend="OnDragEnd">
-                                <div class="card-body p-2">
-                                    <div class="d-flex justify-content-between">
-                                        <span class="badge bg-info">@task.Type</span>
-                                        <small class="text-muted">@task.StoryPoints SP</small>
-                                    </div>
-                                    <div class="mt-1"><strong>@task.Title</strong></div>
-                                    <div class="mt-2">
-                                        <button class="btn btn-sm btn-outline-primary" @onclick="() => OpenTaskDetail(task.Id)">Подробнее</button>
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-3 mb-4">
-                <div class="card h-100">
-                    <div class="card-header bg-warning text-dark">
-                        <h5 class="mb-0">In Progress</h5>
-                    </div>
-                    <div class="card-body drop-zone"
-                         style="min-height: 500px;"
-                         @ondragover="OnDragOver"
-                         @ondrop="OnDropToInProgress">
-                        @foreach (var task in sprint.Tasks.Where(t => t.Status == "InProgress"))
-                        {
-                            <div class="card mb-2 task-card"
-                                 draggable="true"
-                                 @ondragstart="() => OnDragStart(task)"
-                                 @ondragend="OnDragEnd">
-                                <div class="card-body p-2">
-                                    <div class="d-flex justify-content-between">
-                                        <span class="badge bg-warning text-dark">@task.Type</span>
-                                        <small class="text-muted">@task.StoryPoints SP</small>
-                                    </div>
-                                    <div class="mt-1"><strong>@task.Title</strong></div>
-                                    <div class="mt-2">
-                                        <button class="btn btn-sm btn-outline-primary" @onclick="() => OpenTaskDetail(task.Id)">Подробнее</button>
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                </div>
-            </div>
-
-            <!-- Done колонка -->
-            <div class="col-md-3 mb-4">
-                <div class="card h-100">
-                    <div class="card-header bg-success text-white">
-                        <h5 class="mb-0">Done</h5>
-                    </div>
-                    <div class="card-body drop-zone"
-                         style="min-height: 500px;"
-                         @ondragover="OnDragOver"
-                         @ondrop="OnDropToDone">
-                        @foreach (var task in sprint.Tasks.Where(t => t.Status == "Done"))
-                        {
-                            <div class="card mb-2 task-card bg-light"
-                                 draggable="true"
-                                 @ondragstart="() => OnDragStart(task)"
-                                 @ondragend="OnDragEnd">
-                                <div class="card-body p-2">
-                                    <div class="d-flex justify-content-between">
-                                        <span class="badge bg-success">@task.Type</span>
-                                        <small class="text-muted">@task.StoryPoints SP</small>
-                                    </div>
-                                    <div class="mt-1"><strong>@task.Title</strong></div>
-                                    <div class="mt-2">
-                                        <button class="btn btn-sm btn-outline-primary" @onclick="() => OpenTaskDetail(task.Id)">Подробнее</button>
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="card mt-4">
-            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">📈 График сгорания задач (Burndown Chart)</h5>
-                <button class="btn btn-sm btn-light" @onclick="RefreshBurndown">
-                    🔄 Обновить
-                </button>
-            </div>
-            <div class="card-body">
-                @if (isBurndownLoading)
+                @if (sprint.IsActive)
                 {
-                    <div class="text-center py-4">
-                        <div class="spinner-border spinner-border-sm text-info" role="status">
-                            <span class="visually-hidden">Загрузка...</span>
-                        </div>
-                        <p class="mt-2 text-muted">Загрузка данных графика...</p>
-                    </div>
+                    <span class="badge bg-success">Активен</span>
                 }
-                else if (burndownData != null && burndownData.Any())
+                else if (sprint.Status == "Completed")
                 {
-                    <canvas id="burndownChart" style="width: 100%; height: 400px;"></canvas>
+
+                    <span class="badge bg-secondary">Завершён</span>
                 }
                 else
                 {
-                    <div class="text-center py-5 text-muted">
-                        <i class="bi bi-graph-up" style="font-size: 48px;"></i>
-                        <h5 class="mt-3">Нет данных для отображения графика</h5>
-                        <p>Добавьте задачи с оценкой времени, чтобы увидеть график сгорания</p>
-                        <button class="btn btn-primary btn-sm" @onclick="LoadBurndownData">Загрузить данные</button>
-                    </div>
+
+                    <span class="badge bg-info">План</span>
+                }
+            </div>
+            <div class="d-flex gap-1">
+                @if (!sprint.IsActive && sprint.Status != "Completed")
+                {
+                    <button class="btn btn-success btn-sm" @onclick="StartSprint"><i class="bi bi-play-fill me-1"></i> Запустить</button>
+                }
+                @if (sprint.IsActive)
+                {
+                    <button class="btn btn-warning btn-sm" @onclick="ShowCompleteModal"><i class="bi bi-check2 me-1"></i> Завершить</button>
+                    <button class="btn btn-danger btn-sm" @onclick="CancelSprint"><i class="bi bi-x me-1"></i> Отменить</button>
                 }
             </div>
         </div>
+
+        <!-- Табы: Доска + Графики -->
+        <div class="sprint-tabs">
+            <button class="sprint-tab @(activeView == "board" ? "active" : "")" @onclick="ShowBoardTab">
+                <i class="bi bi-kanban me-1"></i> Доска
+            </button>
+            <button class="sprint-tab @(activeView == "burndown" ? "active" : "")" @onclick="ShowBurndownTab">
+                <i class="bi bi-graph-up me-1"></i> Burndown
+            </button>
+            <button class="sprint-tab @(activeView == "gantt" ? "active" : "")" @onclick="ShowGanttTab">
+                <i class="bi bi-bar-chart-steps me-1"></i> Гант
+            </button>
+            <div class="ms-auto small text-muted d-flex align-items-center gap-3">
+                <span>@sprint.CompletedStoryPoints / @sprint.TotalStoryPoints SP</span>
+                <span>@sprint.CompletedTasksCount / @sprint.TotalTasksCount задач</span>
+                <div class="progress" style="width:80px;height:6px"><div class="progress-bar bg-success" style="width:@sprint.CompletionPercentage%"></div></div>
+                <span>@((int)sprint.CompletionPercentage)%</span>
+            </div>
+        </div>
+
+        <!-- Контент -->
+        @if (activeView == "board")
+        {
+            <div class="board-container">
+                @foreach (var col in new[] { ("Backlog", "Бэклог", "bg-secondary"), ("ToDo", "To Do", "bg-info"), ("InProgress", "In Progress", "bg-warning text-dark"), ("Done", "Done", "bg-success") })
+                {
+                    var (status, title, badge) = col;
+                    <div class="board-col">
+                        <div class="board-col-header">
+                            <span>@title</span>
+                            <span class="board-col-count">@sprint.Tasks.Count(t => t.Status == status)</span>
+                        </div>
+                        <div class="board-col-body drop-zone" @ondragover="OnDragOver" @ondrop="() => OnDropTo(status)">
+                            @foreach (var task in sprint.Tasks.Where(t => t.Status == status))
+                            {
+                                <div class="task-card @GetPriorityClass(task.Priority)"
+                                     draggable="@(CanModifyTask(task) ? "true" : "false")"
+                                     @ondragstart="() => OnDragStart(task)" @ondragend="OnDragEnd">
+                                    <div class="task-card-body">
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span class="badge @badge small">@task.Type</span>
+                                            <span class="text-muted small">@task.StoryPoints</span>
+                                        </div>
+                                        <div class="fw-medium small mb-1">@task.Title</div>
+                                        @if (task.Assignee != null)
+                                        {
+                                            <div class="text-muted smallest">@task.Assignee.FullName</div>
+                                        }
+                                    </div>
+                                    <button class="btn btn-link btn-sm p-0 text-muted task-open-btn" @onclick="() => OpenTaskDetail(task.Id)" title="Открыть">
+                                        <i class="bi bi-three-dots"></i>
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else if (activeView == "burndown")
+        {
+            <div class="chart-panel">
+                @if (isBurndownLoading)
+                {
+                    <div class="text-center py-4"><div class="spinner-border spinner-border-sm text-info"></div></div>
+                }
+                else if (burndownData?.Any() == true)
+                {
+                    <div style="position:relative;height:400px"><canvas id="burndownChart"></canvas></div>
+                }
+                else
+                {
+                    <div class="text-center py-5 text-muted"><i class="bi bi-graph-up fs-1 opacity-25"></i><p class="mt-2">Нет данных</p></div>
+                }
+            </div>
+        }
+        else if (activeView == "gantt")
+        {
+            <div class="chart-panel">
+                @if (isGanttLoading)
+                {
+                    <div class="text-center py-4"><div class="spinner-border spinner-border-sm text-info"></div></div>
+                }
+                else if (sprint?.Tasks?.Any(t => t.Status != "Backlog") == true)
+                {
+                    <div style="position:relative;height:400px"><canvas id="ganttChart"></canvas></div>
+                }
+                else
+                {
+                    <div class="text-center py-5 text-muted"><i class="bi bi-bar-chart-steps fs-1 opacity-25"></i><p class="mt-2">Нет задач</p></div>
+                }
+            </div>
+        }
     }
 
-    <!-- Модальное окно завершения спринта -->
+    <!-- Модалка завершения -->
     @if (showCompleteModal)
     {
         <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);">
-            <div class="modal-dialog">
+            <div class="modal-dialog modal-sm modal-dialog-centered">
                 <div class="modal-content">
-                    <div class="modal-header bg-warning">
-                        <h5 class="modal-title">Завершение спринта</h5>
-                        <button type="button" class="btn-close" @onclick="CloseCompleteModal"></button>
-                    </div>
+                    <div class="modal-header bg-warning"><h6 class="modal-title">Завершение спринта</h6><button type="button" class="btn-close" @onclick="CloseCompleteModal"></button></div>
                     <div class="modal-body">
-                        <p>Завершить спринт "<strong>@sprint?.Name</strong>"?</p>
-                        <div class="mb-3">
-                            <label class="form-label">Заметки Sprint Review</label>
-                            <textarea @bind="completeRequest.ReviewNotes" class="form-control" rows="3"></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Заметки ретроспективы</label>
-                            <textarea @bind="completeRequest.RetrospectiveNotes" class="form-control" rows="3"></textarea>
-                        </div>
+                        <p>Завершить «<strong>@sprint?.Name</strong>»?</p>
+                        <div class="mb-2"><label class="form-label small">Заметки Review</label><textarea @bind="completeRequest.ReviewNotes" class="form-control form-control-sm" rows="2"></textarea></div>
+                        <div class="mb-2"><label class="form-label small">Заметки ретроспективы</label><textarea @bind="completeRequest.RetrospectiveNotes" class="form-control form-control-sm" rows="2"></textarea></div>
                     </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-secondary" @onclick="CloseCompleteModal">Отмена</button>
-                        <button class="btn btn-warning" @onclick="CompleteSprint">Завершить</button>
-                    </div>
+                    <div class="modal-footer"><button class="btn btn-secondary btn-sm" @onclick="CloseCompleteModal">Отмена</button><button class="btn btn-warning btn-sm" @onclick="CompleteSprint">Завершить</button></div>
                 </div>
             </div>
         </div>
     }
 
-    <!-- Модальное окно деталей задачи -->
+    <!-- Модалка задачи -->
     @if (selectedTask != null && taskDetail != null)
     {
         <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header bg-primary text-white">
-                        <h5 class="modal-title">@selectedTask.Title</h5>
+                        <div><h5 class="modal-title">@selectedTask.Title</h5><div class="d-flex gap-2 mt-1"><span class="badge @GetTypeBadge(selectedTask.Type)">@selectedTask.Type</span><span class="badge bg-light text-dark">@selectedTask.StoryPoints SP</span></div></div>
                         <button type="button" class="btn-close btn-close-white" @onclick="CloseTaskDetail"></button>
                     </div>
-                    <div class="modal-body">
-                        <div class="row">
-                            <div class="col-md-8">
-                                <h6>Описание</h6>
-                                <p>@(string.IsNullOrEmpty(taskDetail.Description) ? "Нет описания" : taskDetail.Description)</p>
-                                @if (!string.IsNullOrEmpty(taskDetail.AcceptanceCriteria))
-                                {
-                                    <h6>Критерии приемки</h6>
-                                    <p>@taskDetail.AcceptanceCriteria</p>
-                                }
-                            </div>
-                            <div class="col-md-4">
-                                <div class="card bg-light">
-                                    <div class="card-body">
-                                        <p><strong>Тип:</strong> @selectedTask.Type</p>
-                                        <p><strong>Story Points:</strong> @selectedTask.StoryPoints</p>
-                                        <p><strong>Оценка часов:</strong> @selectedTask.EstimatedHours</p>
-                                        <p><strong>Исполнитель:</strong> @(selectedTask.Assignee?.FullName ?? "Не назначен")</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <h6 class="mt-3">Подзадачи</h6>
-                        @if (taskDetail.SubTasks != null && taskDetail.SubTasks.Any())
-                        {
-                            foreach (var subtask in taskDetail.SubTasks)
+                    <div class="modal-body p-0">
+                        <ul class="nav nav-tabs px-3 pt-3">
+                            <li class="nav-item"><button class="nav-link @(taskDetailTab == "info" ? "active" : "")" @onclick="ShowInfoTab"><i class="bi bi-info-circle me-1"></i> Описание</button></li>
+                            <li class="nav-item"><button class="nav-link @(taskDetailTab == "subtasks" ? "active" : "")" @onclick="ShowSubtasksTab"><i class="bi bi-list-check me-1"></i> Подзадачи @(taskDetail.SubTasks?.Any() == true ? $"({taskDetail.SubTasks.Count})" : "")</button></li>
+                            <li class="nav-item"><button class="nav-link @(taskDetailTab == "comments" ? "active" : "")" @onclick="ShowCommentsTab"><i class="bi bi-chat me-1"></i> Комментарии @(taskDetail.Comments?.Any() == true ? $"({taskDetail.Comments.Count})" : "")</button></li>
+                        </ul>
+                        <div class="p-3">
+                            @if (taskDetailTab == "info")
                             {
-                                var isChecked = subtask.Status == "Done";
-                                <div class="list-group-item">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <input type="checkbox" class="form-check-input me-2"
-                                                   checked="@isChecked"
-                                                   @onchange="() => ToggleSubTaskStatus(subtask.Id, !isChecked)" />
-                                            <span class="@(isChecked ? "text-decoration-line-through" : "")">@subtask.Title</span>
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <h6 class="text-muted text-uppercase small">Описание</h6>
+                                        <p>@(taskDetail.Description ?? "Нет описания")</p>
+                                        @if (!string.IsNullOrEmpty(taskDetail.AcceptanceCriteria))
+                                        {
+                                            <h6 class="text-muted text-uppercase small mt-3">Критерии</h6>
+                                            <div class="p-2 bg-light rounded">@taskDetail.AcceptanceCriteria</div>
+                                        }
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card bg-light border-0">
+                                            <div class="card-body">
+                                                <div class="mb-2"><small class="text-muted">Тип</small><div><strong>@selectedTask.Type</strong></div></div>
+                                                <div class="mb-2"><small class="text-muted">SP</small><div><strong>@selectedTask.StoryPoints</strong></div></div>
+                                                <div class="mb-2"><small class="text-muted">Оценка</small><div><strong>@(selectedTask.EstimatedHours?.ToString() ?? "—") ч.</strong></div></div>
+                                                <div class="mb-3"><small class="text-muted">Исполнитель</small><div><strong>@(selectedTask.Assignee?.FullName ?? "Не назначен")</strong></div></div>
+                                                @if (selectedTask.Assignee == null)
+                                                {
+                                                    <button class="btn btn-sm btn-outline-success w-100" @onclick="AssignToMe"><i class="bi bi-person-check me-1"></i> Назначить себе</button>
+                                                }
+                                                else if (selectedTask.Assignee.Id == currentUserId)
+                                                {
+                                                    <button class="btn btn-sm btn-outline-danger w-100 mt-1" @onclick="UnassignFromMe"><i class="bi bi-person-x me-1"></i> Снять</button>
+                                                }
+                                            </div>
                                         </div>
-                                        <small class="text-muted">@(subtask.EstimatedHours) ч.</small>
+                                        @if (CanModifyTask(selectedTask))
+                                        {
+                                            <div class="mt-3">
+                                                <select @bind="selectedStatus" class="form-select form-select-sm">
+                                                    <option value="Backlog">Бэклог</option>
+                                                    <option value="ToDo">To Do</option>
+                                                    <option value="InProgress">In Progress</option>
+                                                    <option value="Done">Done</option>
+                                                </select>
+                                                <button class="btn btn-sm btn-primary w-100 mt-2" @onclick="UpdateTaskStatus">Обновить</button>
+                                            </div>
+                                        }
                                     </div>
                                 </div>
                             }
-                        }
-                        else
-                        {
-                            <p class="text-muted">Нет подзадач</p>
-                        }
-
-                        <div class="mt-3">
-                            <label class="form-label">Изменить статус</label>
-                            <select @bind="selectedStatus" class="form-select w-auto d-inline-block ms-2">
-                                <option value="Backlog">Бэклог</option>
-                                <option value="ToDo">To Do</option>
-                                <option value="InProgress">In Progress</option>
-                                <option value="Done">Done</option>
-                            </select>
-                            <button class="btn btn-sm btn-primary ms-2" @onclick="UpdateTaskStatus">Обновить</button>
+                            else if (taskDetailTab == "subtasks")
+                            {
+                                @if (taskDetail.SubTasks?.Any() == true)
+                                {
+                                    var doneCount = taskDetail.SubTasks.Count(st => st.Status == "Done");
+                                    var totalCount = taskDetail.SubTasks.Count;
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between small text-muted mb-1">
+                                            <span>Прогресс</span><span>@doneCount/@totalCount</span>
+                                        </div>
+                                        <div class="progress" style="height:4px">
+                                            <div class="progress-bar bg-success" style="width:@(totalCount > 0 ? (int)((double)doneCount / totalCount * 100) : 0)%"></div>
+                                        </div>
+                                    </div>
+                                    @foreach (var st in taskDetail.SubTasks)
+                                    {
+                                        <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <input type="checkbox" class="form-check-input m-0" checked="@IsSubTaskDone(st)" @onchange="() => ToggleSubTask(st)" />
+                                                <span class="@GetSubTaskClass(st)">@st.Title</span>
+                                            </div>
+                                            <span class="small text-muted">@(st.EstimatedHours?.ToString() ?? "—") ч.</span>
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <div class="text-center py-4 text-muted">Нет подзадач</div>
+                                }
+                            }
+                            else if (taskDetailTab == "comments")
+                            {
+                                @if (taskDetail.Comments?.Any() == true)
+                                {
+                                    <div style="max-height:350px;overflow-y:auto" class="mb-3">
+                                        @foreach (var c in taskDetail.Comments.OrderBy(c => c.CreatedAt))
+                                        {
+                                            <div class="d-flex mb-2 @(c.User?.Id == currentUserId ? "justify-content-end" : "")">
+                                                <div class="@(c.User?.Id == currentUserId ? "bg-primary text-white" : "bg-light") rounded-3 p-2" style="max-width:80%">
+                                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                                        <strong class="small">@(c.User?.FullName ?? "Пользователь")</strong>
+                                                        @if (c.User?.Id == currentUserId)
+                                                        {
+                                                            <div class="btn-group btn-group-sm ms-2">
+                                                                <button class="btn btn-sm btn-link text-white p-0" @onclick="() => StartEditComment(c)"><i class="bi bi-pencil"></i></button>
+                                                                <button class="btn btn-sm btn-link text-white p-0 ms-1" @onclick="() => DeleteComment(c.Id)"><i class="bi bi-trash"></i></button>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                    @if (editingCommentId == c.Id)
+                                                    {
+                                                        <textarea @bind="editCommentText" class="form-control form-control-sm mb-1" rows="2"></textarea>
+                                                        <div><button class="btn btn-sm btn-light" @onclick="SaveEditedComment">Сохранить</button><button class="btn btn-sm btn-link text-white ms-1" @onclick="CancelEditComment">Отмена</button></div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <p class="mb-0 small">@c.Content</p>
+                                                    }
+                                                    <small class="@(c.User?.Id == currentUserId ? "text-white-50" : "text-muted")" style="font-size:0.65rem">@c.CreatedAt.ToString("dd.MM HH:mm") @(c.IsEdited ? "(изм.)" : "")</small>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="text-center py-4 text-muted">Нет комментариев</div>
+                                }
+                                <textarea @bind="newCommentText" class="form-control form-control-sm" rows="2" placeholder="Комментарий..."></textarea>
+                                <button class="btn btn-sm btn-primary mt-2" @onclick="AddComment" disabled="@(string.IsNullOrWhiteSpace(newCommentText) || isAddingComment)">
+                                    @if (isAddingComment)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-1"></span>
+                                    }
+         Отправить
+                                </button>
+                            }
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-secondary" @onclick="CloseTaskDetail">Закрыть</button>
-                    </div>
+                    <div class="modal-footer"><button class="btn btn-secondary btn-sm" @onclick="CloseTaskDetail">Закрыть</button></div>
                 </div>
             </div>
         </div>
@@ -374,30 +319,157 @@
 </div>
 
 <style>
+    .sprint-page {
+        max-width: 100%;
+        margin: -1.1rem;
+        padding: 0;
+    }
+
+    .cursor-pointer {
+        cursor: pointer;
+    }
+
+    .sprint-topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        border-bottom: 1px solid var(--border-color,#E2E8F0);
+        background: #fff;
+    }
+
+    .sprint-tabs {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        padding: 0 0.75rem;
+        border-bottom: 1px solid var(--border-color,#E2E8F0);
+        background: #fff;
+    }
+
+    .sprint-tab {
+        padding: 0.5rem 0.75rem;
+        border: none;
+        background: none;
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+    }
+
+        .sprint-tab:hover {
+            color: var(--primary-color);
+        }
+
+        .sprint-tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+
+    .board-container {
+        display: flex;
+        gap: 0;
+        height: calc(100vh - 120px);
+        padding: 0.5rem;
+        background: var(--bg-light,#F8F9FB);
+    }
+
+    .board-col {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+        border: 1px solid var(--border-color,#E2E8F0);
+        border-radius: 0.5rem;
+        margin: 0 0.25rem;
+        overflow: hidden;
+    }
+
+        .board-col:first-child {
+            margin-left: 0;
+        }
+
+        .board-col:last-child {
+            margin-right: 0;
+        }
+
+    .board-col-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0.75rem;
+        border-bottom: 1px solid var(--border-color,#E2E8F0);
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+    }
+
+    .board-col-count {
+        background: rgba(0,0,0,0.06);
+        border-radius: 8px;
+        padding: 0.1rem 0.4rem;
+        font-size: 0.65rem;
+    }
+
+    .board-col-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0.375rem;
+    }
+
     .task-card {
+        background: #fff;
+        border: 1px solid var(--border-color,#E2E8F0);
+        border-radius: 0.375rem;
+        padding: 0.5rem 0.625rem;
+        margin-bottom: 0.25rem;
         cursor: grab;
-        transition: transform 0.2s, box-shadow 0.2s;
+        position: relative;
+        transition: box-shadow 0.1s;
+        font-size: 0.75rem;
     }
 
         .task-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
         }
 
-        .task-card:active {
-            cursor: grabbing;
+        .task-card.priority-high {
+            border-left: 3px solid #EF4444;
         }
 
-    .drop-zone {
-        transition: background-color 0.2s;
-        min-height: 500px;
+        .task-card.priority-medium {
+            border-left: 3px solid #F59E0B;
+        }
+
+        .task-card.priority-low {
+            border-left: 3px solid #10B981;
+        }
+
+    .task-open-btn {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        opacity: 0;
+        transition: opacity 0.1s;
     }
 
-        .drop-zone.drag-over {
-            background-color: rgba(13, 110, 253, 0.1);
-            border: 2px dashed #0d6efd;
-            border-radius: 8px;
-        }
+    .task-card:hover .task-open-btn {
+        opacity: 1;
+    }
+
+    .chart-panel {
+        padding: 1rem;
+        background: #fff;
+        border-radius: 0.5rem;
+        margin: 0.5rem;
+    }
+
+    .smallest {
+        font-size: 0.65rem;
+    }
 
     .modal {
         position: fixed;
@@ -413,14 +485,35 @@
     .modal-dialog {
         margin: 1.75rem auto;
     }
+
+    [data-bs-theme="dark"] .sprint-topbar, [data-bs-theme="dark"] .sprint-tabs, [data-bs-theme="dark"] .board-col, [data-bs-theme="dark"] .chart-panel, [data-bs-theme="dark"] .task-card {
+        background: #1E293B;
+        border-color: #334155;
+    }
+
+    [data-bs-theme="dark"] .board-container {
+        background: #0F172A;
+    }
+
+    [data-bs-theme="dark"] .board-col-header {
+        border-color: #334155;
+    }
 </style>
 
 @code {
     [Parameter] public Guid SprintId { get; set; }
     [Parameter] public Guid TaskId { get; set; }
 
+    private Guid? currentUserId;
+    private string taskDetailTab = "info";
+    private string activeView = "board";
+    private Guid? editingCommentId;
+    private string editCommentText = "";
+    private string newCommentText = "";
+    private bool isAddingComment = false;
     private List<BurndownPoint>? burndownData;
     private bool isBurndownLoading = false;
+    private bool isGanttLoading = false;
     private SprintBoardResponse? sprint;
     private BacklogItemDetailResponse? taskDetail;
     private BacklogItemBoardResponse? selectedTask;
@@ -430,86 +523,52 @@
     private bool showCompleteModal = false;
     private CompleteSprintRequest completeRequest = new();
 
-    private void OnDragStart(BacklogItemBoardResponse task)
+    private string GetPriorityClass(int? p) => p switch { <= 3 => "priority-high", <= 6 => "priority-medium", _ => "priority-low" };
+    private string GetTypeBadge(string t) => t switch { "UserStory" => "bg-primary", "Bug" => "bg-danger", "TechnicalTask" => "bg-warning text-dark", "Improvement" => "bg-success", _ => "bg-secondary" };
+
+    private void ShowInfoTab() { taskDetailTab = "info"; StateHasChanged(); }
+    private void ShowSubtasksTab() { taskDetailTab = "subtasks"; StateHasChanged(); }
+    private void ShowCommentsTab() { taskDetailTab = "comments"; StateHasChanged(); }
+    private void ShowBoardTab() { activeView = "board"; StateHasChanged(); }
+    private void ShowBurndownTab() { activeView = "burndown"; StateHasChanged(); ShowBurndown(); }
+    private void ShowGanttTab() { activeView = "gantt"; StateHasChanged(); ShowGantt(); }
+
+    private bool CanModifyTask(BacklogItemBoardResponse t)
     {
-        draggedTask = task;
-        Console.WriteLine($"Начат перетаскивание: {task.Title}");
+        if (t == null || currentUserId == null) return false;
+        if (t.Assignee == null) return true;
+        return t.Assignee.Id == currentUserId;
     }
 
-    private void OnDragEnd()
+    private void OnDragStart(BacklogItemBoardResponse t) { draggedTask = t; }
+    private void OnDragEnd() { draggedTask = null; }
+    private void OnDragOver() { }
+
+    private async Task OnDropTo(string status)
     {
-        Console.WriteLine("Перетаскивание завершено");
-        draggedTask = null;
-    }
-
-    private void OnDragOver()
-    {
-
-    }
-
-    private async Task OnDropToBacklog()
-    {
-        Console.WriteLine($"Drop на колонку Backlog, draggedTask: {draggedTask?.Title}");
-
-        if (draggedTask != null && draggedTask.Status != "Backlog")
+        if (draggedTask != null && draggedTask.Status != status)
         {
-            var result = await SprintService.UpdateTaskStatusAsync(draggedTask.Id, "Backlog");
-            if (result.Success)
-            {
-                await LoadSprint();
-            }
-        }
-        draggedTask = null;
-    }
-
-    private async Task OnDropToDo()
-    {
-        Console.WriteLine($"Drop на колонку ToDo, draggedTask: {draggedTask?.Title}");
-
-        if (draggedTask != null && draggedTask.Status != "ToDo")
-        {
-            var result = await SprintService.UpdateTaskStatusAsync(draggedTask.Id, "ToDo");
-            if (result.Success)
-            {
-                await LoadSprint();
-            }
-        }
-        draggedTask = null;
-    }
-
-    private async Task OnDropToInProgress()
-    {
-        Console.WriteLine($"Drop на колонку InProgress, draggedTask: {draggedTask?.Title}");
-
-        if (draggedTask != null && draggedTask.Status != "InProgress")
-        {
-            var result = await SprintService.UpdateTaskStatusAsync(draggedTask.Id, "InProgress");
-            if (result.Success)
-            {
-                await LoadSprint();
-            }
-        }
-        draggedTask = null;
-    }
-
-    private async Task OnDropToDone()
-    {
-        Console.WriteLine($"Drop на колонку Done, draggedTask: {draggedTask?.Title}");
-
-        if (draggedTask != null && draggedTask.Status != "Done")
-        {
-            var result = await SprintService.UpdateTaskStatusAsync(draggedTask.Id, "Done");
-            if (result.Success)
-            {
-                await LoadSprint();
-            }
+            var r = await SprintService.UpdateTaskStatusAsync(draggedTask.Id, status);
+            if (r.Success) await LoadSprint();
         }
         draggedTask = null;
     }
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadCurrentUser();
         await LoadSprint();
+    }
+
+    private async Task LoadCurrentUser()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var claim = authState.User.FindFirst(ClaimTypes.NameIdentifier);
+            if (claim != null) currentUserId = Guid.Parse(claim.Value);
+        }
+        catch { }
     }
 
     private async Task LoadSprint()
@@ -517,118 +576,185 @@
         isLoading = true;
         try
         {
-            var result = await SprintService.GetSprintBoardAsync(SprintId);
-            if (result.Success && result.Data != null)
+            var r = await SprintService.GetSprintBoardAsync(SprintId);
+            if (r.Success && r.Data != null)
             {
-                sprint = result.Data;
-                Console.WriteLine($"Спринт загружен: {sprint.Name}, ProjectId: {sprint.ProjectId}");
+                sprint = r.Data;
                 completeRequest = new CompleteSprintRequest { SprintId = SprintId };
-
                 await LoadBurndownData();
+                if (TaskId != Guid.Empty) await OpenTaskDetailFromUrl(TaskId);
+            }
+            else Navigation.NavigateTo("/projects");
+        }
+        catch { }
+        finally { isLoading = false; }
+    }
 
-                if (TaskId != Guid.Empty)
-                {
-                    await OpenTaskDetailFromUrl(TaskId);
-                }
-            }
-            else
-            {
-                Navigation.NavigateTo("/projects");
-            }
-        }
-        catch (Exception ex)
+    private async Task AssignToMe()
+    {
+        if (selectedTask == null || currentUserId == null) return;
+        var r = await BacklogService.UpdateBacklogItemAsync(selectedTask.Id, new UpdateBacklogItemRequest { AssigneeId = currentUserId.Value });
+        if (r.Success)
         {
-            Console.WriteLine($"Ошибка загрузки спринта: {ex.Message}");
+            await LoadSprint();
+            await OpenTaskDetail(selectedTask.Id);
         }
-        finally
+        else await ErrorHandling.TriggerError(r.Message);
+    }
+
+    private async Task UnassignFromMe()
+    {
+        if (selectedTask == null || currentUserId == null) return;
+        var r = await BacklogService.UpdateBacklogItemAsync(selectedTask.Id, new UpdateBacklogItemRequest { AssigneeId = Guid.Empty });
+        if (r.Success)
         {
-            isLoading = false;
+            await LoadSprint();
+            await OpenTaskDetail(selectedTask.Id);
+        }
+        else await ErrorHandling.TriggerError(r.Message);
+    }
+
+    private async Task AddComment()
+    {
+        if (selectedTask == null || string.IsNullOrWhiteSpace(newCommentText)) return;
+        isAddingComment = true;
+        var r = await BacklogService.AddCommentAsync(selectedTask.Id, new AddCommentRequest { Content = newCommentText });
+        if (r.Success)
+        {
+            newCommentText = "";
+            await OpenTaskDetail(selectedTask.Id);
+        }
+        else await ErrorHandling.TriggerError(r.Message);
+        isAddingComment = false;
+    }
+
+    private async Task OpenTaskDetail(Guid id)
+    {
+        var r = await BacklogService.GetBacklogItemDetailAsync(id);
+        if (r.Success && r.Data != null)
+        {
+            taskDetail = r.Data;
+            selectedTask = sprint?.Tasks.FirstOrDefault(t => t.Id == id);
+            selectedStatus = selectedTask?.Status ?? "ToDo";
+            StateHasChanged();
         }
     }
 
-    private async Task OpenTaskDetailFromUrl(Guid taskId)
+    private void CloseTaskDetail()
     {
-        try
+        selectedTask = null;
+        taskDetail = null;
+    }
+
+    private async Task UpdateTaskStatus()
+    {
+        if (selectedTask != null && selectedTask.Status != selectedStatus)
         {
-            int maxAttempts = 10;
-            int attempt = 0;
-            while (sprint == null && attempt < maxAttempts)
+            var r = await SprintService.UpdateTaskStatusAsync(selectedTask.Id, selectedStatus);
+            if (r.Success)
             {
-                await Task.Delay(200);
-                attempt++;
-            }
-
-            if (sprint == null)
-            {
-                Console.WriteLine("Спринт не загружен");
-                return;
-            }
-
-            var result = await BacklogService.GetBacklogItemDetailAsync(taskId);
-            if (result.Success && result.Data != null)
-            {
-                taskDetail = result.Data;
-                selectedTask = sprint.Tasks.FirstOrDefault(t => t.Id == taskId);
-                selectedStatus = selectedTask?.Status ?? "ToDo";
-                StateHasChanged();
-                Console.WriteLine($"Задача успешно открыта: {taskDetail.Title}");
-            }
-            else
-            {
-                Console.WriteLine($"Ошибка загрузки задачи: {result.Message}");
+                await LoadSprint();
+                CloseTaskDetail();
             }
         }
-        catch (Exception ex)
+    }
+
+    private async Task LoadBurndownData()
+    {
+        if (sprint == null) return;
+        isBurndownLoading = true;
+        StateHasChanged();
+        var r = await SprintService.GetBurndownChartAsync(SprintId);
+        if (r.Success && r.Data != null && r.Data.Any())
         {
-            Console.WriteLine($"Ошибка: {ex.Message}");
+            burndownData = r.Data;
+            await Task.Delay(100);
+            await JS.InvokeVoidAsync("drawBurndownChart", burndownData);
+        }
+        else burndownData = new();
+        isBurndownLoading = false;
+        StateHasChanged();
+    }
+
+    private async void ShowBurndown()
+    {
+        if (burndownData?.Any() == true)
+        {
+            await Task.Delay(300);
+            await JS.InvokeVoidAsync("drawBurndownChart", burndownData);
+        }
+    }
+
+    private async void ShowGantt()
+    {
+        await Task.Delay(300);
+        await DrawGanttChart();
+    }
+
+    private async Task DrawGanttChart()
+    {
+        if (sprint?.Tasks == null) return;
+        isGanttLoading = true;
+        StateHasChanged();
+        var tasks = sprint.Tasks
+            .Where(t => t.Status != "Backlog")
+            .OrderBy(t => t.Status == "Done" ? 2 : t.Status == "InProgress" ? 1 : 0)
+            .ThenBy(t => t.Title)
+            .Select(t => new
+            {
+                id = t.Id.ToString(),
+                title = t.Title.Length > 50 ? t.Title[..47] + "..." : t.Title,
+                fullTitle = t.Title,
+                status = t.Status,
+                storyPoints = t.StoryPoints,
+                estimatedHours = t.EstimatedHours,
+                assignee = t.Assignee?.FullName ?? "Не назначен",
+                startDate = GetTaskStartDate(t),
+                endDate = GetTaskEndDate(t)
+            }).ToList();
+        await JS.InvokeVoidAsync("drawGanttChart", tasks, sprint.StartDate.ToString("yyyy-MM-dd"), sprint.EndDate.ToString("yyyy-MM-dd"));
+        isGanttLoading = false;
+        StateHasChanged();
+    }
+
+    private DateTime GetTaskStartDate(BacklogItemBoardResponse t)
+    {
+        var d = (sprint!.EndDate - sprint.StartDate).Days;
+        return t.Status switch { "Done" => sprint.StartDate.AddDays(d * 0.1), "InProgress" => sprint.StartDate.AddDays(d * 0.2), "ToDo" => sprint.StartDate.AddDays(d * 0.5), _ => sprint.StartDate };
+    }
+
+    private DateTime GetTaskEndDate(BacklogItemBoardResponse t)
+    {
+        var d = (sprint!.EndDate - sprint.StartDate).Days;
+        return t.Status switch { "Done" => sprint.EndDate.AddDays(-d * 0.1), "InProgress" => sprint.EndDate.AddDays(-d * 0.05), "ToDo" => sprint.EndDate.AddDays(-d * 0.1), _ => sprint.EndDate };
+    }
+
+    private async Task OpenTaskDetailFromUrl(Guid id)
+    {
+        var r = await BacklogService.GetBacklogItemDetailAsync(id);
+        if (r.Success && r.Data != null)
+        {
+            taskDetail = r.Data;
+            selectedTask = sprint?.Tasks.FirstOrDefault(t => t.Id == id);
+            selectedStatus = selectedTask?.Status ?? "ToDo";
+            StateHasChanged();
         }
     }
 
     private async Task StartSprint()
     {
-        try
+        if (sprint?.Status != "Planned")
         {
-            if (sprint == null)
-            {
-                await ErrorHandling.TriggerError("Спринт не загружен");
-                return;
-            }
-
-            if (sprint.Status != "Planned")
-            {
-                await ErrorHandling.TriggerError($"Спринт можно запустить только в статусе Planned. Текущий статус: {sprint.Status}");
-                return;
-            }
-
-            var request = new StartSprintRequest
-            {
-                SprintId = SprintId,
-                BacklogItemIds = sprint.Tasks.Where(t => t.Status == "Backlog").Select(t => t.Id).ToList()
-            };
-
-            Console.WriteLine($"Отправка запроса на запуск спринта {SprintId}");
-            Console.WriteLine($"Текущий статус спринта: {sprint.Status}");
-            Console.WriteLine($"Количество задач для перемещения: {request.BacklogItemIds.Count}");
-
-            var result = await SprintService.StartSprintAsync(request);
-
-            if (result.Success)
-            {
-                Console.WriteLine("Спринт успешно запущен");
-                await LoadSprint();
-                await JS.InvokeVoidAsync("alert", "Спринт успешно запущен!");
-            }
-            else
-            {
-                Console.WriteLine($"Ошибка запуска спринта: {result.Message}");
-                await ErrorHandling.TriggerError($"Ошибка: {result.Message}");
-            }
+            await ErrorHandling.TriggerError("Спринт можно запустить только в статусе Planned");
+            return;
         }
-        catch (Exception ex)
+        var r = await SprintService.StartSprintAsync(new StartSprintRequest { SprintId = SprintId, BacklogItemIds = sprint.Tasks.Where(t => t.Status == "Backlog").Select(t => t.Id).ToList() });
+        if (r.Success)
         {
-            Console.WriteLine($"Исключение при запуске спринта: {ex.Message}");
-            await ErrorHandling.TriggerError($"Произошла ошибка: {ex.Message}");
+            await LoadSprint();
+            await DialogService.AlertAsync("Спринт запущен", "", "bi bi-play-circle", "success");
         }
+        else await ErrorHandling.TriggerError(r.Message);
     }
 
     private void ShowCompleteModal()
@@ -646,177 +772,86 @@
 
     private async Task CompleteSprint()
     {
-        try
+        if (string.IsNullOrWhiteSpace(completeRequest.ReviewNotes))
         {
-            if (string.IsNullOrWhiteSpace(completeRequest.ReviewNotes))
-            {
-                await ErrorHandling.TriggerError("Заполните заметки к Sprint Review");
-                return;
-            }
-
-            Console.WriteLine($"Отправка запроса на завершение спринта {SprintId}");
-            Console.WriteLine($"ReviewNotes: {completeRequest.ReviewNotes}");
-            Console.WriteLine($"RetrospectiveNotes: {completeRequest.RetrospectiveNotes}");
-
-            var result = await SprintService.CompleteSprintAsync(completeRequest);
-
-            if (result.Success)
-            {
-                Console.WriteLine("Спринт успешно завершен");
-                CloseCompleteModal();
-                await LoadSprint();
-                await JS.InvokeVoidAsync("alert", "Спринт успешно завершен!");
-            }
-            else
-            {
-                Console.WriteLine($"Ошибка завершения спринта: {result.Message}");
-                await ErrorHandling.TriggerError($"Ошибка: {result.Message}");
-            }
+            await ErrorHandling.TriggerError("Заполните заметки");
+            return;
         }
-        catch (Exception ex)
+        var r = await SprintService.CompleteSprintAsync(completeRequest);
+        if (r.Success)
         {
-            Console.WriteLine($"Исключение при завершении спринта: {ex.Message}");
-            await ErrorHandling.TriggerError($"Произошла ошибка: {ex.Message}");
+            CloseCompleteModal();
+            await LoadSprint();
+            await DialogService.AlertAsync("Спринт завершён", "", "bi bi-check-circle", "success");
         }
+        else await ErrorHandling.TriggerError(r.Message);
     }
 
     private async Task CancelSprint()
     {
-        try
+        var ok = await DialogService.ConfirmAsync("Отменить спринт?", "Отмена", "Отменить", "danger");
+        if (!ok) return;
+        var r = await SprintService.CancelSprintAsync(SprintId);
+        if (r.Success)
         {
-            var confirmed = await JS.InvokeAsync<bool>("confirm", "Вы уверены, что хотите отменить спринт?");
-            if (!confirmed) return;
-
-            Console.WriteLine($"Отправка запроса на отмену спринта {SprintId}");
-
-            var result = await SprintService.CancelSprintAsync(SprintId);
-
-            if (result.Success)
-            {
-                Console.WriteLine("Спринт успешно отменен");
-                await LoadSprint();
-                await JS.InvokeVoidAsync("alert", "Спринт отменен");
-            }
-            else
-            {
-                Console.WriteLine($"Ошибка отмены спринта: {result.Message}");
-                await ErrorHandling.TriggerError($"Ошибка: {result.Message}");
-            }
+            await LoadSprint();
+            await DialogService.AlertAsync("Спринт отменён", "", "bi bi-x-circle", "info");
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Исключение при отмене спринта: {ex.Message}");
-            await ErrorHandling.TriggerError($"Произошла ошибка: {ex.Message}");
-        }
+        else await ErrorHandling.TriggerError(r.Message);
     }
 
-    private async Task OpenTaskDetail(Guid taskId)
-    {
-        try
-        {
-            var result = await BacklogService.GetBacklogItemDetailAsync(taskId);
-            if (result.Success && result.Data != null)
-            {
-                taskDetail = result.Data;
-                selectedTask = sprint?.Tasks.FirstOrDefault(t => t.Id == taskId);
-                selectedStatus = selectedTask?.Status ?? "ToDo";
-                StateHasChanged();
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка открытия задачи: {ex.Message}");
-        }
-    }
-
-    private void CloseTaskDetail()
-    {
-        selectedTask = null;
-        taskDetail = null;
-    }
-
-    private async Task UpdateTaskStatus()
-    {
-        if (selectedTask != null && selectedTask.Status != selectedStatus)
-        {
-            var result = await SprintService.UpdateTaskStatusAsync(selectedTask.Id, selectedStatus);
-            if (result.Success)
-            {
-                await LoadSprint();
-                CloseTaskDetail();
-            }
-        }
-    }
-
-    private async Task ToggleSubTaskStatus(Guid subTaskId, bool isCompleted)
-    {
-        var request = new ChangeSubTaskStatusRequest
-        {
-            NewStatus = isCompleted ? "Done" : "ToDo"
-        };
-
-        var result = await SubTaskService.ChangeStatusAsync(subTaskId, request);
-        if (result.Success && selectedTask != null)
-        {
-            await OpenTaskDetail(selectedTask.Id);
-        }
-    }
-
-    private async Task LoadBurndownData()
-    {
-        if (sprint == null) return;
-
-        isBurndownLoading = true;
-        StateHasChanged();
-
-        try
-        {
-            var result = await SprintService.GetBurndownChartAsync(SprintId);
-            if (result.Success && result.Data != null && result.Data.Any())
-            {
-                burndownData = result.Data;
-                await Task.Delay(100);
-                await JS.InvokeVoidAsync("drawBurndownChart", burndownData);
-            }
-            else
-            {
-                burndownData = new List<BurndownPoint>();
-                Console.WriteLine("Нет данных для графика");
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка загрузки графика: {ex.Message}");
-            burndownData = new List<BurndownPoint>();
-        }
-        finally
-        {
-            isBurndownLoading = false;
-            StateHasChanged();
-        }
-    }
-
-    private async Task RefreshBurndown()
-    {
-        await LoadBurndownData();
-    }
-
-    private void GoToRetrospective()
-    {
-        Navigation.NavigateTo($"/retrospective/{SprintId}");
-    }
+    private void GoToRetrospective() => Navigation.NavigateTo($"/retrospective/{SprintId}");
 
     private void GoToProject()
     {
         if (sprint?.ProjectId != null && sprint.ProjectId != Guid.Empty)
-        {
-            Console.WriteLine($"Переход к проекту: {sprint.ProjectId}");
             Navigation.NavigateTo($"/projects/{sprint.ProjectId}");
-        }
         else
+            ErrorHandling.TriggerError("Не удалось определить проект");
+    }
+
+    private bool IsSubTaskDone(SubTaskResponse st) => st.Status == "Done";
+
+    private string GetSubTaskClass(SubTaskResponse st) => st.Status == "Done" ? "text-decoration-line-through text-muted" : "";
+
+    private async Task ToggleSubTask(SubTaskResponse st)
+    {
+        var newStatus = st.Status == "Done" ? "ToDo" : "Done";
+        var r = await SubTaskService.ChangeStatusAsync(st.Id, new ChangeSubTaskStatusRequest { NewStatus = newStatus });
+        if (r.Success && selectedTask != null) await OpenTaskDetail(selectedTask.Id);
+    }
+
+    private void StartEditComment(CommentResponse c)
+    {
+        editingCommentId = c.Id;
+        editCommentText = c.Content;
+        StateHasChanged();
+    }
+
+    private void CancelEditComment()
+    {
+        editingCommentId = null;
+        editCommentText = "";
+        StateHasChanged();
+    }
+
+    private async Task SaveEditedComment()
+    {
+        if (editingCommentId == null || selectedTask == null) return;
+        var r = await BacklogService.UpdateCommentAsync(editingCommentId.Value, new UpdateCommentRequest { Content = editCommentText });
+        if (r.Success)
         {
-            Console.WriteLine("ProjectId не найден в спринте");
-            ErrorHandling.TriggerError("Не удалось определить проект для перехода");
+            editingCommentId = null;
+            editCommentText = "";
+            await OpenTaskDetail(selectedTask.Id);
         }
+    }
+
+    private async Task DeleteComment(Guid id)
+    {
+        var ok = await DialogService.ConfirmAsync("Удалить комментарий?", "Удаление", "Удалить", "danger");
+        if (!ok) return;
+        var r = await BacklogService.DeleteCommentAsync(id);
+        if (r.Success && selectedTask != null) await OpenTaskDetail(selectedTask.Id);
     }
 }

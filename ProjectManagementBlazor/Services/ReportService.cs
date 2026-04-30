@@ -42,24 +42,5 @@ namespace ProjectManagementBlazor.Services
                 () => _httpClient.GetAsync($"api/reports/velocity/{projectId}?lastSprintsCount={lastSprintsCount}"),
                 "Не удалось сформировать Velocity отчёт");
         }
-
-        public async Task<byte[]> ExportReportAsync(GenerateReportRequest request)
-        {
-            try
-            {
-                var response = await _httpClient.PostAsJsonAsync("api/reports/export", request);
-                if (!response.IsSuccessStatusCode)
-                {
-                    await _errorHandling.TriggerError($"Ошибка {response.StatusCode}: не удалось экспортировать отчёт");
-                    return Array.Empty<byte>();
-                }
-                return await response.Content.ReadAsByteArrayAsync();
-            }
-            catch (Exception ex)
-            {
-                await _errorHandling.TriggerError($"Ошибка экспорта: {ex.Message}");
-                return Array.Empty<byte>();
-            }
-        }
     }
 }
