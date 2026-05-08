@@ -90,15 +90,7 @@
             }
         }
 
-        #app:not(.loaded) .loading-percentage {
-            font-size: 0.75rem;
-            color: #94A3B8;
-            margin-top: 0.5rem;
-        }
-
-        #app.loaded .loading-container,
-        #app.loaded .loading-progress,
-        #app.loaded .loading-progress-text {
+        #app.loaded .loading-container {
             display: none !important;
         }
 
@@ -133,7 +125,6 @@
             <div class="loading-bar">
                 <div class="loading-bar-fill"></div>
             </div>
-            <div class="loading-percentage" id="loading-percentage">0%</div>
         </div>
     </div>
 
@@ -144,19 +135,6 @@
     </div>
 
     <script>
-        (function () {
-            var percent = 0;
-            var el = document.getElementById('loading-percentage');
-            var interval = setInterval(function () {
-                percent += Math.floor(Math.random() * 15) + 5;
-                if (percent > 95) {
-                    percent = 95;
-                    clearInterval(interval);
-                }
-                if (el) el.textContent = percent + '%';
-            }, 300);
-        })();
-
         window.addEventListener('load', function () {
             setTimeout(function () {
                 var app = document.getElementById('app');

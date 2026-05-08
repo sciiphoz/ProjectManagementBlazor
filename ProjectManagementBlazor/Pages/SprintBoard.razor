@@ -25,7 +25,6 @@
     }
     else if (sprint != null)
     {
-        <!-- Компактная шапка -->
         <div class="sprint-topbar">
             <div class="d-flex align-items-center gap-3">
                 <a @onclick="GoToProject" class="text-muted small cursor-pointer" title="К проекту">
@@ -51,13 +50,13 @@
             <div class="d-flex gap-1">
                 @if (!isViewer)
                 {
-                    if (!sprint.IsActive && sprint.Status != "Completed")
+                    if (!sprint.IsActive && sprint.Status != "Completed" && (IsScrumMaster || IsProductOwner))
                     {
                         <button class="btn btn-success btn-sm" @onclick="StartSprint">
                             <i class="bi bi-play-fill me-1"></i> Запустить
                         </button>
                     }
-                    if (sprint.IsActive)
+                    if (sprint.IsActive && (IsScrumMaster || IsProductOwner))
                     {
                         <button class="btn btn-warning btn-sm" @onclick="ShowCompleteModal">
                             <i class="bi bi-check2 me-1"></i> Завершить
@@ -70,7 +69,6 @@
             </div>
         </div>
 
-        <!-- Табы: Доска + Графики -->
         <div class="sprint-tabs">
             <button class="sprint-tab @(activeView == "board" ? "active" : "")" @onclick="ShowBoardTab">
                 <i class="bi bi-kanban me-1"></i> Доска
@@ -91,7 +89,6 @@
             </div>
         </div>
 
-        <!-- Контент -->
         @if (activeView == "board")
         {
             <div class="board-container">
@@ -108,7 +105,8 @@
                             {
                                 <div class="task-card @GetPriorityClass(task.Priority)"
                                      draggable="@(CanModifyTask(task) ? "true" : "false")"
-                                     @ondragstart="() => OnDragStart(task)" @ondragend="OnDragEnd">
+                                     @ondragstart="() => OnDragStart(task)" @ondragend="OnDragEnd"
+                                     @onclick="() => OpenTaskDetail(task.Id)">
                                     <div class="task-card-body">
                                         <div class="d-flex justify-content-between mb-1">
                                             <span class="badge @badge small">@task.Type</span>
@@ -120,9 +118,6 @@
                                             <div class="text-muted smallest">@task.Assignee.FullName</div>
                                         }
                                     </div>
-                                    <button class="btn btn-link btn-sm p-0 text-muted task-open-btn" @onclick="() => OpenTaskDetail(task.Id)" title="Открыть">
-                                        <i class="bi bi-three-dots"></i>
-                                    </button>
                                 </div>
                             }
                         </div>
@@ -135,22 +130,15 @@
             <div class="chart-panel">
                 @if (isBurndownLoading)
                 {
-                    <div class="text-center py-4">
-                        <div class="spinner-border spinner-border-sm text-info"></div>
-                    </div>
+                    <div class="text-center py-4"><div class="spinner-border spinner-border-sm text-info"></div></div>
                 }
                 else if (burndownData?.Any() == true)
                 {
-                    <div style="position:relative;height:400px">
-                        <canvas id="burndownChart"></canvas>
-                    </div>
+                    <div style="position:relative;height:400px"><canvas id="burndownChart"></canvas></div>
                 }
                 else
                 {
-                    <div class="text-center py-5 text-muted">
-                        <i class="bi bi-graph-up fs-1 opacity-25"></i>
-                        <p class="mt-2">Нет данных</p>
-                    </div>
+                    <div class="text-center py-5 text-muted"><i class="bi bi-graph-up fs-1 opacity-25"></i><p class="mt-2">Нет данных</p></div>
                 }
             </div>
         }
@@ -159,93 +147,55 @@
             <div class="chart-panel">
                 @if (isGanttLoading)
                 {
-                    <div class="text-center py-4">
-                        <div class="spinner-border spinner-border-sm text-info"></div>
-                    </div>
+                    <div class="text-center py-4"><div class="spinner-border spinner-border-sm text-info"></div></div>
                 }
                 else if (sprint?.Tasks?.Any(t => t.Status != "Backlog") == true)
                 {
-                    <div style="position:relative;height:400px">
-                        <canvas id="ganttChart"></canvas>
-                    </div>
+                    <div style="position:relative;height:400px"><canvas id="ganttChart"></canvas></div>
                 }
                 else
                 {
-                    <div class="text-center py-5 text-muted">
-                        <i class="bi bi-bar-chart-steps fs-1 opacity-25"></i>
-                        <p class="mt-2">Нет задач</p>
-                    </div>
+                    <div class="text-center py-5 text-muted"><i class="bi bi-bar-chart-steps fs-1 opacity-25"></i><p class="mt-2">Нет задач</p></div>
                 }
             </div>
         }
     }
 
-    <!-- Модалка завершения -->
     @if (showCompleteModal)
     {
         <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);">
             <div class="modal-dialog modal-sm modal-dialog-centered">
                 <div class="modal-content">
-                    <div class="modal-header bg-warning">
-                        <h6 class="modal-title">Завершение спринта</h6>
-                        <button type="button" class="btn-close" @onclick="CloseCompleteModal"></button>
-                    </div>
+                    <div class="modal-header bg-warning"><h6 class="modal-title">Завершение спринта</h6><button type="button" class="btn-close" @onclick="CloseCompleteModal"></button></div>
                     <div class="modal-body">
                         <p>Завершить «<strong>@sprint?.Name</strong>»?</p>
-                        <div class="mb-2">
-                            <label class="form-label small">Заметки Review</label>
-                            <textarea @bind="completeRequest.ReviewNotes" class="form-control form-control-sm" rows="2"></textarea>
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label small">Заметки ретроспективы</label>
-                            <textarea @bind="completeRequest.RetrospectiveNotes" class="form-control form-control-sm" rows="2"></textarea>
-                        </div>
+                        <div class="mb-2"><label class="form-label small">Заметки Review</label><textarea @bind="completeRequest.ReviewNotes" class="form-control form-control-sm" rows="2"></textarea></div>
+                        <div class="mb-2"><label class="form-label small">Заметки ретроспективы</label><textarea @bind="completeRequest.RetrospectiveNotes" class="form-control form-control-sm" rows="2"></textarea></div>
                     </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-secondary btn-sm" @onclick="CloseCompleteModal">Отмена</button>
-                        <button class="btn btn-warning btn-sm" @onclick="CompleteSprint">Завершить</button>
-                    </div>
+                    <div class="modal-footer"><button class="btn btn-secondary btn-sm" @onclick="CloseCompleteModal">Отмена</button><button class="btn btn-warning btn-sm" @onclick="CompleteSprint">Завершить</button></div>
                 </div>
             </div>
         </div>
     }
 
-    <!-- Модалка задачи -->
     @if (selectedTask != null && taskDetail != null)
     {
         <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header bg-primary text-white">
-                        <div>
-                            <h5 class="modal-title">@selectedTask.Title</h5>
-                            <div class="d-flex gap-2 mt-1">
-                                <span class="badge @GetTypeBadge(selectedTask.Type)">@selectedTask.Type</span>
-                                <span class="badge bg-light text-dark">@selectedTask.StoryPoints SP</span>
-                            </div>
-                        </div>
+                        <div><h5 class="modal-title">@selectedTask.Title</h5><div class="d-flex gap-2 mt-1"><span class="badge @GetTypeBadge(selectedTask.Type)">@selectedTask.Type</span><span class="badge bg-light text-dark">@selectedTask.StoryPoints SP</span></div></div>
                         <button type="button" class="btn-close btn-close-white" @onclick="CloseTaskDetail"></button>
                     </div>
                     <div class="modal-body p-0">
                         <ul class="nav nav-tabs px-3 pt-3">
-                            <li class="nav-item">
-                                <button class="nav-link @(taskDetailTab == "info" ? "active" : "")" @onclick="ShowInfoTab">
-                                    <i class="bi bi-info-circle me-1"></i> Описание
-                                </button>
-                            </li>
-                            <li class="nav-item">
-                                <button class="nav-link @(taskDetailTab == "subtasks" ? "active" : "")" @onclick="ShowSubtasksTab">
-                                    <i class="bi bi-list-check me-1"></i> Подзадачи @(taskDetail.SubTasks?.Any() == true ? $"({taskDetail.SubTasks.Count})" : "")
-                                </button>
-                            </li>
+                            <li class="nav-item"><button class="nav-link @(taskDetailTab == "info" ? "active" : "")" @onclick="ShowInfoTab"><i class="bi bi-info-circle me-1"></i> Описание</button></li>
+                            <li class="nav-item"><button class="nav-link @(taskDetailTab == "subtasks" ? "active" : "")" @onclick="ShowSubtasksTab"><i class="bi bi-list-check me-1"></i> Подзадачи @(taskDetail.SubTasks?.Any() == true ? $"({taskDetail.SubTasks.Count})" : "")</button></li>
                             @if (!isViewer)
                             {
-                                <li class="nav-item">
-                                    <button class="nav-link @(taskDetailTab == "comments" ? "active" : "")" @onclick="ShowCommentsTab">
-                                        <i class="bi bi-chat me-1"></i> Комментарии @(taskDetail.Comments?.Any() == true ? $"({taskDetail.Comments.Count})" : "")
-                                    </button>
-                                </li>
+                                <li class="nav-item"><button class="nav-link @(taskDetailTab == "comments" ? "active" : "")" @onclick="ShowCommentsTab"><i class="bi bi-chat me-1"></i> Комментарии @(taskDetail.Comments?.Any() == true ? $"({taskDetail.Comments.Count})" : "")</button></li>
                             }
+                            <li class="nav-item"><button class="nav-link @(taskDetailTab == "blockers" ? "active" : "")" @onclick="ShowBlockersTab"><i class="bi bi-exclamation-triangle me-1"></i> Блокеры @(taskDetail.ActiveBlockers?.Any() == true ? $"({taskDetail.ActiveBlockers.Count})" : "")</button></li>
                         </ul>
                         <div class="p-3">
                             @if (taskDetailTab == "info")
@@ -263,51 +213,23 @@
                                     <div class="col-md-4">
                                         <div class="card bg-light border-0">
                                             <div class="card-body">
-                                                <div class="mb-2">
-                                                    <small class="text-muted">Тип</small>
-                                                    <div><strong>@selectedTask.Type</strong></div>
-                                                </div>
-                                                <div class="mb-2">
-                                                    <small class="text-muted">SP</small>
-                                                    <div><strong>@selectedTask.StoryPoints</strong></div>
-                                                </div>
-                                                <div class="mb-2">
-                                                    <small class="text-muted">Оценка</small>
-                                                    <div><strong>@(selectedTask.EstimatedHours?.ToString() ?? "—") ч.</strong></div>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <small class="text-muted">Исполнитель</small>
-                                                    <div><strong>@(selectedTask.Assignee?.FullName ?? "Не назначен")</strong></div>
-                                                </div>
+                                                <div class="mb-2"><small class="text-muted">Тип</small><div><strong>@selectedTask.Type</strong></div></div>
+                                                <div class="mb-2"><small class="text-muted">SP</small><div><strong>@selectedTask.StoryPoints</strong></div></div>
+                                                <div class="mb-2"><small class="text-muted">Оценка</small><div><strong>@(selectedTask.EstimatedHours?.ToString() ?? "—") ч.</strong></div></div>
+                                                <div class="mb-3"><small class="text-muted">Исполнитель</small><div><strong>@(selectedTask.Assignee?.FullName ?? "Не назначен")</strong></div></div>
                                                 @if (!isViewer)
                                                 {
                                                     if (selectedTask.Assignee == null)
                                                     {
-                                                        <button class="btn btn-sm btn-outline-success w-100" @onclick="AssignToMe">
-                                                            <i class="bi bi-person-check me-1"></i> Назначить себе
-                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-success w-100" @onclick="AssignToMe"><i class="bi bi-person-check me-1"></i> Назначить себе</button>
                                                     }
                                                     else if (selectedTask.Assignee.Id == currentUserId)
                                                     {
-                                                        <button class="btn btn-sm btn-outline-danger w-100 mt-1" @onclick="UnassignFromMe">
-                                                            <i class="bi bi-person-x me-1"></i> Снять
-                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-danger w-100 mt-1" @onclick="UnassignFromMe"><i class="bi bi-person-x me-1"></i> Снять</button>
                                                     }
                                                 }
                                             </div>
                                         </div>
-                                        @if (CanModifyTask(selectedTask) && !isViewer)
-                                        {
-                                            <div class="mt-3">
-                                                <select @bind="selectedStatus" class="form-select form-select-sm">
-                                                    <option value="Backlog">Бэклог</option>
-                                                    <option value="ToDo">To Do</option>
-                                                    <option value="InProgress">In Progress</option>
-                                                    <option value="Done">Done</option>
-                                                </select>
-                                                <button class="btn btn-sm btn-primary w-100 mt-2" @onclick="UpdateTaskStatus">Обновить</button>
-                                            </div>
-                                        }
                                     </div>
                                 </div>
                             }
@@ -319,7 +241,7 @@
                                     var totalCount = taskDetail.SubTasks.Count;
                                     <div class="mb-3">
                                         <div class="d-flex justify-content-between small text-muted mb-1">
-                                            <span>Прогресс</span><span>@doneCount/@totalCount</span>
+                                            <span>Прогресс</span><span>@doneCount из @totalCount</span>
                                         </div>
                                         <div class="progress" style="height:4px">
                                             <div class="progress-bar bg-success" style="width:@(totalCount > 0 ? (int)((double)doneCount / totalCount * 100) : 0)%"></div>
@@ -327,18 +249,62 @@
                                     </div>
                                     @foreach (var st in taskDetail.SubTasks)
                                     {
-                                        <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
-                                            <div class="d-flex align-items-center gap-2">
-                                                <input type="checkbox" class="form-check-input m-0" checked="@IsSubTaskDone(st)" @onchange="() => ToggleSubTask(st)" disabled="@isViewer" />
+                                        <div class="subtask-row @(st.Status == "Done" ? "done" : "")">
+                                            <div>
                                                 <span class="@GetSubTaskClass(st)">@st.Title</span>
+                                                <div class="d-flex gap-3 text-muted smallest mt-0">
+                                                    <span><i class="bi bi-clock me-1"></i>@(st.EstimatedHours?.ToString() ?? "—") ч.</span>
+                                                    @if (st.Assignee != null)
+                                                    {
+                                                        <span><i class="bi bi-person me-1"></i>@st.Assignee.FullName</span>
+                                                    }
+                                                </div>
                                             </div>
-                                            <span class="small text-muted">@(st.EstimatedHours?.ToString() ?? "—") ч.</span>
+                                            <div class="d-flex align-items-center gap-1">
+                                                @if (!isViewer && CanModifyTask(selectedTask))
+                                                {
+                                                    @if (st.Status == "ToDo")
+                                                    {
+                                                        <button class="btn btn-outline-info btn-sm" @onclick="() => StartSubTask(st)" title="Начать">
+                                                            <i class="bi bi-play-fill"></i>
+                                                        </button>
+                                                    }
+                                                    else if (st.Status == "InProgress")
+                                                    {
+                                                        <button class="btn btn-outline-success btn-sm" @onclick="() => CompleteSubTask(st)" title="Завершить">
+                                                            <i class="bi bi-check-lg"></i>
+                                                        </button>
+                                                    }
+                                                    else if (st.Status == "Done")
+                                                    {
+                                                        <button class="btn btn-outline-warning btn-sm" @onclick="() => ReopenSubTask(st)" title="Переоткрыть">
+                                                            <i class="bi bi-arrow-counterclockwise"></i>
+                                                        </button>
+                                                    }
+                                                    <button class="btn btn-link btn-sm text-danger p-0" @onclick="() => DeleteSubTask(st.Id)" title="Удалить">
+                                                        <i class="bi bi-x"></i>
+                                                    </button>
+                                                }
+                                            </div>
                                         </div>
                                     }
                                 }
                                 else
                                 {
-                                    <div class="text-center py-4 text-muted">Нет подзадач</div>
+                                    <div class="text-center py-3 text-muted small">Нет подзадач</div>
+                                }
+                                @if (!isViewer && CanModifyTask(selectedTask))
+                                {
+                                    <div class="mt-3 pt-3 border-top">
+                                        <label class="form-label small">Новая подзадача</label>
+                                        <div class="d-flex gap-2">
+                                            <input type="text" class="form-control form-control-sm" @bind="newSubTaskTitle" placeholder="Название..." />
+                                            <input type="number" class="form-control form-control-sm" @bind="newSubTaskHours" placeholder="Часы" style="width: 80px;" step="0.5" min="0" />
+                                            <button class="btn btn-primary btn-sm" @onclick="AddSubTask" disabled="@(string.IsNullOrWhiteSpace(newSubTaskTitle))">
+                                                <i class="bi bi-plus"></i>
+                                            </button>
+                                        </div>
+                                    </div>
                                 }
                             }
                             else if (taskDetailTab == "comments" && !isViewer)
@@ -363,18 +329,13 @@
                                                     @if (editingCommentId == c.Id)
                                                     {
                                                         <textarea @bind="editCommentText" class="form-control form-control-sm mb-1" rows="2"></textarea>
-                                                        <div>
-                                                            <button class="btn btn-sm btn-light" @onclick="SaveEditedComment">Сохранить</button>
-                                                            <button class="btn btn-sm btn-link text-white ms-1" @onclick="CancelEditComment">Отмена</button>
-                                                        </div>
+                                                        <div><button class="btn btn-sm btn-light" @onclick="SaveEditedComment">Сохранить</button><button class="btn btn-sm btn-link text-white ms-1" @onclick="CancelEditComment">Отмена</button></div>
                                                     }
                                                     else
                                                     {
                                                         <p class="mb-0 small">@c.Content</p>
                                                     }
-                                                    <small class="@(c.User?.Id == currentUserId ? "text-white-50" : "text-muted")" style="font-size:0.65rem">
-                                                        @c.CreatedAt.ToString("dd.MM HH:mm") @(c.IsEdited ? "(изм.)" : "")
-                                                    </small>
+                                                    <small class="@(c.User?.Id == currentUserId ? "text-white-50" : "text-muted")" style="font-size:0.65rem">@c.CreatedAt.ToString("dd.MM HH:mm") @(c.IsEdited ? "(изм.)" : "")</small>
                                                 </div>
                                             </div>
                                         }
@@ -390,17 +351,83 @@
                                     {
                                         <span class="spinner-border spinner-border-sm me-1"></span>
                                     }
-         Отправить
+                                    Отправить
                                 </button>
+                            }
+                            else if (taskDetailTab == "blockers")
+                            {
+                                @if (taskDetail.ActiveBlockers?.Any() == true)
+                                {
+                                    <div class="blockers-list mb-3">
+                                        @foreach (var b in taskDetail.ActiveBlockers)
+                                        {
+                                            <div class="blocker-item @GetBlockerSeverityClass(b.Severity)">
+                                                <div class="blocker-icon">
+                                                    <i class="bi @GetBlockerIcon(b.Severity)"></i>
+                                                </div>
+                                                <div class="blocker-body">
+                                                    <div class="blocker-text">@b.Description</div>
+                                                    <div class="blocker-meta">
+                                                        <span class="badge @GetBlockerSeverityBadge(b.Severity)">@GetBlockerSeverityText(b.Severity)</span>
+                                                        <span class="text-muted smallest">@b.CreatedAt.ToString("dd.MM HH:mm")</span>
+                                                    </div>
+                                                </div>
+                                                @if (!isViewer && CanModifyTask(selectedTask))
+                                                {
+                                                    <button class="btn btn-outline-success btn-sm blocker-resolve" @onclick="() => ResolveBlocker(b.Id)" title="Разрешить">
+                                                        <i class="bi bi-check-lg"></i>
+                                                    </button>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="text-center py-3 text-muted small">
+                                        <i class="bi bi-shield-check fs-4 opacity-25 d-block mb-2"></i>
+                                        Нет активных блокеров
+                                    </div>
+                                }
+                                @if (!isViewer && CanModifyTask(selectedTask))
+                                {
+                                    <div class="mt-3 pt-3 border-top">
+                                        <label class="form-label small fw-medium">Добавить блокер</label>
+                                        <textarea @bind="newBlockerDescription" class="form-control form-control-sm mb-2" rows="2" placeholder="Опишите проблему..."></textarea>
+                                        <div class="d-flex gap-2">
+                                            <select @bind="newBlockerSeverity" class="form-select form-select-sm" style="width: auto;">
+                                                <option value="Low">Низкий</option>
+                                                <option value="Medium">Средний</option>
+                                                <option value="High">Высокий</option>
+                                                <option value="Critical">Критический</option>
+                                            </select>
+                                            <button class="btn btn-danger btn-sm" @onclick="AddBlocker" disabled="@(string.IsNullOrWhiteSpace(newBlockerDescription))">
+                                                <i class="bi bi-exclamation-triangle me-1"></i> Добавить
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
                             }
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-secondary btn-sm" @onclick="CloseTaskDetail">Закрыть</button>
+                    <div class="modal-footer"><button class="btn btn-secondary btn-sm" @onclick="CloseTaskDetail">Закрыть</button></div>
+                </div>
+            </div>
+        </div>
+    }
+    else if (isTaskDetailLoading)
+    {
+        <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-sm modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-body text-center py-4">
+                        <div class="spinner-border text-primary mb-2"></div>
+                        <p class="text-muted small mb-0">Загрузка задачи...</p>
                     </div>
                 </div>
             </div>
         </div>
+        <div class="modal-backdrop show"></div>
     }
 </div>
 
@@ -534,18 +561,6 @@
             border-left: 3px solid #10B981;
         }
 
-    .task-open-btn {
-        position: absolute;
-        top: 4px;
-        right: 4px;
-        opacity: 0;
-        transition: opacity 0.1s;
-    }
-
-    .task-card:hover .task-open-btn {
-        opacity: 1;
-    }
-
     .chart-panel {
         padding: 1rem;
         background: #fff;
@@ -572,6 +587,118 @@
         margin: 1.75rem auto;
     }
 
+    .subtask-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid var(--border-color,#E2E8F0);
+    }
+
+        .subtask-row:last-child {
+            border-bottom: none;
+        }
+
+        .subtask-row.done {
+            opacity: 0.6;
+        }
+
+    .blockers-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .blocker-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.625rem;
+        padding: 0.625rem;
+        border-radius: 0.5rem;
+        border: 1px solid var(--border-color, #E2E8F0);
+        border-left: 4px solid;
+        background: var(--bg-light, #F8F9FB);
+    }
+
+        .blocker-item.severity-critical {
+            border-left-color: #EF4444;
+        }
+
+        .blocker-item.severity-high {
+            border-left-color: #F59E0B;
+        }
+
+        .blocker-item.severity-medium {
+            border-left-color: #3B82F6;
+        }
+
+        .blocker-item.severity-low {
+            border-left-color: #6B7280;
+        }
+
+    .blocker-icon {
+        font-size: 1.25rem;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .blocker-item.severity-critical .blocker-icon {
+        color: #EF4444;
+        background: rgba(239, 68, 68, 0.1);
+    }
+
+    .blocker-item.severity-high .blocker-icon {
+        color: #F59E0B;
+        background: rgba(245, 158, 11, 0.1);
+    }
+
+    .blocker-item.severity-medium .blocker-icon {
+        color: #3B82F6;
+        background: rgba(59, 130, 246, 0.1);
+    }
+
+    .blocker-item.severity-low .blocker-icon {
+        color: #6B7280;
+        background: rgba(107, 114, 128, 0.1);
+    }
+
+    .blocker-body {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .blocker-text {
+        font-size: 0.8rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .blocker-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .blocker-resolve {
+        flex-shrink: 0;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+    }
+
+    [data-bs-theme="dark"] .blocker-item {
+        background: #1E293B;
+        border-color: #334155;
+    }
+
     [data-bs-theme="dark"] .sprint-topbar, [data-bs-theme="dark"] .sprint-tabs, [data-bs-theme="dark"] .board-col, [data-bs-theme="dark"] .chart-panel, [data-bs-theme="dark"] .task-card {
         background: #1E293B;
         border-color: #334155;
@@ -582,6 +709,10 @@
     }
 
     [data-bs-theme="dark"] .board-col-header {
+        border-color: #334155;
+    }
+
+    [data-bs-theme="dark"] .subtask-row {
         border-color: #334155;
     }
 </style>
@@ -596,6 +727,10 @@
     private Guid? editingCommentId;
     private string editCommentText = "";
     private string newCommentText = "";
+    private string newSubTaskTitle = "";
+    private double? newSubTaskHours = null;
+    private string newBlockerDescription = "";
+    private string newBlockerSeverity = "Medium";
     private bool isAddingComment = false;
     private List<BurndownPoint>? burndownData;
     private bool isBurndownLoading = false;
@@ -608,11 +743,20 @@
     private bool isLoading = true;
     private bool showCompleteModal = false;
     private bool isViewer = false;
+    private bool isScrumMaster = false;
+    private bool isProductOwner = false;
+    private string currentUserRole = "";
     private CompleteSprintRequest completeRequest = new();
+    private bool isTaskDetailLoading = false;
+    private bool isUpdating = false;
+
 
     private string GetPriorityClass(int? p)
     {
-        if (p == null) return "";
+        if (p == null)
+        {
+            return "";
+        }
         return p switch
         {
             <= 3 => "priority-high",
@@ -633,6 +777,17 @@
         };
     }
 
+    private string GetBlockerSeverityBadge(string s)
+    {
+        return s switch
+        {
+            "Critical" => "bg-danger",
+            "High" => "bg-warning text-dark",
+            "Medium" => "bg-info",
+            _ => "bg-secondary"
+        };
+    }
+
     private void ShowInfoTab()
     {
         taskDetailTab = "info";
@@ -648,6 +803,12 @@
     private void ShowCommentsTab()
     {
         taskDetailTab = "comments";
+        StateHasChanged();
+    }
+
+    private void ShowBlockersTab()
+    {
+        taskDetailTab = "blockers";
         StateHasChanged();
     }
 
@@ -673,15 +834,43 @@
 
     private bool CanModifyTask(BacklogItemBoardResponse t)
     {
-        if (isViewer) return false;
-        if (t == null || currentUserId == null) return false;
-        if (t.Assignee == null) return true;
+        if (isViewer)
+        {
+            return false;
+        }
+        if (t == null || currentUserId == null)
+        {
+            return false;
+        }
+        if (t.Assignee == null)
+        {
+            return true;
+        }
         return t.Assignee.Id == currentUserId;
+    }
+
+    private bool IsProductOwner
+    {
+        get
+        {
+            return sprint?.ProjectOwnerId == currentUserId || currentUserRole == "ProductOwner";
+        }
+    }
+
+    private bool IsScrumMaster
+    {
+        get
+        {
+            return currentUserRole == "ScrumMaster";
+        }
     }
 
     private void OnDragStart(BacklogItemBoardResponse t)
     {
-        if (isViewer) return;
+        if (isViewer)
+        {
+            return;
+        }
         draggedTask = t;
     }
 
@@ -690,17 +879,52 @@
         draggedTask = null;
     }
 
-    private void OnDragOver() { }
+    private void OnDragOver()
+    {
+    }
+
 
     private async Task OnDropTo(string status)
     {
-        if (isViewer) return;
-        if (draggedTask != null && draggedTask.Status != status)
+        if (isViewer || isUpdating)
         {
-            var r = await SprintService.UpdateTaskStatusAsync(draggedTask.Id, status);
-            if (r.Success) await LoadSprint();
+            return;
         }
+
+        if (draggedTask == null || draggedTask.Status == status)
+        {
+            draggedTask = null;
+            return;
+        }
+
+        isUpdating = true;
+        var taskId = draggedTask.Id;
         draggedTask = null;
+
+        try
+        {
+            var r = await SprintService.UpdateTaskStatusAsync(taskId, status);
+            if (r.Success)
+            {
+                await LoadSprint();
+            }
+            else
+            {
+                await InvokeAsync(async () =>
+                {
+                    await DialogService.AlertAsync(
+                        r.Message ?? "Не удалось изменить статус задачи",
+                        "Ошибка",
+                        "bi bi-exclamation-triangle",
+                        "danger");
+                });
+            }
+        }
+        finally
+        {
+            isUpdating = false;
+            StateHasChanged();
+        }
     }
 
     protected override async Task OnInitializedAsync()
@@ -716,24 +940,44 @@
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var claim = authState.User.FindFirst(ClaimTypes.NameIdentifier);
-            if (claim != null) currentUserId = Guid.Parse(claim.Value);
+            if (claim != null)
+            {
+                currentUserId = Guid.Parse(claim.Value);
+            }
         }
-        catch { }
+        catch
+        {
+        }
     }
 
     private async Task CheckViewerRole()
     {
         try
         {
-            if (sprint == null || currentUserId == null) return;
+            if (sprint == null || currentUserId == null)
+            {
+                return;
+            }
             var membersResult = await ProjectService.GetProjectMembersAsync(sprint.ProjectId);
             if (membersResult.Success && membersResult.Data != null)
             {
                 var member = membersResult.Data.FirstOrDefault(m => m.UserId == currentUserId.Value);
-                isViewer = member?.Role == "Viewer";
+                if (member != null)
+                {
+                    isViewer = member.Role == "Viewer";
+                    isScrumMaster = member.Role == "ScrumMaster";
+                    isProductOwner = member.Role == "ProductOwner";
+                    currentUserRole = member.Role;
+                }
+                if (sprint.ProjectOwnerId == currentUserId)
+                {
+                    isProductOwner = true;
+                }
             }
         }
-        catch { }
+        catch
+        {
+        }
     }
 
     private async Task LoadSprint()
@@ -747,54 +991,72 @@
                 sprint = r.Data;
                 completeRequest = new CompleteSprintRequest { SprintId = SprintId };
                 await LoadBurndownData();
-                if (TaskId != Guid.Empty) await OpenTaskDetailFromUrl(TaskId);
+                if (TaskId != Guid.Empty)
+                {
+                    await OpenTaskDetailFromUrl(TaskId);
+                }
             }
             else
             {
                 Navigation.NavigateTo("/projects");
             }
         }
-        catch { }
+        catch
+        {
+        }
         finally
         {
             isLoading = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
 
     private async Task AssignToMe()
     {
-        if (isViewer) return;
-        if (selectedTask == null || currentUserId == null) return;
+        if (isViewer || selectedTask == null || currentUserId == null)
+        {
+            return;
+        }
         var r = await BacklogService.UpdateBacklogItemAsync(
             selectedTask.Id,
             new UpdateBacklogItemRequest { AssigneeId = currentUserId.Value });
         if (r.Success)
         {
             await LoadSprint();
-            await OpenTaskDetail(selectedTask.Id);
+            await OpenTaskDetail(selectedTask.Id, forceReload: true);
         }
-        else await ErrorHandling.TriggerError(r.Message);
+        else
+        {
+            await ErrorHandling.TriggerError(r.Message);
+        }
     }
 
     private async Task UnassignFromMe()
     {
-        if (isViewer) return;
-        if (selectedTask == null || currentUserId == null) return;
+        if (isViewer || selectedTask == null || currentUserId == null)
+        {
+            return;
+        }
         var r = await BacklogService.UpdateBacklogItemAsync(
             selectedTask.Id,
             new UpdateBacklogItemRequest { AssigneeId = Guid.Empty });
         if (r.Success)
         {
             await LoadSprint();
-            await OpenTaskDetail(selectedTask.Id);
+            await OpenTaskDetail(selectedTask.Id, forceReload: true);
         }
-        else await ErrorHandling.TriggerError(r.Message);
+        else
+        {
+            await ErrorHandling.TriggerError(r.Message);
+        }
     }
 
     private async Task AddComment()
     {
-        if (isViewer) return;
-        if (selectedTask == null || string.IsNullOrWhiteSpace(newCommentText)) return;
+        if (isViewer || selectedTask == null || string.IsNullOrWhiteSpace(newCommentText))
+        {
+            return;
+        }
         isAddingComment = true;
         var r = await BacklogService.AddCommentAsync(
             selectedTask.Id,
@@ -802,21 +1064,119 @@
         if (r.Success)
         {
             newCommentText = "";
-            await OpenTaskDetail(selectedTask.Id);
+            await OpenTaskDetail(selectedTask.Id, forceReload: true);
         }
-        else await ErrorHandling.TriggerError(r.Message);
+        else
+        {
+            await ErrorHandling.TriggerError(r.Message);
+        }
         isAddingComment = false;
     }
 
-    private async Task OpenTaskDetail(Guid id)
+    private async Task OpenTaskDetail(Guid id, bool forceReload = false)
     {
+        if (!forceReload && taskDetail?.Id == id)
+        {
+            selectedTask = sprint?.Tasks.FirstOrDefault(t => t.Id == id);
+            selectedStatus = selectedTask?.Status ?? "ToDo";
+            StateHasChanged();
+            return;
+        }
+
+        isTaskDetailLoading = true;
+        StateHasChanged();
+
+        taskDetail = null;
+
         var r = await BacklogService.GetBacklogItemDetailAsync(id);
         if (r.Success && r.Data != null)
         {
             taskDetail = r.Data;
             selectedTask = sprint?.Tasks.FirstOrDefault(t => t.Id == id);
             selectedStatus = selectedTask?.Status ?? "ToDo";
-            StateHasChanged();
+        }
+
+        isTaskDetailLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task AddSubTask()
+    {
+        if (selectedTask == null || string.IsNullOrWhiteSpace(newSubTaskTitle))
+        {
+            return;
+        }
+        var r = await SubTaskService.CreateSubTaskAsync(new CreateSubTaskRequest
+        {
+            BacklogItemId = selectedTask.Id,
+            Title = newSubTaskTitle,
+            EstimatedHours = (decimal?)newSubTaskHours
+        });
+
+        if (r.Success)
+        {
+            newSubTaskTitle = "";
+            newSubTaskHours = null;
+            await OpenTaskDetail(selectedTask.Id, forceReload: true);
+        }
+        else
+        {
+            await ErrorHandling.TriggerError(r.Message ?? "Ошибка создания подзадачи");
+        }
+    }
+
+    private async Task DeleteSubTask(Guid subTaskId)
+    {
+        var ok = await DialogService.ConfirmAsync("Удалить подзадачу?", "Удаление", "Удалить", "danger");
+        if (!ok)
+        {
+            return;
+        }
+        var r = await SubTaskService.DeleteSubTaskAsync(subTaskId);
+        if (r.Success && selectedTask != null)
+        {
+            await OpenTaskDetail(selectedTask.Id, forceReload: true);
+        }
+        else
+        {
+            await ErrorHandling.TriggerError(r.Message ?? "Ошибка удаления");
+        }
+    }
+
+    private async Task AddBlocker()
+    {
+        if (selectedTask == null || string.IsNullOrWhiteSpace(newBlockerDescription))
+        {
+            return;
+        }
+        var r = await BacklogService.AddBlockerAsync(selectedTask.Id, new AddBlockerRequest
+        {
+            Description = newBlockerDescription,
+            Severity = newBlockerSeverity
+        });
+
+        if (r.Success)
+        {
+            newBlockerDescription = "";
+            newBlockerSeverity = "Medium";
+            await OpenTaskDetail(selectedTask.Id, forceReload: true);
+        }
+        else
+        {
+            await ErrorHandling.TriggerError(r.Message ?? "Ошибка добавления блокера");
+        }
+    }
+
+    private async Task ResolveBlocker(Guid blockerId)
+    {
+        var r = await BacklogService.ResolveBlockerAsync(blockerId, new ResolveBlockerRequest { ResolutionNote = "Разрешено" });
+        if (r.Success && selectedTask != null)
+        {
+            await OpenTaskDetail(selectedTask.Id, forceReload: true);
+        }
+        else
+        {
+            await ErrorHandling.TriggerError(r.Message ?? "Ошибка разрешения блокера");
         }
     }
 
@@ -826,23 +1186,12 @@
         taskDetail = null;
     }
 
-    private async Task UpdateTaskStatus()
-    {
-        if (isViewer) return;
-        if (selectedTask != null && selectedTask.Status != selectedStatus)
-        {
-            var r = await SprintService.UpdateTaskStatusAsync(selectedTask.Id, selectedStatus);
-            if (r.Success)
-            {
-                await LoadSprint();
-                CloseTaskDetail();
-            }
-        }
-    }
-
     private async Task LoadBurndownData()
     {
-        if (sprint == null) return;
+        if (sprint == null)
+        {
+            return;
+        }
         isBurndownLoading = true;
         StateHasChanged();
         var r = await SprintService.GetBurndownChartAsync(SprintId);
@@ -877,7 +1226,10 @@
 
     private async Task DrawGanttChart()
     {
-        if (sprint?.Tasks == null) return;
+        if (sprint?.Tasks == null)
+        {
+            return;
+        }
         isGanttLoading = true;
         StateHasChanged();
         var tasks = sprint.Tasks
@@ -939,10 +1291,9 @@
 
     private async Task StartSprint()
     {
-        if (isViewer) return;
-        if (sprint?.Status != "Planned")
+        if (isViewer || sprint?.Status != "Planned")
         {
-            await ErrorHandling.TriggerError("Спринт можно запустить только в статусе Planned");
+            await ErrorHandling.TriggerError("Нельзя запустить");
             return;
         }
         var r = await SprintService.StartSprintAsync(new StartSprintRequest
@@ -955,7 +1306,10 @@
             await LoadSprint();
             await DialogService.AlertAsync("Спринт запущен", "", "bi bi-play-circle", "success");
         }
-        else await ErrorHandling.TriggerError(r.Message);
+        else
+        {
+            await ErrorHandling.TriggerError(r.Message);
+        }
     }
 
     private void ShowCompleteModal()
@@ -973,8 +1327,7 @@
 
     private async Task CompleteSprint()
     {
-        if (isViewer) return;
-        if (string.IsNullOrWhiteSpace(completeRequest.ReviewNotes))
+        if (isViewer || string.IsNullOrWhiteSpace(completeRequest.ReviewNotes))
         {
             await ErrorHandling.TriggerError("Заполните заметки");
             return;
@@ -986,21 +1339,33 @@
             await LoadSprint();
             await DialogService.AlertAsync("Спринт завершён", "", "bi bi-check-circle", "success");
         }
-        else await ErrorHandling.TriggerError(r.Message);
+        else
+        {
+            await ErrorHandling.TriggerError(r.Message);
+        }
     }
 
     private async Task CancelSprint()
     {
-        if (isViewer) return;
+        if (isViewer)
+        {
+            return;
+        }
         var ok = await DialogService.ConfirmAsync("Отменить спринт?", "Отмена", "Отменить", "danger");
-        if (!ok) return;
+        if (!ok)
+        {
+            return;
+        }
         var r = await SprintService.CancelSprintAsync(SprintId);
         if (r.Success)
         {
             await LoadSprint();
             await DialogService.AlertAsync("Спринт отменён", "", "bi bi-x-circle", "info");
         }
-        else await ErrorHandling.TriggerError(r.Message);
+        else
+        {
+            await ErrorHandling.TriggerError(r.Message);
+        }
     }
 
     private void GoToRetrospective()
@@ -1032,10 +1397,16 @@
 
     private async Task ToggleSubTask(SubTaskResponse st)
     {
-        if (isViewer) return;
+        if (isViewer)
+        {
+            return;
+        }
         var newStatus = st.Status == "Done" ? "ToDo" : "Done";
         var r = await SubTaskService.ChangeStatusAsync(st.Id, new ChangeSubTaskStatusRequest { NewStatus = newStatus });
-        if (r.Success && selectedTask != null) await OpenTaskDetail(selectedTask.Id);
+        if (r.Success && selectedTask != null)
+        {
+            await OpenTaskDetail(selectedTask.Id, forceReload: true);
+        }
     }
 
     private void StartEditComment(CommentResponse c)
@@ -1052,23 +1423,95 @@
         StateHasChanged();
     }
 
+    private async Task StartSubTask(SubTaskResponse st)
+    {
+        var r = await SubTaskService.StartSubTaskAsync(new StartSubTaskRequest { SubTaskId = st.Id });
+        if (r.Success && selectedTask != null)
+        {
+            await OpenTaskDetail(selectedTask.Id, forceReload: true);
+        }
+    }
+
+    private async Task CompleteSubTask(SubTaskResponse st)
+    {
+        var r = await SubTaskService.CompleteSubTaskAsync(new CompleteSubTaskRequest { SubTaskId = st.Id });
+        if (r.Success && selectedTask != null)
+        {
+            await OpenTaskDetail(selectedTask.Id, forceReload: true);
+        }
+    }
+
+    private async Task ReopenSubTask(SubTaskResponse st)
+    {
+        var r = await SubTaskService.ChangeStatusAsync(st.Id, new ChangeSubTaskStatusRequest { NewStatus = "ToDo" });
+        if (r.Success && selectedTask != null)
+        {
+            await OpenTaskDetail(selectedTask.Id, forceReload: true);
+        }
+    }
+
     private async Task SaveEditedComment()
     {
-        if (editingCommentId == null || selectedTask == null) return;
+        if (editingCommentId == null || selectedTask == null)
+        {
+            return;
+        }
         var r = await BacklogService.UpdateCommentAsync(editingCommentId.Value, new UpdateCommentRequest { Content = editCommentText });
         if (r.Success)
         {
             editingCommentId = null;
             editCommentText = "";
-            await OpenTaskDetail(selectedTask.Id);
+            await OpenTaskDetail(selectedTask.Id, forceReload: true);
         }
     }
 
     private async Task DeleteComment(Guid id)
     {
         var ok = await DialogService.ConfirmAsync("Удалить комментарий?", "Удаление", "Удалить", "danger");
-        if (!ok) return;
+        if (!ok)
+        {
+            return;
+        }
         var r = await BacklogService.DeleteCommentAsync(id);
-        if (r.Success && selectedTask != null) await OpenTaskDetail(selectedTask.Id);
+        if (r.Success && selectedTask != null)
+        {
+            await OpenTaskDetail(selectedTask.Id, forceReload: true);
+        }
+    }
+
+    private string GetBlockerSeverityText(string s)
+    {
+        return s switch
+        {
+            "Critical" => "Критический",
+            "High" => "Высокий",
+            "Medium" => "Средний",
+            "Low" => "Низкий",
+            _ => s
+        };
+    }
+
+    private string GetBlockerIcon(string s)
+    {
+        return s switch
+        {
+            "Critical" => "bi-exclamation-diamond-fill",
+            "High" => "bi-exclamation-triangle-fill",
+            "Medium" => "bi-exclamation-circle-fill",
+            "Low" => "bi-info-circle-fill",
+            _ => "bi-dot"
+        };
+    }
+
+    private string GetBlockerSeverityClass(string s)
+    {
+        return s switch
+        {
+            "Critical" => "severity-critical",
+            "High" => "severity-high",
+            "Medium" => "severity-medium",
+            "Low" => "severity-low",
+            _ => ""
+        };
     }
 }

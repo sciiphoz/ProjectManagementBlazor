@@ -41,7 +41,6 @@
     }
     else
     {
-        <!-- Заголовок -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h2>📅 Ежедневная встреча (Daily Scrum)</h2>
@@ -73,7 +72,6 @@
         }
         else if (dailyScrum != null)
         {
-            <!-- Прогресс спринта -->
             <div class="card mb-4">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0">📊 Прогресс спринта: @activeSprint.Name</h5>
@@ -109,7 +107,6 @@
                 </div>
             </div>
 
-            <!-- Командные блокеры -->
             @if (dailyScrum.TeamBlockers != null && dailyScrum.TeamBlockers.Any())
             {
                 <div class="card mb-4 border-danger">

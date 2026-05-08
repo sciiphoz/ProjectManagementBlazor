@@ -30,9 +30,12 @@
                 <button class="btn btn-outline-secondary btn-sm" @onclick="GoToProject">
                     <i class="bi bi-arrow-left me-1"></i> К проекту
                 </button>
-                <button class="btn btn-primary btn-sm" @onclick="ShowCreateModal">
-                    <i class="bi bi-plus me-1"></i> Новая задача
-                </button>
+                @if (!isViewer)
+                {
+                    <button class="btn btn-primary btn-sm" @onclick="ShowCreateModal">
+                        <i class="bi bi-plus me-1"></i> Новая задача
+                    </button>
+                }
             </div>
         </div>
 
@@ -98,7 +101,10 @@
                     <span class="col-hours">Часы</span>
                     <span class="col-status">Статус</span>
                     <span class="col-assignee">Исполнитель</span>
-                    <span class="col-actions"></span>
+                    @if (!isViewer)
+                    {
+                        <span class="col-actions"></span>
+                    }
                 </div>
                 @for (int i = 0; i < filteredTasks.Count; i++)
                 {
@@ -116,30 +122,33 @@
                         <span class="col-hours">@(task.EstimatedHours?.ToString() ?? "—")</span>
                         <span class="col-status"><span class="badge @GetStatusBadgeClass(task.Status)">@GetStatusName(task.Status)</span></span>
                         <span class="col-assignee">@(task.Assignee?.FullName ?? "—")</span>
-                        <span class="col-actions">
-                            <div class="dropdown">
-                                <button class="btn btn-link btn-sm text-muted p-0" @onclick="() => ToggleRowMenu(task.Id)">
-                                    <i class="bi bi-three-dots"></i>
-                                </button>
-                                @if (openMenuId == task.Id)
-                                {
-                                    <div class="dropdown-menu dropdown-menu-end show" style="position: absolute; right: 0; top: 100%; z-index: 1060;">
-                                        <button class="dropdown-item" @onclick="() => { ToggleRowMenu(task.Id); EditTask(task); }">
-                                            <i class="bi bi-pencil me-2"></i> Редактировать
-                                        </button>
-                                        <button class="dropdown-item text-danger" @onclick="() => { ToggleRowMenu(task.Id); DeleteTask(task.Id); }">
-                                            <i class="bi bi-trash me-2"></i> Удалить
-                                        </button>
-                                        @if (sprints != null && sprints.Any(s => s.Status != "Completed"))
-                                        {
-                                            <button class="dropdown-item text-success" @onclick="() => { ToggleRowMenu(task.Id); MoveToSprint(task.Id, task.Title); }">
-                                                <i class="bi bi-arrow-right-circle me-2"></i> В спринт
+                        @if (!isViewer)
+                        {
+                            <span class="col-actions">
+                                <div class="dropdown">
+                                    <button class="btn btn-link btn-sm text-muted p-0" @onclick="() => ToggleRowMenu(task.Id)">
+                                        <i class="bi bi-three-dots"></i>
+                                    </button>
+                                    @if (openMenuId == task.Id)
+                                    {
+                                        <div class="dropdown-menu dropdown-menu-end show" style="position: absolute; right: 0; top: 100%; z-index: 1060;">
+                                            <button class="dropdown-item" @onclick="() => { ToggleRowMenu(task.Id); EditTask(task); }">
+                                                <i class="bi bi-pencil me-2"></i> Редактировать
                                             </button>
-                                        }
-                                    </div>
-                                }
-                            </div>
-                        </span>
+                                            <button class="dropdown-item text-danger" @onclick="() => { ToggleRowMenu(task.Id); DeleteTask(task.Id); }">
+                                                <i class="bi bi-trash me-2"></i> Удалить
+                                            </button>
+                                            @if (sprints != null && sprints.Any(s => s.Status != "Completed"))
+                                            {
+                                                <button class="dropdown-item text-success" @onclick="() => { ToggleRowMenu(task.Id); MoveToSprint(task.Id, task.Title); }">
+                                                    <i class="bi bi-arrow-right-circle me-2"></i> В спринт
+                                                </button>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            </span>
+                        }
                     </div>
                 }
             </div>
@@ -168,41 +177,66 @@
     @if (showModal)
     {
         <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);">
-            <div class="modal-dialog modal-lg"><div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h6 class="modal-title">@(editingTask == null ? "Новая задача" : "Редактирование")</h6>
-                    <button type="button" class="btn-close btn-close-white" @onclick="CloseModal"></button>
-                </div>
-                <div class="modal-body">
-                    <EditForm Model="@taskForm" OnValidSubmit="SaveTask">
-                        <div class="row mb-2">
-                            <div class="col-md-6"><label class="form-label small">Название *</label><InputText @bind-Value="taskForm.Title" class="form-control form-control-sm" /></div>
-                            <div class="col-md-3"><label class="form-label small">Тип</label>
-                                <InputSelect @bind-Value="taskForm.Type" class="form-select form-select-sm">
-                                    <option value="0">User Story</option><option value="1">Bug</option><option value="2">Техническая</option><option value="3">Улучшение</option>
-                                </InputSelect>
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h6 class="modal-title">@(editingTask == null ? "Новая задача" : "Редактирование")</h6>
+                        <button type="button" class="btn-close btn-close-white" @onclick="CloseModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <EditForm Model="@taskForm" OnValidSubmit="SaveTask">
+                            <div class="row mb-2">
+                                <div class="col-md-6">
+                                    <label class="form-label small">Название *</label>
+                                    <InputText @bind-Value="taskForm.Title" class="form-control form-control-sm" />
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small">Тип</label>
+                                    <InputSelect @bind-Value="taskForm.Type" class="form-select form-select-sm">
+                                        <option value="0">User Story</option>
+                                        <option value="1">Bug</option>
+                                        <option value="2">Техническая</option>
+                                        <option value="3">Улучшение</option>
+                                    </InputSelect>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small">SP</label>
+                                    <InputNumber @bind-Value="taskForm.StoryPoints" class="form-control form-control-sm" />
+                                </div>
                             </div>
-                            <div class="col-md-3"><label class="form-label small">SP</label><InputNumber @bind-Value="taskForm.StoryPoints" class="form-control form-control-sm" /></div>
-                        </div>
-                        <div class="row mb-2">
-                            <div class="col-md-6"><label class="form-label small">Оценка (ч)</label><InputNumber @bind-Value="taskForm.EstimatedHours" class="form-control form-control-sm" /></div>
-                            <div class="col-md-6"><label class="form-label small">Исполнитель</label>
-                                <InputSelect @bind-Value="taskForm.AssigneeId" class="form-select form-select-sm">
-                                    <option value="">Не назначен</option>
-                                    @if (projectMembers != null)
-                                    {
-                                        @foreach (var m in projectMembers) { <option value="@m.UserId">@m.FullName</option> }
-                                    }
-                                </InputSelect>
+                            <div class="row mb-2">
+                                <div class="col-md-6">
+                                    <label class="form-label small">Оценка (ч)</label>
+                                    <InputNumber @bind-Value="taskForm.EstimatedHours" class="form-control form-control-sm" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small">Исполнитель</label>
+                                    <InputSelect @bind-Value="taskForm.AssigneeId" class="form-select form-select-sm">
+                                        <option value="">Не назначен</option>
+                                        @if (projectMembers != null)
+                                        {
+                                            @foreach (var m in projectMembers)
+                                            {
+                                                <option value="@m.UserId">@m.FullName</option>
+                                            }
+                                        }
+                                    </InputSelect>
+                                </div>
                             </div>
-                        </div>
-                        <div class="mb-2"><label class="form-label small">Описание</label><InputTextArea @bind-Value="taskForm.Description" class="form-control form-control-sm" rows="2" /></div>
-                        <div class="mb-2"><label class="form-label small">Критерии приёмки</label><InputTextArea @bind-Value="taskForm.AcceptanceCriteria" class="form-control form-control-sm" rows="2" /></div>
-                        <button type="submit" class="btn btn-primary btn-sm">Сохранить</button>
-                        <button type="button" class="btn btn-secondary btn-sm" @onclick="CloseModal">Отмена</button>
-                    </EditForm>
+                            <div class="mb-2">
+                                <label class="form-label small">Описание</label>
+                                <InputTextArea @bind-Value="taskForm.Description" class="form-control form-control-sm" rows="2" />
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small">Критерии приёмки</label>
+                                <InputTextArea @bind-Value="taskForm.AcceptanceCriteria" class="form-control form-control-sm" rows="2" />
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm">Сохранить</button>
+                            <button type="button" class="btn btn-secondary btn-sm" @onclick="CloseModal">Отмена</button>
+                        </EditForm>
+                    </div>
                 </div>
-            </div></div>
+            </div>
         </div>
     }
 
@@ -210,26 +244,31 @@
     @if (showMoveToSprintModal)
     {
         <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);">
-            <div class="modal-dialog modal-sm modal-dialog-centered"><div class="modal-content">
-                <div class="modal-header bg-success text-white"><h6 class="modal-title">В спринт</h6><button type="button" class="btn-close btn-close-white" @onclick="CloseMoveModal"></button></div>
-                <div class="modal-body">
-                    <p class="small">Задача: <strong>@selectedTaskTitle</strong></p>
-                    <select @bind="selectedSprintId" class="form-select form-select-sm">
-                        <option value="">— Выберите —</option>
-                        @if (sprints != null)
-                        {
-                            @foreach (var s in sprints.Where(s => s.Status != "Completed"))
+            <div class="modal-dialog modal-sm modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h6 class="modal-title">В спринт</h6>
+                        <button type="button" class="btn-close btn-close-white" @onclick="CloseMoveModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="small">Задача: <strong>@selectedTaskTitle</strong></p>
+                        <select @bind="selectedSprintId" class="form-select form-select-sm">
+                            <option value="">— Выберите —</option>
+                            @if (sprints != null)
                             {
-                                <option value="@s.Id">@s.Name · @s.StartDate.ToString("dd.MM")–@s.EndDate.ToString("dd.MM")</option>
+                                @foreach (var s in sprints.Where(s => s.Status != "Completed"))
+                                {
+                                    <option value="@s.Id">@s.Name · @s.StartDate.ToString("dd.MM")–@s.EndDate.ToString("dd.MM")</option>
+                                }
                             }
-                        }
-                    </select>
+                        </select>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary btn-sm" @onclick="CloseMoveModal">Отмена</button>
+                        <button class="btn btn-success btn-sm" @onclick="ConfirmMoveToSprint" disabled="@(selectedSprintId == Guid.Empty)">Переместить</button>
+                    </div>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary btn-sm" @onclick="CloseMoveModal">Отмена</button>
-                    <button class="btn btn-success btn-sm" @onclick="ConfirmMoveToSprint" disabled="@(selectedSprintId == Guid.Empty)">Переместить</button>
-                </div>
-            </div></div>
+            </div>
         </div>
     }
 </div>
@@ -399,6 +438,7 @@
     private List<BacklogItemResponse> filteredTasks = new();
     private List<ProjectMemberResponse>? projectMembers;
     private List<SprintBriefResponse>? sprints;
+    private bool isViewer = false;
 
     private string searchTerm = "";
     private string selectedType = "all";
@@ -423,6 +463,25 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadData();
+        await CheckViewerRole();
+    }
+
+    private async Task CheckViewerRole()
+    {
+        try
+        {
+            var userResult = await AuthService.GetCurrentUserAsync();
+            if (userResult.Success && userResult.Data != null)
+            {
+                var membersResult = await ProjectService.GetProjectMembersAsync(ProjectId);
+                if (membersResult.Success && membersResult.Data != null)
+                {
+                    var member = membersResult.Data.FirstOrDefault(m => m.UserId == userResult.Data.Id);
+                    isViewer = member?.Role == "Viewer";
+                }
+            }
+        }
+        catch { }
     }
 
     private async Task LoadData()
@@ -594,6 +653,7 @@
 
     private void ShowCreateModal()
     {
+        if (isViewer) return;
         editingTask = null;
         taskForm = new CreateBacklogItemRequest
         {
@@ -605,6 +665,7 @@
 
     private void EditTask(BacklogItemResponse task)
     {
+        if (isViewer) return;
         editingTask = task;
         taskForm = new CreateBacklogItemRequest
         {
@@ -622,6 +683,7 @@
 
     private async Task SaveTask()
     {
+        if (isViewer) return;
         try
         {
             var currentUser = await AuthService.GetCurrentUserAsync();
@@ -666,6 +728,7 @@
 
     private async Task DeleteTask(Guid taskId)
     {
+        if (isViewer) return;
         var ok = await DialogService.ConfirmAsync("Удалить задачу?", "Удаление", "Удалить", "danger");
         if (!ok)
         {
@@ -685,6 +748,7 @@
 
     private void MoveToSprint(Guid taskId, string taskTitle)
     {
+        if (isViewer) return;
         selectedTaskId = taskId;
         selectedTaskTitle = taskTitle;
         selectedSprintId = Guid.Empty;
@@ -700,6 +764,7 @@
 
     private async Task ConfirmMoveToSprint()
     {
+        if (isViewer) return;
         if (selectedSprintId == Guid.Empty)
         {
             await ErrorHandling.TriggerError("Выберите спринт");

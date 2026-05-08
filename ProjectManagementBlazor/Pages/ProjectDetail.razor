@@ -19,7 +19,6 @@
     }
     else if (project != null)
     {
-        <!-- Шапка -->
         <div class="detail-header">
             <div class="d-flex align-items-center gap-3 mb-3">
                 <div class="project-avatar @(project.IsArchived ? "bg-secondary" : "bg-primary")">
@@ -38,7 +37,6 @@
                 }
             </div>
 
-            <!-- Метрики -->
             <div class="detail-metrics">
                 <div class="metric">
                     <span class="metric-value">@project.MembersCount</span>
@@ -60,68 +58,65 @@
 
             <!-- Действия -->
             <div class="detail-actions">
-                <!-- Бэклог — всем участникам проекта -->
-                <button class="btn btn-outline-secondary btn-sm" @onclick="GoToBacklog">
-                    <i class="bi bi-list-task"></i> Бэклог
-                </button>
-                <!-- Отчёты — всем участникам -->
-                <button class="btn btn-outline-secondary btn-sm" @onclick="GoToReports">
-                    <i class="bi bi-graph-up"></i> Отчёты
-                </button>
-                <!-- Логи — всем участникам -->
+                <!-- Бэклог — всем, кроме Viewer -->
+                @if (!isViewer)
+                {
+                    <button class="btn btn-outline-secondary btn-sm" @onclick="GoToBacklog">
+                        <i class="bi bi-list-task"></i> Бэклог
+                    </button>
+                }
+                <!-- Отчёты — всем, кроме Viewer -->
+                @if (!isViewer)
+                {
+                    <button class="btn btn-outline-secondary btn-sm" @onclick="GoToReports">
+                        <i class="bi bi-graph-up"></i> Отчёты
+                    </button>
+                }
+                <!-- Логи — всем -->
                 <button class="btn btn-outline-secondary btn-sm" @onclick="GoToActivityLogs">
                     <i class="bi bi-clock-history"></i> Логи
                 </button>
-                <!-- Участники — всем участникам -->
+                <!-- Участники — всем -->
                 <button class="btn btn-outline-secondary btn-sm" @onclick="GoToMembers">
                     <i class="bi bi-people"></i> Участники
                 </button>
-                <!-- Daily Scrum — только Scrum Master и Product Owner -->
-                @if (IsScrumMasterOrOwner)
+                <!-- Daily Scrum — только Product Owner или Scrum Master -->
+                @if (!isViewer && (IsProductOwner || IsScrumMaster))
                 {
                     <button class="btn btn-outline-info btn-sm" @onclick="OpenDailyScrum">
                         <i class="bi bi-calendar-event"></i> Daily Scrum
                     </button>
                 }
-                <div class="ms-auto d-flex gap-2">
-                    <!-- Редактировать — только создатель и Product Owner -->
-                    @if (IsProjectOwner)
-                    {
+                @if (!isViewer && IsProductOwner)
+                {
+                    <div class="ms-auto d-flex gap-2">
                         <button class="btn btn-outline-warning btn-sm" @onclick="ShowEditModal">
                             <i class="bi bi-pencil"></i>
                         </button>
-                    }
-                    <!-- Архивировать — только создатель и Product Owner (если не в архиве) -->
-                    @if (IsProjectOwner && !project.IsArchived)
-                    {
-                        <button class="btn btn-outline-secondary btn-sm" @onclick="ArchiveProject">
-                            <i class="bi bi-archive"></i>
-                        </button>
-                    }
-                    <!-- Восстановить — только создатель и Product Owner (если в архиве) -->
-                    @if (IsProjectOwner && project.IsArchived)
-                    {
-                        <button class="btn btn-outline-success btn-sm" @onclick="RestoreProject">
-                            <i class="bi bi-arrow-counterclockwise"></i>
-                        </button>
-                    }
-                    <!-- Удалить — только создатель -->
-                    @if (IsProjectCreator)
-                    {
+                        @if (!project.IsArchived)
+                        {
+                            <button class="btn btn-outline-secondary btn-sm" @onclick="ArchiveProject">
+                                <i class="bi bi-archive"></i>
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-outline-success btn-sm" @onclick="RestoreProject">
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                            </button>
+                        }
                         <button class="btn btn-outline-danger btn-sm" @onclick="DeleteProject">
                             <i class="bi bi-trash"></i>
                         </button>
-                    }
-                </div>
+                    </div>
+                }
             </div>
         </div>
 
-        <!-- Спринты -->
         <div class="detail-section">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="mb-0">Спринты</h5>
-                @* Создавать спринт может только Scrum Master, Product Owner или создатель *@
-                @if (!project.IsArchived && (IsScrumMasterOrOwner || IsProjectCreator))
+                @if (!project.IsArchived && !isViewer && (IsProductOwner || IsScrumMaster))
                 {
                     <button class="btn btn-primary btn-sm" @onclick="ShowCreateSprintModal">
                         <i class="bi bi-plus me-1"></i> Новый спринт
@@ -153,7 +148,7 @@
                                 </div>
                                 <span class="small text-muted mt-1">@((int)progress)%</span>
                             </div>
-                            @if (!project.IsArchived && (sprint.Status == "Planned" || sprint.Status == "Cancelled") && (IsProjectOwner || IsScrumMasterOrOwner))
+                            @if (!isViewer && !project.IsArchived && (sprint.Status == "Planned" || sprint.Status == "Cancelled") && (IsProductOwner || IsScrumMaster))
                             {
                                 <button class="btn btn-link btn-sm text-danger p-0 mt-2" @onclick:stopPropagation="true"
                                         @onclick="() => DeleteSprint(sprint.Id, sprint.Name)">
@@ -171,17 +166,25 @@
         </div>
     }
 
-    <!-- Модалка редактирования -->
     @if (showEditModal)
     {
         <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);">
             <div class="modal-dialog modal-sm modal-dialog-centered">
                 <div class="modal-content">
-                    <div class="modal-header"><h6 class="modal-title">Редактировать проект</h6><button type="button" class="btn-close" @onclick="CloseEditModal"></button></div>
+                    <div class="modal-header">
+                        <h6 class="modal-title">Редактировать проект</h6>
+                        <button type="button" class="btn-close" @onclick="CloseEditModal"></button>
+                    </div>
                     <div class="modal-body">
                         <EditForm Model="@editProject" OnValidSubmit="@UpdateProject">
-                            <div class="mb-2"><label class="form-label small">Название</label><InputText @bind-Value="editProject.Name" class="form-control form-control-sm" /></div>
-                            <div class="mb-2"><label class="form-label small">Описание</label><InputTextArea @bind-Value="editProject.Description" class="form-control form-control-sm" rows="2" /></div>
+                            <div class="mb-2">
+                                <label class="form-label small">Название</label>
+                                <InputText @bind-Value="editProject.Name" class="form-control form-control-sm" />
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small">Описание</label>
+                                <InputTextArea @bind-Value="editProject.Description" class="form-control form-control-sm" rows="2" />
+                            </div>
                             <button type="submit" class="btn btn-primary btn-sm">Сохранить</button>
                             <button type="button" class="btn btn-secondary btn-sm" @onclick="CloseEditModal">Отмена</button>
                         </EditForm>
@@ -197,14 +200,29 @@
         <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);">
             <div class="modal-dialog modal-sm modal-dialog-centered">
                 <div class="modal-content">
-                    <div class="modal-header bg-success text-white"><h6 class="modal-title">Новый спринт</h6><button type="button" class="btn-close btn-close-white" @onclick="CloseCreateSprintModal"></button></div>
+                    <div class="modal-header bg-success text-white">
+                        <h6 class="modal-title">Новый спринт</h6>
+                        <button type="button" class="btn-close btn-close-white" @onclick="CloseCreateSprintModal"></button>
+                    </div>
                     <div class="modal-body">
                         <EditForm Model="@newSprint" OnValidSubmit="@CreateSprint">
-                            <div class="mb-2"><label class="form-label small">Название *</label><InputText @bind-Value="newSprint.Name" class="form-control form-control-sm" /></div>
-                            <div class="mb-2"><label class="form-label small">Цель</label><InputTextArea @bind-Value="newSprint.Goal" class="form-control form-control-sm" rows="2" /></div>
+                            <div class="mb-2">
+                                <label class="form-label small">Название *</label>
+                                <InputText @bind-Value="newSprint.Name" class="form-control form-control-sm" />
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small">Цель</label>
+                                <InputTextArea @bind-Value="newSprint.Goal" class="form-control form-control-sm" rows="2" />
+                            </div>
                             <div class="row mb-2">
-                                <div class="col-6"><label class="form-label small">Начало</label><InputDate @bind-Value="newSprint.StartDate" class="form-control form-control-sm" /></div>
-                                <div class="col-6"><label class="form-label small">Конец</label><InputDate @bind-Value="newSprint.EndDate" class="form-control form-control-sm" /></div>
+                                <div class="col-6">
+                                    <label class="form-label small">Начало</label>
+                                    <InputDate @bind-Value="newSprint.StartDate" class="form-control form-control-sm" />
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small">Конец</label>
+                                    <InputDate @bind-Value="newSprint.EndDate" class="form-control form-control-sm" />
+                                </div>
                             </div>
                             <button type="submit" class="btn btn-success btn-sm">Создать</button>
                             <button type="button" class="btn btn-secondary btn-sm" @onclick="CloseCreateSprintModal">Отмена</button>
@@ -306,12 +324,6 @@
         font-size: 0.85rem;
     }
 
-    .sprint-goal {
-        font-size: 0.7rem;
-        color: var(--text-secondary);
-        margin: 0 0 0.5rem;
-    }
-
     .sprint-dates {
         font-size: 0.7rem;
         color: var(--text-secondary);
@@ -340,33 +352,67 @@
     private CreateSprintRequest newSprint = new();
     private Guid currentUserId;
     private string currentUserRole = "";
+    private bool isViewer = false;
 
-    // Вычисляемые права
-    private bool IsProjectCreator => project?.Owner?.Id == currentUserId;
-    private bool IsProjectOwner => IsProjectCreator || currentUserRole == "ProductOwner";
-    private bool IsScrumMasterOrOwner => currentUserRole == "ScrumMaster" || currentUserRole == "ProductOwner";
+    private bool IsProductOwner
+    {
+        get
+        {
+            return project?.Owner?.Id == currentUserId || currentUserRole == "ProductOwner";
+        }
+    }
 
-    protected override async Task OnInitializedAsync() { await LoadData(); }
+    private bool IsScrumMaster
+    {
+        get
+        {
+            return currentUserRole == "ScrumMaster";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
 
     private async Task LoadData()
     {
         isLoading = true;
         try
         {
-            // Загружаем текущего пользователя
             var u = await AuthService.GetCurrentUserAsync();
-            if (u.Success && u.Data != null) currentUserId = u.Data.Id;
+            if (u.Success && u.Data != null)
+            {
+                currentUserId = u.Data.Id;
+            }
 
             var pr = await ProjectService.GetProjectByIdAsync(ProjectId);
-            if (pr.Success && pr.Data != null) project = pr.Data;
+            if (pr.Success && pr.Data != null)
+            {
+                project = pr.Data;
+            }
 
             var sp = await SprintService.GetProjectSprintsAsync(ProjectId);
-            if (sp.Success && sp.Data != null) { sprints = sp.Data; foreach (var s in sprints) await LoadSprintProgress(s.Id); }
+            if (sp.Success && sp.Data != null)
+            {
+                sprints = sp.Data;
+                foreach (var s in sprints)
+                {
+                    await LoadSprintProgress(s.Id);
+                }
+            }
 
             await LoadCurrentUserRole();
         }
-        catch (Exception ex) { Console.WriteLine($"Ошибка: {ex.Message}"); await ErrorHandling.TriggerError("Ошибка загрузки"); }
-        finally { isLoading = false; }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка: {ex.Message}");
+            await ErrorHandling.TriggerError("Ошибка загрузки");
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 
     private async Task LoadCurrentUserRole()
@@ -375,83 +421,273 @@
         {
             var m = await ProjectService.GetProjectMembersAsync(ProjectId);
             if (m.Success && m.Data != null)
-                currentUserRole = m.Data.FirstOrDefault(x => x.UserId == currentUserId)?.Role ?? "";
+            {
+                var member = m.Data.FirstOrDefault(x => x.UserId == currentUserId);
+                if (member != null)
+                {
+                    currentUserRole = member.Role ?? "";
+                    isViewer = member.Role == "Viewer";
+                }
+            }
         }
-        catch { currentUserRole = ""; }
+        catch
+        {
+            currentUserRole = "";
+        }
     }
 
     private async Task LoadSprintProgress(Guid id)
     {
-        try { var r = await SprintService.GetSprintBoardAsync(id); if (r.Success && r.Data != null) sprintProgress[id] = r.Data.TotalTasksCount > 0 ? (double)r.Data.CompletedTasksCount / r.Data.TotalTasksCount * 100 : 0; }
-        catch { sprintProgress[id] = 0; }
+        try
+        {
+            var r = await SprintService.GetSprintBoardAsync(id);
+            if (r.Success && r.Data != null)
+            {
+                sprintProgress[id] = r.Data.TotalTasksCount > 0
+                    ? (double)r.Data.CompletedTasksCount / r.Data.TotalTasksCount * 100
+                    : 0;
+            }
+        }
+        catch
+        {
+            sprintProgress[id] = 0;
+        }
     }
 
-    private double GetSprintProgress(Guid id) => sprintProgress.GetValueOrDefault(id);
+    private double GetSprintProgress(Guid id)
+    {
+        return sprintProgress.GetValueOrDefault(id);
+    }
 
     private string GetSprintStatusBadge(string status, bool active)
     {
-        if (active) return "bg-success";
-        return status switch { "Completed" => "bg-secondary", "Cancelled" => "bg-danger", _ => "bg-info" };
+        if (active)
+        {
+            return "bg-success";
+        }
+        return status switch
+        {
+            "Completed" => "bg-secondary",
+            "Cancelled" => "bg-danger",
+            _ => "bg-info"
+        };
     }
 
     private string GetSprintStatusText(string status, bool active)
     {
-        if (active) return "Активен";
-        return status switch { "Completed" => "Завершён", "Cancelled" => "Отменён", _ => "План" };
+        if (active)
+        {
+            return "Активен";
+        }
+        return status switch
+        {
+            "Completed" => "Завершён",
+            "Cancelled" => "Отменён",
+            _ => "План"
+        };
     }
 
-    private void ShowEditModal() { editProject = new UpdateProjectRequest { Name = project?.Name, Description = project?.Description }; showEditModal = true; }
-    private void CloseEditModal() { showEditModal = false; }
+    private void ShowEditModal()
+    {
+        editProject = new UpdateProjectRequest
+        {
+            Name = project?.Name,
+            Description = project?.Description
+        };
+        showEditModal = true;
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+    }
+
     private async Task UpdateProject()
     {
-        try { var r = await ProjectService.UpdateProjectAsync(ProjectId, editProject); if (r.Success) { CloseEditModal(); await LoadData(); await DialogService.AlertAsync("Проект обновлён", "", "bi bi-check-circle", "success"); } else await ErrorHandling.TriggerError(r.Message); }
-        catch { await ErrorHandling.TriggerError("Ошибка"); }
+        try
+        {
+            var r = await ProjectService.UpdateProjectAsync(ProjectId, editProject);
+            if (r.Success)
+            {
+                CloseEditModal();
+                await LoadData();
+                await DialogService.AlertAsync("Проект обновлён", "", "bi bi-check-circle", "success");
+            }
+            else
+            {
+                await ErrorHandling.TriggerError(r.Message);
+            }
+        }
+        catch
+        {
+            await ErrorHandling.TriggerError("Ошибка");
+        }
     }
 
     private async Task ArchiveProject()
     {
         var ok = await DialogService.ConfirmAsync("Переместить проект в архив?", "Архивирование", "Архивировать", "warning");
-        if (!ok) return;
-        try { var r = await ProjectService.ArchiveProjectAsync(ProjectId); if (r.Success) { await LoadData(); } else await ErrorHandling.TriggerError(r.Message); }
-        catch { await ErrorHandling.TriggerError("Ошибка"); }
+        if (!ok)
+        {
+            return;
+        }
+        try
+        {
+            var r = await ProjectService.ArchiveProjectAsync(ProjectId);
+            if (r.Success)
+            {
+                await LoadData();
+            }
+            else
+            {
+                await ErrorHandling.TriggerError(r.Message);
+            }
+        }
+        catch
+        {
+            await ErrorHandling.TriggerError("Ошибка");
+        }
     }
 
     private async Task RestoreProject()
     {
         var ok = await DialogService.ConfirmAsync("Восстановить проект?", "Восстановление", "Восстановить", "info");
-        if (!ok) return;
-        try { var r = await ProjectService.RestoreProjectAsync(ProjectId); if (r.Success) { await LoadData(); } else await ErrorHandling.TriggerError(r.Message); }
-        catch { await ErrorHandling.TriggerError("Ошибка"); }
+        if (!ok)
+        {
+            return;
+        }
+        try
+        {
+            var r = await ProjectService.RestoreProjectAsync(ProjectId);
+            if (r.Success)
+            {
+                await LoadData();
+            }
+            else
+            {
+                await ErrorHandling.TriggerError(r.Message);
+            }
+        }
+        catch
+        {
+            await ErrorHandling.TriggerError("Ошибка");
+        }
     }
 
     private async Task DeleteProject()
     {
         var ok = await DialogService.ConfirmAsync("Удалить проект навсегда?", "Удаление", "Удалить", "danger");
-        if (!ok) return;
-        try { var r = await ProjectService.DeleteProjectAsync(ProjectId); if (r.Success) Navigation.NavigateTo("/projects"); else await ErrorHandling.TriggerError(r.Message); }
-        catch { await ErrorHandling.TriggerError("Ошибка"); }
+        if (!ok)
+        {
+            return;
+        }
+        try
+        {
+            var r = await ProjectService.DeleteProjectAsync(ProjectId);
+            if (r.Success)
+            {
+                Navigation.NavigateTo("/projects");
+            }
+            else
+            {
+                await ErrorHandling.TriggerError(r.Message);
+            }
+        }
+        catch
+        {
+            await ErrorHandling.TriggerError("Ошибка");
+        }
     }
 
-    private void ShowCreateSprintModal() { newSprint = new CreateSprintRequest { ProjectId = ProjectId, StartDate = DateTime.Now, EndDate = DateTime.Now.AddDays(14) }; showCreateSprintModal = true; }
-    private void CloseCreateSprintModal() { showCreateSprintModal = false; }
+    private void ShowCreateSprintModal()
+    {
+        newSprint = new CreateSprintRequest
+        {
+            ProjectId = ProjectId,
+            StartDate = DateTime.Now,
+            EndDate = DateTime.Now.AddDays(14)
+        };
+        showCreateSprintModal = true;
+    }
+
+    private void CloseCreateSprintModal()
+    {
+        showCreateSprintModal = false;
+    }
+
     private async Task CreateSprint()
     {
-        try { var r = await SprintService.CreateSprintAsync(newSprint); if (r.Success) { CloseCreateSprintModal(); await LoadData(); } else await ErrorHandling.TriggerError(r.Message); }
-        catch { await ErrorHandling.TriggerError("Ошибка"); }
+        try
+        {
+            var r = await SprintService.CreateSprintAsync(newSprint);
+            if (r.Success)
+            {
+                CloseCreateSprintModal();
+                await LoadData();
+            }
+            else
+            {
+                await ErrorHandling.TriggerError(r.Message);
+            }
+        }
+        catch
+        {
+            await ErrorHandling.TriggerError("Ошибка");
+        }
     }
 
     private async Task DeleteSprint(Guid id, string name)
     {
         var ok = await DialogService.ConfirmAsync($"Удалить спринт «{name}»?", "Удаление", "Удалить", "danger");
-        if (!ok) return;
-        try { var r = await SprintService.DeleteSprintAsync(id); if (r.Success) await LoadData(); else await ErrorHandling.TriggerError(r.Message); }
-        catch { await ErrorHandling.TriggerError("Ошибка"); }
+        if (!ok)
+        {
+            return;
+        }
+        try
+        {
+            var r = await SprintService.DeleteSprintAsync(id);
+            if (r.Success)
+            {
+                await LoadData();
+            }
+            else
+            {
+                await ErrorHandling.TriggerError(r.Message);
+            }
+        }
+        catch
+        {
+            await ErrorHandling.TriggerError("Ошибка");
+        }
     }
 
-    private void OpenSprint(Guid id) { Navigation.NavigateTo($"/sprints/{id}"); }
-    private void GoToBacklog() { Navigation.NavigateTo($"/backlog/{ProjectId}"); }
-    private void GoToMembers() { Navigation.NavigateTo($"/projects/{ProjectId}/members"); }
-    private void GoToReports() { Navigation.NavigateTo($"/reports/{ProjectId}"); }
-    private void GoToActivityLogs() { Navigation.NavigateTo($"/projects/{ProjectId}/logs"); }
-    private void OpenDailyScrum() { Navigation.NavigateTo($"/projects/{ProjectId}/daily-scrum"); }
+    private void OpenSprint(Guid id)
+    {
+        Navigation.NavigateTo($"/sprints/{id}");
+    }
+
+    private void GoToBacklog()
+    {
+        Navigation.NavigateTo($"/backlog/{ProjectId}");
+    }
+
+    private void GoToMembers()
+    {
+        Navigation.NavigateTo($"/projects/{ProjectId}/members");
+    }
+
+    private void GoToReports()
+    {
+        Navigation.NavigateTo($"/reports/{ProjectId}");
+    }
+
+    private void GoToActivityLogs()
+    {
+        Navigation.NavigateTo($"/projects/{ProjectId}/logs");
+    }
+
+    private void OpenDailyScrum()
+    {
+        Navigation.NavigateTo($"/projects/{ProjectId}/daily-scrum");
+    }
 }

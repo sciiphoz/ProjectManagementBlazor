@@ -15,7 +15,26 @@
     }
 
     <main>
-        <ErrorDisplay />
+        @if (showErrorDialog)
+        {
+            <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5); z-index: 1060;">
+                <div class="modal-dialog modal-sm modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header bg-danger text-white">
+                            <h6 class="modal-title">Ошибка</h6>
+                            <button type="button" class="btn-close btn-close-white" @onclick="CloseErrorDialog"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="mb-0 small">@errorDialogMessage</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary btn-sm" @onclick="CloseErrorDialog">Закрыть</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-backdrop show"></div>
+        }
 
         <article class="content px-4">
             @Body
@@ -66,6 +85,8 @@
     private bool showSidebar = true;
     private ConfirmDialog confirmDialog = default!;
     private AlertDialog alertDialog = default!;
+    private bool showErrorDialog = false;
+    private string errorDialogMessage = "";
 
     protected override void OnInitialized()
     {
@@ -73,7 +94,23 @@
         CheckLocation(Navigation.Uri);
         DialogService.OnConfirm += HandleConfirm;
         DialogService.OnAlert += HandleAlert;
+        ErrorHandling.OnError += OnErrorReceived;
     }
+
+    private Task OnErrorReceived(string message)
+    {
+        errorDialogMessage = message;
+        showErrorDialog = true;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private void CloseErrorDialog()
+    {
+        showErrorDialog = false;
+        StateHasChanged();
+    }
+
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
@@ -115,6 +152,7 @@
 
     public void Dispose()
     {
+        ErrorHandling.OnError -= OnErrorReceived;
         DialogService.OnConfirm -= HandleConfirm;
         DialogService.OnAlert -= HandleAlert;
         Navigation.LocationChanged -= OnLocationChanged;

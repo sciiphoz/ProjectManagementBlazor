@@ -24,7 +24,7 @@
                 <span class="text-muted small">@project.Name · @(members?.Count ?? 0) человек</span>
             </div>
             <div class="d-flex gap-2">
-                @if (canAddMembers)
+                @if (canAddMembers && !isViewer)
                 {
                     <button class="btn btn-primary btn-sm" @onclick="ShowAddMemberModal">
                         <i class="bi bi-person-plus me-1"></i> Добавить
@@ -58,7 +58,7 @@
                         {
                             <span class="badge bg-primary">Владелец</span>
                         }
-                        else if (canAddMembers)
+                        else if (canAddMembers && !isViewer)
                         {
                             <select class="form-select form-select-sm" style="width: auto;"
                                     value="@member.Role"
@@ -73,7 +73,7 @@
                         {
                             <span class="badge bg-secondary">@GetRoleLabel(member.Role)</span>
                         }
-                        @if (!member.IsOwner && canAddMembers)
+                        @if (!member.IsOwner && canAddMembers && !isViewer)
                         {
                             <button class="btn btn-link btn-sm text-danger p-0" @onclick="() => RemoveMember(member.UserId, member.FullName)">
                                 <i class="bi bi-x-circle"></i>
@@ -98,9 +98,15 @@
         <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);">
             <div class="modal-dialog modal-sm modal-dialog-centered">
                 <div class="modal-content">
-                    <div class="modal-header bg-primary text-white"><h6 class="modal-title">Добавить участника</h6><button type="button" class="btn-close btn-close-white" @onclick="CloseAddModal"></button></div>
+                    <div class="modal-header bg-primary text-white">
+                        <h6 class="modal-title">Добавить участника</h6>
+                        <button type="button" class="btn-close btn-close-white" @onclick="CloseAddModal"></button>
+                    </div>
                     <div class="modal-body">
-                        <div class="mb-2"><label class="form-label small">Email</label><input type="email" class="form-control form-control-sm" @bind="inviteEmail" placeholder="user@example.com" /></div>
+                        <div class="mb-2">
+                            <label class="form-label small">Email</label>
+                            <input type="email" class="form-control form-control-sm" @bind="inviteEmail" placeholder="user@example.com" />
+                        </div>
                         <div class="mb-2">
                             <label class="form-label small">Роль</label>
                             <select @bind="inviteRole" class="form-select form-select-sm">
@@ -231,10 +237,25 @@
     private bool canAddMembers = false;
     private string currentUserRole = "";
     private string roleFilter = "";
+    private bool isViewer = false;
 
-    private List<ProjectMemberResponse> filteredMembers => string.IsNullOrEmpty(roleFilter) ? (members ?? new()) : (members ?? new()).Where(m => m.Role == roleFilter && !m.IsOwner).ToList();
+    private List<ProjectMemberResponse> filteredMembers
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(roleFilter))
+            {
+                return members ?? new();
+            }
+            return (members ?? new()).Where(m => m.Role == roleFilter && !m.IsOwner).ToList();
+        }
+    }
 
-    protected override async Task OnInitializedAsync() { await LoadData(); await CheckPermissions(); }
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+        await CheckPermissions();
+    }
 
     private async Task CheckPermissions()
     {
@@ -247,8 +268,17 @@
                 if (m.Success && m.Data != null)
                 {
                     var cm = m.Data.FirstOrDefault(x => x.UserId == u.Data.Id);
-                    if (cm != null) { currentUserRole = cm.Role; canAddMembers = cm.Role is "ProductOwner" or "ScrumMaster"; }
-                    else if (project?.Owner?.Id == u.Data.Id) { canAddMembers = true; currentUserRole = "ProductOwner"; }
+                    if (cm != null)
+                    {
+                        currentUserRole = cm.Role;
+                        isViewer = cm.Role == "Viewer";
+                        canAddMembers = cm.Role is "ProductOwner" or "ScrumMaster";
+                    }
+                    else if (project?.Owner?.Id == u.Data.Id)
+                    {
+                        canAddMembers = true;
+                        currentUserRole = "ProductOwner";
+                    }
                 }
             }
         }
@@ -261,51 +291,191 @@
         try
         {
             var p = await ProjectService.GetProjectByIdAsync(ProjectId);
-            if (p.Success && p.Data != null) project = p.Data; else { Navigation.NavigateTo("/projects"); return; }
+            if (p.Success && p.Data != null)
+            {
+                project = p.Data;
+            }
+            else
+            {
+                Navigation.NavigateTo("/projects");
+                return;
+            }
             var m = await ProjectService.GetProjectMembersAsync(ProjectId);
-            if (m.Success && m.Data != null) members = m.Data;
+            if (m.Success && m.Data != null)
+            {
+                members = m.Data;
+            }
         }
-        catch { await ErrorHandling.TriggerError("Ошибка загрузки"); }
-        finally { isLoading = false; }
+        catch
+        {
+            await ErrorHandling.TriggerError("Ошибка загрузки");
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 
     private async Task ChangeRole(Guid userId, string? newRole)
     {
-        if (string.IsNullOrEmpty(newRole) || !canAddMembers) return;
-        try { var r = await ProjectService.UpdateMemberRoleAsync(ProjectId, new UpdateMemberRoleRequest { UserId = userId, NewRole = newRole }); if (r.Success) await LoadData(); else await ErrorHandling.TriggerError(r.Message); }
-        catch { await ErrorHandling.TriggerError("Ошибка"); }
+        if (string.IsNullOrEmpty(newRole) || !canAddMembers || isViewer)
+        {
+            return;
+        }
+        try
+        {
+            var r = await ProjectService.UpdateMemberRoleAsync(ProjectId, new UpdateMemberRoleRequest { UserId = userId, NewRole = newRole });
+            if (r.Success)
+            {
+                await LoadData();
+            }
+            else
+            {
+                await ErrorHandling.TriggerError(r.Message);
+            }
+        }
+        catch
+        {
+            await ErrorHandling.TriggerError("Ошибка");
+        }
     }
 
     private async Task RemoveMember(Guid userId, string userName)
     {
-        if (!canAddMembers) return;
+        if (!canAddMembers || isViewer)
+        {
+            return;
+        }
         var ok = await DialogService.ConfirmAsync($"Удалить участника «{userName}»?", "Удаление", "Удалить", "danger");
-        if (!ok) return;
-        try { var r = await ProjectService.RemoveMemberAsync(ProjectId, new RemoveMemberRequest { UserId = userId }); if (r.Success) await LoadData(); else await ErrorHandling.TriggerError(r.Message); }
-        catch { await ErrorHandling.TriggerError("Ошибка"); }
+        if (!ok)
+        {
+            return;
+        }
+        try
+        {
+            var r = await ProjectService.RemoveMemberAsync(ProjectId, new RemoveMemberRequest { UserId = userId });
+            if (r.Success)
+            {
+                await LoadData();
+            }
+            else
+            {
+                await ErrorHandling.TriggerError(r.Message);
+            }
+        }
+        catch
+        {
+            await ErrorHandling.TriggerError("Ошибка");
+        }
     }
 
-    private void ShowAddMemberModal() { if (!canAddMembers) { ErrorHandling.TriggerError("Нет прав"); return; } inviteEmail = ""; inviteRole = "Developer"; showAddModal = true; }
-    private void CloseAddModal() { showAddModal = false; }
+    private void ShowAddMemberModal()
+    {
+        if (!canAddMembers || isViewer)
+        {
+            ErrorHandling.TriggerError("Нет прав");
+            return;
+        }
+        inviteEmail = "";
+        inviteRole = "Developer";
+        showAddModal = true;
+    }
+
+    private void CloseAddModal()
+    {
+        showAddModal = false;
+    }
 
     private async Task AddMember()
     {
-        if (string.IsNullOrWhiteSpace(inviteEmail)) { await ErrorHandling.TriggerError("Введите email"); return; }
+        if (string.IsNullOrWhiteSpace(inviteEmail))
+        {
+            await ErrorHandling.TriggerError("Введите email");
+            return;
+        }
         isSaving = true;
-        try { var r = await ProjectService.AddMemberAsync(ProjectId, new AddProjectMemberRequest { Email = inviteEmail, Role = inviteRole }); if (r.Success) { CloseAddModal(); await LoadData(); } else await ErrorHandling.TriggerError(r.Message); }
-        catch { await ErrorHandling.TriggerError("Ошибка"); }
-        finally { isSaving = false; }
+        try
+        {
+            var r = await ProjectService.AddMemberAsync(ProjectId, new AddProjectMemberRequest { Email = inviteEmail, Role = inviteRole });
+            if (r.Success)
+            {
+                CloseAddModal();
+                await LoadData();
+            }
+            else
+            {
+                await ErrorHandling.TriggerError(r.Message);
+            }
+        }
+        catch
+        {
+            await ErrorHandling.TriggerError("Ошибка");
+        }
+        finally
+        {
+            isSaving = false;
+        }
     }
 
-    private void ShowAllRoles() => SetRoleFilter("");
-    private void ShowProductOwner() => SetRoleFilter("ProductOwner");
-    private void ShowScrumMaster() => SetRoleFilter("ScrumMaster");
-    private void ShowDeveloper() => SetRoleFilter("Developer");
-    private void ShowViewer() => SetRoleFilter("Viewer");
+    private void ShowAllRoles()
+    {
+        SetRoleFilter("");
+    }
 
-    private int GetRoleCount(string role) => members?.Count(m => m.Role == role && !m.IsOwner) ?? 0;
-    private void SetRoleFilter(string role) { roleFilter = role; StateHasChanged(); }
-    private string GetInitials(string n) => string.IsNullOrEmpty(n) ? "?" : n.Split(' ')[0][..Math.Min(2, n.Split(' ')[0].Length)].ToUpper();
-    private string GetRoleLabel(string r) => r switch { "ProductOwner" => "PO", "ScrumMaster" => "SM", "Developer" => "Dev", "Viewer" => "View", _ => r };
-    private void GoBack() => Navigation.NavigateTo($"/projects/{ProjectId}");
+    private void ShowProductOwner()
+    {
+        SetRoleFilter("ProductOwner");
+    }
+
+    private void ShowScrumMaster()
+    {
+        SetRoleFilter("ScrumMaster");
+    }
+
+    private void ShowDeveloper()
+    {
+        SetRoleFilter("Developer");
+    }
+
+    private void ShowViewer()
+    {
+        SetRoleFilter("Viewer");
+    }
+
+    private int GetRoleCount(string role)
+    {
+        return members?.Count(m => m.Role == role && !m.IsOwner) ?? 0;
+    }
+
+    private void SetRoleFilter(string role)
+    {
+        roleFilter = role;
+        StateHasChanged();
+    }
+
+    private string GetInitials(string n)
+    {
+        if (string.IsNullOrEmpty(n))
+        {
+            return "?";
+        }
+        return n.Split(' ')[0][..Math.Min(2, n.Split(' ')[0].Length)].ToUpper();
+    }
+
+    private string GetRoleLabel(string r)
+    {
+        return r switch
+        {
+            "ProductOwner" => "PO",
+            "ScrumMaster" => "SM",
+            "Developer" => "Dev",
+            "Viewer" => "View",
+            _ => r
+        };
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo($"/projects/{ProjectId}");
+    }
 }

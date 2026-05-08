@@ -39,6 +39,7 @@
         public List<BacklogItemBoardResponse> Tasks { get; set; } = new();
         public SprintMetrics Metrics { get; set; } = new();
         public List<BurndownPoint> BurndownData { get; set; } = new();
+        public Guid ProjectOwnerId { get; set; }
     }
 
     public class SprintMetrics
