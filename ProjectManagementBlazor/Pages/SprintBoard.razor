@@ -196,6 +196,7 @@
                                 <li class="nav-item"><button class="nav-link @(taskDetailTab == "comments" ? "active" : "")" @onclick="ShowCommentsTab"><i class="bi bi-chat me-1"></i> Комментарии @(taskDetail.Comments?.Any() == true ? $"({taskDetail.Comments.Count})" : "")</button></li>
                             }
                             <li class="nav-item"><button class="nav-link @(taskDetailTab == "blockers" ? "active" : "")" @onclick="ShowBlockersTab"><i class="bi bi-exclamation-triangle me-1"></i> Блокеры @(taskDetail.ActiveBlockers?.Any() == true ? $"({taskDetail.ActiveBlockers.Count})" : "")</button></li>
+                            <li class="nav-item"><button class="nav-link @(taskDetailTab == "attachments" ? "active" : "")" @onclick="ShowAttachmentsTab"><i class="bi bi-paperclip me-1"></i> Вложения @(taskDetail.Attachments?.Any() == true ? $"({taskDetail.Attachments.Count})" : "")</button></li>
                         </ul>
                         <div class="p-3">
                             @if (taskDetailTab == "info")
@@ -405,6 +406,67 @@
                                                 <i class="bi bi-exclamation-triangle me-1"></i> Добавить
                                             </button>
                                         </div>
+                                    </div>
+                                }
+                            }
+                            else if (taskDetailTab == "attachments")
+                            {
+                                @if (taskDetail.Attachments?.Any() == true)
+                                {
+                                    <div class="attachments-list mb-3">
+                                        @foreach (var a in taskDetail.Attachments)
+                                        {
+                                            <div class="attachment-item">
+                                                <div class="attachment-icon">
+                                                    <i class="bi @GetAttachmentIcon(a.MimeType)"></i>
+                                                </div>
+                                                <div class="attachment-body">
+                                                    <div class="attachment-name">@a.FileName</div>
+                                                    <div class="attachment-meta">
+                                                        <span class="text-muted smallest">@a.FileSizeFormatted · @a.UploadedAt.ToString("dd.MM HH:mm")</span>
+                                                        <span class="text-muted smallest">@a.UploadedBy?.FullName</span>
+                                                    </div>
+                                                </div>
+                                                <div class="d-flex gap-1">
+                                                    <button class="btn btn-outline-primary btn-sm" @onclick="() => DownloadAttachment(a.Id)" title="Скачать">
+                                                        <i class="bi bi-download"></i>
+                                                    </button>
+                                                    @if (!isViewer && CanModifyTask(selectedTask))
+                                                    {
+                                                        <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteAttachment(a.Id)" title="Удалить">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="text-center py-3 text-muted small">
+                                        <i class="bi bi-paperclip fs-4 opacity-25 d-block mb-2"></i>
+                                        Нет вложений
+                                    </div>
+                                }
+                                @if (!isViewer && CanModifyTask(selectedTask))
+                                {
+                                    <div class="mt-3 pt-3 border-top">
+                                        <label class="form-label small fw-medium">Загрузить файл</label>
+                                        <InputFile OnChange="OnFileSelected" class="form-control form-control-sm" />
+                                        @if (selectedFile != null)
+                                        {
+                                            <div class="d-flex align-items-center gap-2 mt-2">
+                                                <span class="small text-muted">@selectedFile.Name</span>
+                                                <button class="btn btn-primary btn-sm" @onclick="UploadFile" disabled="@isUploading">
+                                                    @if (isUploading)
+                                                    {
+                                                        <span class="spinner-border spinner-border-sm me-1"></span>
+                                                    }
+                                                    <i class="bi bi-upload me-1"></i> Загрузить
+                                                </button>
+                                            </div>
+                                        }
                                     </div>
                                 }
                             }
@@ -694,6 +756,60 @@
         border-radius: 50%;
     }
 
+    .attachments-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+
+    .attachment-item {
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+        padding: 0.5rem;
+        border: 1px solid var(--border-color, #E2E8F0);
+        border-radius: 0.375rem;
+    }
+
+    .attachment-icon {
+        font-size: 1.25rem;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg-light, #F8F9FB);
+        border-radius: 0.375rem;
+        color: var(--text-secondary);
+    }
+
+    .attachment-body {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .attachment-name {
+        font-size: 0.8rem;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .attachment-meta {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    [data-bs-theme="dark"] .attachment-item {
+        background: #1E293B;
+        border-color: #334155;
+    }
+
+    [data-bs-theme="dark"] .attachment-icon {
+        background: #334155;
+    }
+
     [data-bs-theme="dark"] .blocker-item {
         background: #1E293B;
         border-color: #334155;
@@ -749,7 +865,8 @@
     private CompleteSprintRequest completeRequest = new();
     private bool isTaskDetailLoading = false;
     private bool isUpdating = false;
-
+    private IBrowserFile? selectedFile = null;
+    private bool isUploading = false;
 
     private string GetPriorityClass(int? p)
     {
@@ -855,6 +972,103 @@
         {
             return sprint?.ProjectOwnerId == currentUserId || currentUserRole == "ProductOwner";
         }
+    }
+
+    private void ShowAttachmentsTab()
+    {
+        taskDetailTab = "attachments";
+        StateHasChanged();
+    }
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+    }
+
+    private async Task UploadFile()
+    {
+        if (selectedFile == null || selectedTask == null) return;
+        isUploading = true;
+        try
+        {
+            var buffer = new byte[selectedFile.Size];
+            await selectedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024).ReadAsync(buffer);
+            var r = await BacklogService.UploadAttachmentAsync(selectedTask.Id, new UploadAttachmentRequest
+            {
+                FileContent = buffer,
+                FileName = selectedFile.Name,
+                MimeType = selectedFile.ContentType
+            });
+            if (r.Success)
+            {
+                selectedFile = null;
+                await OpenTaskDetail(selectedTask.Id, forceReload: true);
+            }
+            else
+            {
+                await ErrorHandling.TriggerError(r.Message ?? "Ошибка загрузки файла");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ErrorHandling.TriggerError($"Ошибка: {ex.Message}");
+        }
+        finally
+        {
+            isUploading = false;
+        }
+    }
+
+    private async Task DownloadAttachment(Guid attachmentId)
+    {
+        try
+        {
+            var attachment = taskDetail?.Attachments?.FirstOrDefault(a => a.Id == attachmentId);
+            var fileName = attachment?.FileName ?? $"attachment_{attachmentId}";
+
+            var data = await BacklogService.DownloadAttachmentAsync(attachmentId);
+            if (data != null && data.Length > 0)
+            {
+                var base64 = Convert.ToBase64String(data);
+                var mimeType = attachment?.MimeType ?? "application/octet-stream";
+                await JS.InvokeVoidAsync("triggerDownload", fileName, base64, mimeType);
+            }
+            else
+            {
+                await ErrorHandling.TriggerError("Файл не найден на сервере");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ErrorHandling.TriggerError($"Ошибка скачивания: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteAttachment(Guid attachmentId)
+    {
+        var ok = await DialogService.ConfirmAsync("Удалить вложение?", "Удаление", "Удалить", "danger");
+        if (!ok) return;
+        var r = await BacklogService.DeleteAttachmentAsync(attachmentId);
+        if (r.Success && selectedTask != null)
+        {
+            await OpenTaskDetail(selectedTask.Id, forceReload: true);
+        }
+        else
+        {
+            await ErrorHandling.TriggerError(r.Message ?? "Ошибка удаления");
+        }
+    }
+
+    private string GetAttachmentIcon(string mimeType)
+    {
+        if (string.IsNullOrEmpty(mimeType)) return "bi-file";
+        if (mimeType.StartsWith("image/")) return "bi-file-image";
+        if (mimeType.Contains("pdf")) return "bi-file-pdf";
+        if (mimeType.Contains("word") || mimeType.Contains("document")) return "bi-file-word";
+        if (mimeType.Contains("sheet") || mimeType.Contains("excel")) return "bi-file-excel";
+        if (mimeType.StartsWith("text/")) return "bi-file-text";
+        if (mimeType.StartsWith("zip") || mimeType.Contains("compressed")) return "bi-file-zip";
+        return "bi-file";
     }
 
     private bool IsScrumMaster

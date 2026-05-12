@@ -78,11 +78,12 @@ namespace ProjectManagementBlazor.DTO.Responses
         public UserBriefResponse UploadedBy { get; set; } = null!;
         public DateTime UploadedAt { get; set; }
 
-        private static string FormatFileSize(long bytes)
+        public string FormatFileSize(long? bytes)
         {
+            if (bytes == null || bytes.Value == 0) return "0 B";
             string[] suffixes = { "B", "KB", "MB", "GB" };
             int counter = 0;
-            decimal number = bytes;
+            decimal number = bytes.Value;
             while (Math.Round(number / 1024) >= 1)
             {
                 number /= 1024;
