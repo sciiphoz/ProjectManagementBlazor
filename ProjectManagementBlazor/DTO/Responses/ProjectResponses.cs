@@ -46,4 +46,12 @@
         public int CompletedStoryPoints { get; set; }
         public double CompletionPercentage { get; set; }
     }
+
+    public class ProjectInvitationStatus
+    {
+        public bool Valid { get; set; }
+        public string? ProjectName { get; set; }
+        public string? Email { get; set; }
+        public string? Role { get; set; }
+    }
 }

@@ -20,6 +20,8 @@ namespace ProjectManagementBlazor.Interfaces
         Task<ApiResponse<ProjectMemberResponse>> AddMemberAsync(Guid projectId, AddProjectMemberRequest request);
         Task<ApiResponse> UpdateMemberRoleAsync(Guid projectId, UpdateMemberRoleRequest request);
         Task<ApiResponse> RemoveMemberAsync(Guid projectId, RemoveMemberRequest request);
+        Task<ApiResponse<ProjectInvitationStatus>> CheckInvitationAsync(string token);
+        Task<ApiResponse> AcceptInvitationAsync(string token);
 
         // Статистика
         Task<ApiResponse<ProjectStatisticsResponse>> GetProjectStatisticsAsync(Guid projectId);

@@ -396,20 +396,46 @@
         isSaving = true;
         try
         {
-            var r = await ProjectService.AddMemberAsync(ProjectId, new AddProjectMemberRequest { Email = inviteEmail, Role = inviteRole });
+            var r = await ProjectService.AddMemberAsync(ProjectId, new AddProjectMemberRequest
+            {
+                Email = inviteEmail,
+                Role = inviteRole,
+                UserId = null  // Явно указываем, что добавляем по email, а не по ID
+            });
+
             if (r.Success)
             {
                 CloseAddModal();
+
+                if (r.Data == null)
+                {
+                    // Приглашение отправлено на почту
+                    await DialogService.AlertAsync(
+                        $"Приглашение отправлено на {inviteEmail}. Пользователь присоединится к проекту после принятия приглашения.",
+                        "Приглашение отправлено",
+                        "bi bi-envelope-check",
+                        "success");
+                }
+                else
+                {
+                    // Пользователь добавлен сразу
+                    await DialogService.AlertAsync(
+                        $"Пользователь {r.Data.FullName} добавлен в проект.",
+                        "Участник добавлен",
+                        "bi bi-person-check",
+                        "success");
+                }
+
                 await LoadData();
             }
             else
             {
-                await ErrorHandling.TriggerError(r.Message);
+                await ErrorHandling.TriggerError(r.Message ?? "Ошибка при добавлении участника");
             }
         }
-        catch
+        catch (Exception ex)
         {
-            await ErrorHandling.TriggerError("Ошибка");
+            await ErrorHandling.TriggerError($"Ошибка: {ex.Message}");
         }
         finally
         {

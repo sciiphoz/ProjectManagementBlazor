@@ -19,7 +19,6 @@
     }
     else if (sprint != null)
     {
-        <!-- Заголовок -->
         <div class="retro-header">
             <div>
                 <h2>Ретроспектива</h2>
@@ -30,7 +29,6 @@
             </button>
         </div>
 
-        <!-- Четыре колонки -->
         <div class="retro-grid">
             @foreach (var col in new[] {
                 ("Good", "Что прошло хорошо", "bg-success", "newGoodItem"),
@@ -107,7 +105,6 @@
             }
         </div>
 
-        <!-- Итоги -->
         @if (retrospective != null)
         {
             <div class="retro-summary">

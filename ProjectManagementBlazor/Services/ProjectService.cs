@@ -93,7 +93,7 @@ namespace ProjectManagementBlazor.Services
 
         public async Task<ApiResponse<ProjectMemberResponse>> AddMemberAsync(Guid projectId, AddProjectMemberRequest request)
         {
-            if (string.IsNullOrWhiteSpace(request.Email) && request.UserId == Guid.Empty)
+            if (string.IsNullOrWhiteSpace(request.Email) && (request.UserId == null || request.UserId == Guid.Empty))
             {
                 await _errorHandling.TriggerError("Не указан email или ID пользователя");
                 return ApiResponse<ProjectMemberResponse>.Fail("Не указан email или ID пользователя");
@@ -112,6 +112,8 @@ namespace ProjectManagementBlazor.Services
                 var result = await SendRequestAsync<ProjectMemberResponse>(
                     () => _httpClient.PostAsJsonAsync($"api/projects/{projectId}/members", request),
                     "Не удалось добавить участника");
+
+                Console.WriteLine($"Результат: Success={result.Success}, Data={result.Data != null}, Message={result.Message}");
 
                 return result;
             }
@@ -140,6 +142,20 @@ namespace ProjectManagementBlazor.Services
             return await SendRequestAsync(
                 () => _httpClient.PutAsJsonAsync($"api/projects/{projectId}/members/{request.UserId}/role", request),
                 "Не удалось изменить роль участника");
+        }
+
+        public async Task<ApiResponse<ProjectInvitationStatus>> CheckInvitationAsync(string token)
+        {
+            return await SendRequestAsync<ProjectInvitationStatus>(
+                () => _httpClient.GetAsync($"api/projects/invitations/check?token={Uri.EscapeDataString(token)}"),
+                "Не удалось проверить приглашение");
+        }
+
+        public async Task<ApiResponse> AcceptInvitationAsync(string token)
+        {
+            return await SendRequestAsync(
+                () => _httpClient.PostAsJsonAsync("api/projects/invitations/accept", new { token }),
+                "Не удалось принять приглашение");
         }
 
         public async Task<ApiResponse> RemoveMemberAsync(Guid projectId, RemoveMemberRequest request)

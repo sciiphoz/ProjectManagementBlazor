@@ -8,7 +8,6 @@
 
 <div class="auth-container">
     <div class="auth-split">
-        <!-- Левая сторона — форма -->
         <div class="auth-form-side">
             <div class="auth-form-wrapper">
                 <h3 class="mb-3">Регистрация</h3>
@@ -76,12 +75,11 @@
                 }
 
                 <p class="text-center mt-3 mb-0 small">
-                    Уже есть аккаунт? <a href="/login" class="fw-bold">Войти</a>
+                    Уже есть аккаунт? <a href="/login@(returnUrl != null ? $"?returnUrl={Uri.EscapeDataString(returnUrl)}" : "")" class="fw-bold">Войти</a>
                 </p>
             </div>
         </div>
 
-        <!-- Правая сторона — брендинг -->
         <div class="auth-brand-side" style="background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%);">
             <div class="auth-brand-content">
                 <h2>Присоединяйтесь!</h2>
@@ -172,6 +170,34 @@
             text-align: center;
         }
 
+    [data-bs-theme="dark"] .auth-form-side {
+        background: #1E293B;
+    }
+
+    [data-bs-theme="dark"] .auth-form-wrapper h3 {
+        color: #F1F5F9;
+    }
+
+    [data-bs-theme="dark"] .auth-form-wrapper .text-muted {
+        color: #94A3B8 !important;
+    }
+
+    [data-bs-theme="dark"] .form-control {
+        background: #334155;
+        border-color: #475569;
+        color: #F1F5F9;
+    }
+
+    [data-bs-theme="dark"] .input-group-text {
+        background: #475569;
+        border-color: #475569;
+        color: #CBD5E1;
+    }
+
+    [data-bs-theme="dark"] a {
+        color: #818CF8;
+    }
+
     @@media (max-width: 768px) {
         .auth-split {
             flex-direction: column;
@@ -196,11 +222,15 @@
     private bool isLoading = false;
     private string errorMessage = string.Empty;
     private string successMessage = string.Empty;
+    private string? returnUrl;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
-        if (System.Web.HttpUtility.ParseQueryString(uri.Query).Get("registered") == "true")
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        returnUrl = query.Get("returnUrl");
+
+        if (query.Get("registered") == "true")
         {
             successMessage = "Регистрация успешна! Теперь вы можете войти.";
         }
@@ -221,7 +251,7 @@
                 successMessage = "Регистрация успешна! Перенаправляем на страницу входа...";
                 StateHasChanged();
                 await Task.Delay(1500);
-                Navigation.NavigateTo("/login?registered=true");
+                Navigation.NavigateTo($"/login?registered=true{(returnUrl != null ? $"&returnUrl={Uri.EscapeDataString(returnUrl)}" : "")}");
             }
             else
             {

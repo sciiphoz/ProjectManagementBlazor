@@ -56,31 +56,25 @@
                 </div>
             </div>
 
-            <!-- Действия -->
             <div class="detail-actions">
-                <!-- Бэклог — всем, кроме Viewer -->
                 @if (!isViewer)
                 {
                     <button class="btn btn-outline-secondary btn-sm" @onclick="GoToBacklog">
                         <i class="bi bi-list-task"></i> Бэклог
                     </button>
                 }
-                <!-- Отчёты — всем, кроме Viewer -->
                 @if (!isViewer)
                 {
                     <button class="btn btn-outline-secondary btn-sm" @onclick="GoToReports">
                         <i class="bi bi-graph-up"></i> Отчёты
                     </button>
                 }
-                <!-- Логи — всем -->
                 <button class="btn btn-outline-secondary btn-sm" @onclick="GoToActivityLogs">
                     <i class="bi bi-clock-history"></i> Логи
                 </button>
-                <!-- Участники — всем -->
                 <button class="btn btn-outline-secondary btn-sm" @onclick="GoToMembers">
                     <i class="bi bi-people"></i> Участники
                 </button>
-                <!-- Daily Scrum — только Product Owner или Scrum Master -->
                 @if (!isViewer && (IsProductOwner || IsScrumMaster))
                 {
                     <button class="btn btn-outline-info btn-sm" @onclick="OpenDailyScrum">

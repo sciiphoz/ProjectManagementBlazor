@@ -8,7 +8,6 @@
 
 <div class="auth-container">
     <div class="auth-split">
-        <!-- Левая сторона — форма -->
         <div class="auth-form-side">
             <div class="auth-form-wrapper">
                 <h3 class="mb-3">Вход в систему</h3>
@@ -66,12 +65,11 @@
                 }
 
                 <p class="text-center mt-3 mb-0 small">
-                    Нет аккаунта? <a href="/register" class="fw-bold">Зарегистрироваться</a>
+                    Нет аккаунта? <a href="/register@(returnUrl != null ? $"?returnUrl={Uri.EscapeDataString(returnUrl)}" : "")" class="fw-bold">Зарегистрироваться</a>
                 </p>
             </div>
         </div>
 
-        <!-- Правая сторона — брендинг -->
         <div class="auth-brand-side">
             <div class="auth-brand-content">
                 <h2>Project Management</h2>
@@ -163,6 +161,44 @@
             text-align: center;
         }
 
+    [data-bs-theme="dark"] .auth-form-side {
+        background: #1E293B;
+    }
+
+    [data-bs-theme="dark"] .auth-form-wrapper h3 {
+        color: #F1F5F9;
+    }
+
+    [data-bs-theme="dark"] .auth-form-wrapper .text-muted {
+        color: #94A3B8 !important;
+    }
+
+    [data-bs-theme="dark"] .form-control {
+        background: #334155;
+        border-color: #475569;
+        color: #F1F5F9;
+    }
+
+    [data-bs-theme="dark"] .input-group-text {
+        background: #475569;
+        border-color: #475569;
+        color: #CBD5E1;
+    }
+
+    [data-bs-theme="dark"] .btn-outline-secondary {
+        color: #CBD5E1;
+        border-color: #475569;
+    }
+
+        [data-bs-theme="dark"] .btn-outline-secondary:hover {
+            background: #475569;
+            color: #F1F5F9;
+        }
+
+    [data-bs-theme="dark"] a {
+        color: #818CF8;
+    }
+
     @@media (max-width: 768px) {
         .auth-split {
             flex-direction: column;
@@ -187,6 +223,14 @@
     private bool isLoading = false;
     private string errorMessage = string.Empty;
     private bool showPassword = false;
+    private string? returnUrl;
+
+    protected override void OnInitialized()
+    {
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        returnUrl = query.Get("returnUrl");
+    }
 
     private async Task HandleLogin()
     {
@@ -199,7 +243,7 @@
 
             if (result.Success)
             {
-                Navigation.NavigateTo("/", true);
+                Navigation.NavigateTo(returnUrl ?? "/", true);
             }
             else
             {
