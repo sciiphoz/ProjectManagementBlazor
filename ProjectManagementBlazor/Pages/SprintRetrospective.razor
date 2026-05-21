@@ -6,6 +6,7 @@
 @inject IAuthService AuthService
 @inject IProjectService ProjectService
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 @inject DialogService DialogService
 
 <PageTitle>Ретроспектива спринта</PageTitle>
@@ -24,105 +25,298 @@
                 <h2>Ретроспектива</h2>
                 <span class="text-muted small">@sprint.Name · @sprint.StartDate.ToString("dd.MM") — @sprint.EndDate.ToString("dd.MM")</span>
             </div>
-            <button class="btn btn-outline-secondary btn-sm" @onclick="GoBack">
-                <i class="bi bi-arrow-left me-1"></i> К спринтам
-            </button>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-secondary btn-sm" @onclick="ExportRetro">
+                    <i class="bi bi-download me-1"></i> Экспорт
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" @onclick="GoBack">
+                    <i class="bi bi-arrow-left me-1"></i> К спринту
+                </button>
+            </div>
         </div>
 
+        @if (!isEditable)
+        {
+            <div class="alert alert-info small py-2 mb-3">
+                <i class="bi bi-info-circle me-1"></i> Ретроспектива доступна после завершения спринта.
+            </div>
+        }
+
         <div class="retro-grid">
-            @foreach (var col in new[] {
-                ("Good", "Что прошло хорошо", "bg-success", "newGoodItem"),
-                ("Bad", "Что нужно улучшить", "bg-warning text-dark", "newBadItem"),
-                ("Idea", "Идеи", "bg-info text-white", "newIdeaItem"),
-                ("Action", "Действия", "bg-danger text-white", "newActionItem")
-                })
-            {
-                var (category, title, headerClass, fieldName) = col;
-                var items = category switch
-                {
-                    "Good" => retrospective?.GoodItems,
-                    "Bad" => retrospective?.BadItems,
-                    "Idea" => retrospective?.Ideas,
-                    "Action" => retrospective?.Actions,
-                    _ => null
-                };
-                <div class="retro-col">
-                    <div class="retro-col-header @headerClass">
-                        <span>@title</span>
-                        <span class="retro-col-count">@(items?.Count ?? 0)</span>
-                    </div>
-                    <div class="retro-col-body">
-                        @if (items != null && items.Any())
-                        {
-                            foreach (var item in items)
-                            {
-                                <div class="retro-item @(item.HasUserVoted ? "voted" : "")">
-                                    <p class="retro-item-text">@item.Content</p>
-                                    <div class="retro-item-footer">
-                                        <small class="text-muted">@item.CreatedBy.FullName</small>
-                                        <div class="d-flex gap-1">
-                                            @if (!isViewer)
-                                            {
-                                                <button class="btn btn-sm @(item.HasUserVoted ? "btn-primary" : "btn-outline-primary")"
-                                                        @onclick="() => ToggleVote(item.Id, !item.HasUserVoted)">
-                                                    <i class="bi bi-hand-thumbs-up me-1"></i>@item.VoteCount
-                                                </button>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-light text-dark">
-                                                    <i class="bi bi-hand-thumbs-up me-1"></i>@item.VoteCount
-                                                </span>
-                                            }
-                                            @if (!isViewer && isEditable && currentUserId == item.CreatedBy.Id)
-                                            {
-                                                <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteItem(item.Id)">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            }
-                                        </div>
-                                    </div>
-                                </div>
-                            }
-                        }
-                        else
-                        {
-                            <div class="text-center text-muted small py-3">Нет записей</div>
-                        }
-                        @if (!isViewer && isEditable)
-                        {
-                            <textarea class="form-control form-control-sm" rows="2"
-                                      placeholder="Добавить пункт..."
-                                      @bind="GetFieldRef(fieldName).Value"></textarea>
-                            <button class="btn btn-sm @GetButtonClass(category) mt-1 w-100"
-                                    @onclick="() => AddItem(category)"
-                                    disabled="string.IsNullOrWhiteSpace(GetFieldRef(fieldName).Value)">
-                                <i class="bi bi-plus me-1"></i> Добавить
-                            </button>
-                        }
+            @* Liked *@
+            <div class="retro-col">
+                <div class="retro-col-header" style="background: #22c55e;">
+                    <span><i class="bi bi-hand-thumbs-up me-1"></i>Что прошло хорошо</span>
+                    <div class="d-flex gap-2 align-items-center">
+                        <span class="retro-col-badge">@(retrospective?.GoodItems?.Count ?? 0)</span>
                     </div>
                 </div>
-            }
+                <div class="retro-col-body">
+                    @if (retrospective?.GoodItems?.Any() == true)
+                    {
+                        var top = retrospective.GoodItems.OrderByDescending(i => i.VoteCount).First();
+                        @foreach (var item in retrospective.GoodItems.OrderByDescending(i => i.VoteCount))
+                        {
+                            var isTop = item.Id == top.Id && item.VoteCount > 0;
+                            <div class="retro-card @(item.HasUserVoted ? "voted" : "") @(isTop ? "top" : "")">
+                                @if (isTop)
+                                {
+                                    <span class="top-star">⭐</span>
+                                }
+                                <div class="retro-card-text">@item.Content</div>
+                                <div class="retro-card-foot">
+                                    <small>@item.CreatedBy.FullName</small>
+                                    <div class="d-flex align-items-center gap-1">
+                                        @if (!isViewer && isEditable)
+                                        {
+                                            <button class="retro-vote @(item.HasUserVoted ? "active" : "")" @onclick="() => ToggleVote(item.Id, !item.HasUserVoted)">
+                                                <i class="bi bi-hand-thumbs-up me-1"></i>@item.VoteCount
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="retro-vote-static @(item.HasUserVoted ? "active" : "")">
+                                                <i class="bi bi-hand-thumbs-up me-1"></i>@item.VoteCount
+                                            </span>
+                                        }
+                                        @if (!isViewer && isEditable && currentUserId == item.CreatedBy.Id)
+                                        {
+                                            <button class="btn btn-link text-danger p-0 ms-1" @onclick="() => DeleteItem(item.Id)"><i class="bi bi-x-circle small"></i></button>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="retro-empty"><i class="bi bi-hand-thumbs-up fs-3 opacity-25"></i><span>Нет записей</span></div>
+                    }
+                    @if (!isViewer && isEditable)
+                    {
+                        <div class="retro-add">
+                            <textarea class="form-control form-control-sm" rows="2" placeholder="Ваша мысль..." @bind="newLikedItem"></textarea>
+                            <button class="btn btn-sm w-100 mt-1 text-white" style="background: #22c55e;" @onclick='() => AddItem("Liked")' disabled="@(string.IsNullOrWhiteSpace(newLikedItem))">
+                                <i class="bi bi-plus-lg me-1"></i> Добавить
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @* Learned *@
+            <div class="retro-col">
+                <div class="retro-col-header" style="background: #3b82f6;">
+                    <span><i class="bi bi-book me-1"></i>Чему научились</span>
+                    <div class="d-flex gap-2 align-items-center">
+                        <span class="retro-col-badge">@(retrospective?.Ideas?.Count ?? 0)</span>
+                    </div>
+                </div>
+                <div class="retro-col-body">
+                    @if (retrospective?.Ideas?.Any() == true)
+                    {
+                        var top = retrospective.Ideas.OrderByDescending(i => i.VoteCount).First();
+                        @foreach (var item in retrospective.Ideas.OrderByDescending(i => i.VoteCount))
+                        {
+                            var isTop = item.Id == top.Id && item.VoteCount > 0;
+                            <div class="retro-card @(item.HasUserVoted ? "voted" : "") @(isTop ? "top" : "")">
+                                @if (isTop)
+                                {
+                                    <span class="top-star">⭐</span>
+                                }
+                                <div class="retro-card-text">@item.Content</div>
+                                <div class="retro-card-foot">
+                                    <small>@item.CreatedBy.FullName</small>
+                                    <div class="d-flex align-items-center gap-1">
+                                        @if (!isViewer && isEditable)
+                                        {
+                                            <button class="retro-vote @(item.HasUserVoted ? "active" : "")" @onclick="() => ToggleVote(item.Id, !item.HasUserVoted)">
+                                                <i class="bi bi-hand-thumbs-up me-1"></i>@item.VoteCount
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="retro-vote-static @(item.HasUserVoted ? "active" : "")">
+                                                <i class="bi bi-hand-thumbs-up me-1"></i>@item.VoteCount
+                                            </span>
+                                        }
+                                        @if (!isViewer && isEditable && currentUserId == item.CreatedBy.Id)
+                                        {
+                                            <button class="btn btn-link text-danger p-0 ms-1" @onclick="() => DeleteItem(item.Id)"><i class="bi bi-x-circle small"></i></button>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="retro-empty"><i class="bi bi-book fs-3 opacity-25"></i><span>Нет записей</span></div>
+                    }
+                    @if (!isViewer && isEditable)
+                    {
+                        <div class="retro-add">
+                            <textarea class="form-control form-control-sm" rows="2" placeholder="Ваша мысль..." @bind="newLearnedItem"></textarea>
+                            <button class="btn btn-sm w-100 mt-1 text-white" style="background: #3b82f6;" @onclick='() => AddItem("Learned")' disabled="@(string.IsNullOrWhiteSpace(newLearnedItem))">
+                                <i class="bi bi-plus-lg me-1"></i> Добавить
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @* Lacked *@
+            <div class="retro-col">
+                <div class="retro-col-header" style="background: #f59e0b;">
+                    <span><i class="bi bi-exclamation-diamond me-1"></i>Чего не хватило</span>
+                    <div class="d-flex gap-2 align-items-center">
+                        <span class="retro-col-badge">@(retrospective?.BadItems?.Count ?? 0)</span>
+                    </div>
+                </div>
+                <div class="retro-col-body">
+                    @if (retrospective?.BadItems?.Any() == true)
+                    {
+                        var top = retrospective.BadItems.OrderByDescending(i => i.VoteCount).First();
+                        @foreach (var item in retrospective.BadItems.OrderByDescending(i => i.VoteCount))
+                        {
+                            var isTop = item.Id == top.Id && item.VoteCount > 0;
+                            <div class="retro-card @(item.HasUserVoted ? "voted" : "") @(isTop ? "top" : "")">
+                                @if (isTop)
+                                {
+                                    <span class="top-star">⭐</span>
+                                }
+                                <div class="retro-card-text">@item.Content</div>
+                                <div class="retro-card-foot">
+                                    <small>@item.CreatedBy.FullName</small>
+                                    <div class="d-flex align-items-center gap-1">
+                                        @if (!isViewer && isEditable)
+                                        {
+                                            <button class="retro-vote @(item.HasUserVoted ? "active" : "")" @onclick="() => ToggleVote(item.Id, !item.HasUserVoted)">
+                                                <i class="bi bi-hand-thumbs-up me-1"></i>@item.VoteCount
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="retro-vote-static @(item.HasUserVoted ? "active" : "")">
+                                                <i class="bi bi-hand-thumbs-up me-1"></i>@item.VoteCount
+                                            </span>
+                                        }
+                                        @if (!isViewer && isEditable && currentUserId == item.CreatedBy.Id)
+                                        {
+                                            <button class="btn btn-link text-danger p-0 ms-1" @onclick="() => DeleteItem(item.Id)"><i class="bi bi-x-circle small"></i></button>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="retro-empty"><i class="bi bi-exclamation-diamond fs-3 opacity-25"></i><span>Нет записей</span></div>
+                    }
+                    @if (!isViewer && isEditable)
+                    {
+                        <div class="retro-add">
+                            <textarea class="form-control form-control-sm" rows="2" placeholder="Ваша мысль..." @bind="newLackedItem"></textarea>
+                            <button class="btn btn-sm w-100 mt-1 text-white" style="background: #f59e0b;" @onclick='() => AddItem("Lacked")' disabled="@(string.IsNullOrWhiteSpace(newLackedItem))">
+                                <i class="bi bi-plus-lg me-1"></i> Добавить
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @* Actions *@
+            <div class="retro-col">
+                <div class="retro-col-header" style="background: #ef4444;">
+                    <span><i class="bi bi-rocket-takeoff me-1"></i>Действия</span>
+                    <div class="d-flex gap-2 align-items-center">
+                        <span class="retro-col-badge">@(retrospective?.Actions?.Count ?? 0)</span>
+                    </div>
+                </div>
+                <div class="retro-col-body">
+                    @if (retrospective?.Actions?.Any() == true)
+                    {
+                        var top = retrospective.Actions.OrderByDescending(i => i.VoteCount).First();
+                        @foreach (var item in retrospective.Actions.OrderByDescending(i => i.VoteCount))
+                        {
+                            var isTop = item.Id == top.Id && item.VoteCount > 0;
+                            <div class="retro-card @(item.HasUserVoted ? "voted" : "") @(isTop ? "top" : "")">
+                                @if (isTop)
+                                {
+                                    <span class="top-star">⭐</span>
+                                }
+                                <div class="retro-card-text">@item.Content</div>
+                                <div class="retro-card-foot">
+                                    <small>@item.CreatedBy.FullName</small>
+                                    <div class="d-flex align-items-center gap-1">
+                                        @if (!isViewer && isEditable)
+                                        {
+                                            <button class="retro-vote @(item.HasUserVoted ? "active" : "")" @onclick="() => ToggleVote(item.Id, !item.HasUserVoted)">
+                                                <i class="bi bi-hand-thumbs-up me-1"></i>@item.VoteCount
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="retro-vote-static @(item.HasUserVoted ? "active" : "")">
+                                                <i class="bi bi-hand-thumbs-up me-1"></i>@item.VoteCount
+                                            </span>
+                                        }
+                                        @if (!isViewer && isEditable && currentUserId == item.CreatedBy.Id)
+                                        {
+                                            <button class="btn btn-link text-danger p-0 ms-1" @onclick="() => DeleteItem(item.Id)"><i class="bi bi-x-circle small"></i></button>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="retro-empty"><i class="bi bi-rocket-takeoff fs-3 opacity-25"></i><span>Нет записей</span></div>
+                    }
+                    @if (!isViewer && isEditable)
+                    {
+                        <div class="retro-add">
+                            <textarea class="form-control form-control-sm" rows="2" placeholder="Ваша мысль..." @bind="newActionsItem"></textarea>
+                            <button class="btn btn-sm w-100 mt-1 text-white" style="background: #ef4444;" @onclick='() => AddItem("Actions")' disabled="@(string.IsNullOrWhiteSpace(newActionsItem))">
+                                <i class="bi bi-plus-lg me-1"></i> Добавить
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
         </div>
 
         @if (retrospective != null)
         {
+            var allItems = (retrospective.GoodItems ?? new())
+            .Concat(retrospective.BadItems ?? new())
+            .Concat(retrospective.Ideas ?? new())
+            .Concat(retrospective.Actions ?? new())
+            .OrderByDescending(i => i.VoteCount)
+            .Take(4)
+            .ToList();
+
             <div class="retro-summary">
-                <div class="retro-summary-item">
-                    <span class="text-muted small">Самый популярный пункт</span>
-                    <span class="text-success fw-medium">@topGoodItem</span>
-                </div>
-                <div class="retro-summary-item">
-                    <span class="text-muted small">Главное улучшение</span>
-                    <span class="text-warning fw-medium">@topBadItem</span>
-                </div>
-                <div class="retro-summary-item">
-                    <span class="text-muted small">Лучшая идея</span>
-                    <span class="text-info fw-medium">@topIdeaItem</span>
-                </div>
-                <div class="retro-summary-item">
-                    <span class="text-muted small">Ключевое действие</span>
-                    <span class="text-danger fw-medium">@topActionItem</span>
+                <div class="retro-summary-title"><i class="bi bi-trophy me-1"></i> Ключевые выводы</div>
+                <div class="retro-summary-grid">
+                    @foreach (var item in allItems)
+                    {
+                        var cat = item.Category switch { "Good" or "Liked" => ("Лучшее", "#22c55e"), "Bad" or "Lacked" => ("Не хватило", "#f59e0b"), "Idea" or "Learned" => ("Идея", "#3b82f6"), "Action" or "Actions" => ("Действие", "#ef4444"), _ => ("Прочее", "#6b7280") };
+                        <div class="summary-card" style="border-left: 4px solid @cat.Item2;">
+                            <span class="summary-label" style="color: @cat.Item2;">@cat.Item1</span>
+                            <span class="summary-text">@item.Content</span>
+                            <span class="summary-votes">🗳 @item.VoteCount</span>
+                        </div>
+                    }
+                    @for (int i = allItems.Count; i < 4; i++)
+                    {
+                        <div class="summary-card empty">
+                            <span class="summary-label text-muted">—</span>
+                            <span class="summary-text text-muted">Добавьте больше пунктов</span>
+                        </div>
+                    }
                 </div>
             </div>
         }
@@ -138,7 +332,7 @@
 
 <style>
     .retro-page {
-        max-width: 1000px;
+        max-width: 1100px;
         margin: 0 auto;
     }
 
@@ -157,31 +351,36 @@
     .retro-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 0.5rem;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
     }
 
     .retro-col {
-        border: 1px solid var(--border-color,#E2E8F0);
-        border-radius: 0.5rem;
+        border-radius: 0.75rem;
         overflow: hidden;
         display: flex;
         flex-direction: column;
+        background: var(--bg-card, #fff);
+        border: 1px solid var(--border-color, #E2E8F0);
     }
 
     .retro-col-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0.5rem 0.75rem;
+        padding: 0.55rem 0.75rem;
         font-size: 0.75rem;
-        font-weight: 600;
+        font-weight: 700;
+        color: #fff;
+        letter-spacing: 0.02em;
     }
 
-    .retro-col-count {
-        background: rgba(0,0,0,0.1);
-        border-radius: 8px;
-        padding: 0.1rem 0.4rem;
-        font-size: 0.65rem;
+    .retro-col-badge {
+        background: rgba(255,255,255,0.22);
+        border-radius: 10px;
+        padding: 0.1rem 0.5rem;
+        font-size: 0.7rem;
+        font-weight: 600;
     }
 
     .retro-col-body {
@@ -189,53 +388,183 @@
         padding: 0.5rem;
         display: flex;
         flex-direction: column;
-        gap: 0.375rem;
+        gap: 0.4rem;
+        max-height: 50vh;
+        overflow-y: auto;
     }
 
-    .retro-item {
-        padding: 0.5rem;
-        border: 1px solid var(--border-color,#E2E8F0);
-        border-radius: 0.375rem;
+    .retro-card {
+        padding: 0.5rem 0.6rem;
+        border: 1px solid var(--border-color, #E2E8F0);
+        border-radius: 0.45rem;
+        background: var(--bg-light, #F8F9FB);
+        position: relative;
+        transition: all 0.12s;
     }
 
-        .retro-item.voted {
-            border-color: var(--primary-color);
-            background: rgba(79,70,229,0.03);
+        .retro-card:hover {
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
         }
 
-    .retro-item-text {
-        font-size: 0.8rem;
-        margin: 0 0 0.375rem;
+        .retro-card.voted {
+            border-color: #818cf8;
+            background: rgba(129,140,248,0.03);
+        }
+
+        .retro-card.top {
+            border-color: #fbbf24;
+        }
+
+    .top-star {
+        position: absolute;
+        top: -7px;
+        right: -5px;
+        font-size: 1rem;
+        line-height: 1;
     }
 
-    .retro-item-footer {
+    .retro-card-text {
+        font-size: 0.78rem;
+        line-height: 1.35;
+        margin-bottom: 0.4rem;
+        word-break: break-word;
+    }
+
+    .retro-card-foot {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        font-size: 0.68rem;
+        color: var(--text-secondary, #64748B);
+    }
+
+    .retro-vote, .retro-vote-static {
         font-size: 0.7rem;
+        padding: 0.12rem 0.5rem;
+        border-radius: 1rem;
+        border: 1px solid var(--border-color, #E2E8F0);
+        background: #fff;
+        color: var(--text-secondary, #64748B);
+        cursor: pointer;
+        transition: all 0.12s;
+    }
+
+        .retro-vote:hover {
+            background: #eff6ff;
+            border-color: #818cf8;
+        }
+
+        .retro-vote.active, .retro-vote-static.active {
+            background: #818cf8;
+            color: #fff;
+            border-color: #818cf8;
+        }
+
+    .retro-vote-static {
+        cursor: default;
+    }
+
+    .retro-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem 0;
+        color: var(--text-secondary, #94A3B8);
+        font-size: 0.75rem;
+        gap: 0.3rem;
     }
 
     .retro-add {
         margin-top: auto;
-        padding-top: 0.5rem;
+        padding-top: 0.4rem;
+        border-top: 1px dashed var(--border-color, #E2E8F0);
     }
+
+        .retro-add textarea {
+            font-size: 0.75rem;
+            resize: none;
+        }
 
     .retro-summary {
+        padding: 1rem 1.25rem;
+        border: 1px solid var(--border-color, #E2E8F0);
+        border-radius: 0.75rem;
+        background: var(--bg-card, #fff);
+    }
+
+    .retro-summary-title {
+        font-size: 0.85rem;
+        font-weight: 700;
+        margin-bottom: 0.75rem;
+        color: var(--text-primary, #1E293B);
+    }
+
+    .retro-summary-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 0.5rem;
-        margin-top: 1rem;
+        gap: 0.6rem;
     }
 
-    .retro-summary-item {
-        padding: 0.5rem;
-        border: 1px solid var(--border-color,#E2E8F0);
-        border-radius: 0.375rem;
-        text-align: center;
+    .summary-card {
+        padding: 0.6rem 0.7rem;
+        border-radius: 0.5rem;
+        background: var(--bg-light, #F8F9FB);
+        border: 1px solid var(--border-color, #E2E8F0);
     }
 
-        .retro-summary-item span {
-            display: block;
+        .summary-card.empty {
+            border-left: 4px solid var(--border-color, #E2E8F0) !important;
+        }
+
+    .summary-label {
+        font-size: 0.62rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        display: block;
+        margin-bottom: 0.15rem;
+    }
+
+    .summary-text {
+        font-size: 0.78rem;
+        line-height: 1.3;
+        display: block;
+        margin-bottom: 0.2rem;
+    }
+
+    .summary-votes {
+        font-size: 0.68rem;
+        color: var(--text-secondary, #94A3B8);
+    }
+
+    [data-bs-theme="dark"] .retro-col, [data-bs-theme="dark"] .retro-summary {
+        background: #1E293B;
+        border-color: #334155;
+    }
+
+    [data-bs-theme="dark"] .retro-card, [data-bs-theme="dark"] .summary-card {
+        background: #0F172A;
+        border-color: #334155;
+    }
+
+        [data-bs-theme="dark"] .retro-card.top {
+            border-color: #f59e0b;
+        }
+
+    [data-bs-theme="dark"] .retro-vote, [data-bs-theme="dark"] .retro-vote-static {
+        background: #1E293B;
+        border-color: #334155;
+    }
+
+        [data-bs-theme="dark"] .retro-vote:hover {
+            background: #1E293B;
+            border-color: #818cf8;
+        }
+
+        [data-bs-theme="dark"] .retro-vote.active, [data-bs-theme="dark"] .retro-vote-static.active {
+            background: #6366f1;
+            color: #fff;
         }
 
     @@media (max-width: 768px) {
@@ -243,19 +572,20 @@
             grid-template-columns: repeat(2, 1fr);
         }
 
-        .retro-summary {
+        .retro-summary-grid {
             grid-template-columns: repeat(2, 1fr);
         }
     }
 
-    [data-bs-theme="dark"] .retro-col, [data-bs-theme="dark"] .retro-item, [data-bs-theme="dark"] .retro-summary-item {
-        background: #1E293B;
-        border-color: #334155;
-    }
-
-        [data-bs-theme="dark"] .retro-item.voted {
-            background: rgba(129,140,248,0.08);
+    @@media (max-width: 480px) {
+        .retro-grid {
+            grid-template-columns: 1fr;
         }
+
+        .retro-summary-grid {
+            grid-template-columns: 1fr;
+        }
+    }
 </style>
 
 @code {
@@ -265,76 +595,43 @@
     private RetrospectiveBoardResponse? retrospective;
     private Guid currentUserId;
     private bool isLoading = true;
-    private bool isEditable = true;
+    private bool isEditable = false;
     private bool isViewer = false;
 
-    private string newGoodItem = "";
-    private string newBadItem = "";
-    private string newIdeaItem = "";
-    private string newActionItem = "";
+    private string newLikedItem = "";
+    private string newLearnedItem = "";
+    private string newLackedItem = "";
+    private string newActionsItem = "";
 
-    private string topGoodItem = "—";
-    private string topBadItem = "—";
-    private string topIdeaItem = "—";
-    private string topActionItem = "—";
-
-    private StringRef GetFieldRef(string fieldName)
+    private string GetTextField(string label) => label switch
     {
-        return fieldName switch
-        {
-            "newGoodItem" => new StringRef(() => newGoodItem, v => newGoodItem = v),
-            "newBadItem" => new StringRef(() => newBadItem, v => newBadItem = v),
-            "newIdeaItem" => new StringRef(() => newIdeaItem, v => newIdeaItem = v),
-            "newActionItem" => new StringRef(() => newActionItem, v => newActionItem = v),
-            _ => new StringRef(() => "", _ => { })
-        };
-    }
+        "Liked" => newLikedItem,
+        "Learned" => newLearnedItem,
+        "Lacked" => newLackedItem,
+        "Actions" => newActionsItem,
+        _ => ""
+    };
 
-    private string GetButtonClass(string category)
+    private void SetTextField(string label, string value)
     {
-        return category switch
+        switch (label)
         {
-            "Good" => "btn-success",
-            "Bad" => "btn-warning",
-            "Idea" => "btn-info",
-            "Action" => "btn-danger",
-            _ => "btn-primary"
-        };
+            case "Liked": newLikedItem = value; break;
+            case "Learned": newLearnedItem = value; break;
+            case "Lacked": newLackedItem = value; break;
+            case "Actions": newActionsItem = value; break;
+        }
     }
 
     protected override async Task OnInitializedAsync()
     {
         await LoadCurrentUser();
         await LoadData();
-        await CheckViewerRole();
     }
 
     private async Task LoadCurrentUser()
     {
-        try
-        {
-            var result = await AuthService.GetCurrentUserAsync();
-            if (result.Success && result.Data != null)
-            {
-                currentUserId = result.Data.Id;
-            }
-        }
-        catch { }
-    }
-
-    private async Task CheckViewerRole()
-    {
-        try
-        {
-            if (sprint == null || currentUserId == Guid.Empty) return;
-            var membersResult = await ProjectService.GetProjectMembersAsync(sprint.ProjectId);
-            if (membersResult.Success && membersResult.Data != null)
-            {
-                var member = membersResult.Data.FirstOrDefault(m => m.UserId == currentUserId);
-                isViewer = member?.Role == "Viewer";
-            }
-        }
-        catch { }
+        try { var r = await AuthService.GetCurrentUserAsync(); if (r.Success && r.Data != null) currentUserId = r.Data.Id; } catch { }
     }
 
     private async Task LoadData()
@@ -342,110 +639,68 @@
         isLoading = true;
         try
         {
-            var sprintResult = await SprintService.GetSprintByIdAsync(SprintId);
-            if (sprintResult.Success && sprintResult.Data != null)
+            var sr = await SprintService.GetSprintByIdAsync(SprintId);
+            if (sr.Success && sr.Data != null)
             {
-                sprint = sprintResult.Data;
+                sprint = sr.Data;
                 isEditable = sprint.Status == "Completed";
+                var mr = await ProjectService.GetProjectMembersAsync(sprint.ProjectId);
+                if (mr.Success && mr.Data != null)
+                {
+                    var m = mr.Data.FirstOrDefault(x => x.UserId == currentUserId);
+                    isViewer = m?.Role == "Viewer";
+                }
             }
-
-            var retroResult = await RetrospectiveService.GetRetrospectiveBoardAsync(SprintId);
-            if (retroResult.Success && retroResult.Data != null)
-            {
-                retrospective = retroResult.Data;
-                CalculateTopItems();
-            }
+            var rr = await RetrospectiveService.GetRetrospectiveBoardAsync(SprintId);
+            if (rr.Success && rr.Data != null) retrospective = rr.Data;
         }
         catch { }
-        finally
-        {
-            isLoading = false;
-        }
+        finally { isLoading = false; StateHasChanged(); }
     }
 
-    private void CalculateTopItems()
+    private async Task AddItem(string label)
     {
-        if (retrospective == null) return;
-        topGoodItem = retrospective.GoodItems.OrderByDescending(i => i.VoteCount).FirstOrDefault()?.Content ?? "—";
-        topBadItem = retrospective.BadItems.OrderByDescending(i => i.VoteCount).FirstOrDefault()?.Content ?? "—";
-        topIdeaItem = retrospective.Ideas.OrderByDescending(i => i.VoteCount).FirstOrDefault()?.Content ?? "—";
-        topActionItem = retrospective.Actions.OrderByDescending(i => i.VoteCount).FirstOrDefault()?.Content ?? "—";
-    }
-
-    private async Task AddItem(string category)
-    {
-        if (isViewer) return;
-        var content = category switch
-        {
-            "Good" => newGoodItem,
-            "Bad" => newBadItem,
-            "Idea" => newIdeaItem,
-            "Action" => newActionItem,
-            _ => ""
-        };
-
+        if (isViewer || !isEditable) return;
+        var content = GetTextField(label);
         if (string.IsNullOrWhiteSpace(content)) return;
 
-        var r = await RetrospectiveService.AddRetrospectiveItemAsync(SprintId,
-            new AddRetrospectiveItemRequest { Category = category, Content = content });
+        var apiCategory = label switch { "Liked" => "Good", "Learned" => "Idea", "Lacked" => "Bad", "Actions" => "Action", _ => label };
 
+        var r = await RetrospectiveService.AddRetrospectiveItemAsync(SprintId, new AddRetrospectiveItemRequest { Category = apiCategory, Content = content });
         if (r.Success)
         {
-            switch (category)
-            {
-                case "Good": newGoodItem = ""; break;
-                case "Bad": newBadItem = ""; break;
-                case "Idea": newIdeaItem = ""; break;
-                case "Action": newActionItem = ""; break;
-            }
+            SetTextField(label, "");
+            StateHasChanged();
             await LoadData();
         }
+        else await DialogService.AlertAsync(r.Message ?? "Ошибка", "Ошибка", "", "danger");
     }
 
-    private async Task ToggleVote(Guid itemId, bool addVote)
+    private async Task ToggleVote(Guid id, bool add)
     {
-        if (isViewer) return;
-        ApiResponse result;
-        if (addVote)
-        {
-            result = await RetrospectiveService.VoteRetrospectiveItemAsync(itemId);
-        }
-        else
-        {
-            result = await RetrospectiveService.RemoveVoteAsync(itemId);
-        }
-        if (result.Success) await LoadData();
-    }
-
-    private async Task DeleteItem(Guid itemId)
-    {
-        if (isViewer) return;
-        var ok = await DialogService.ConfirmAsync("Удалить этот элемент?", "Удаление", "Удалить", "danger");
-        if (!ok) return;
-        var r = await RetrospectiveService.DeleteRetrospectiveItemAsync(itemId);
+        if (isViewer || !isEditable) return;
+        var r = add ? await RetrospectiveService.VoteRetrospectiveItemAsync(id) : await RetrospectiveService.RemoveVoteAsync(id);
         if (r.Success) await LoadData();
     }
 
-    private void GoBack()
+    private async Task DeleteItem(Guid id)
     {
-        Navigation.NavigateTo("/sprints");
+        if (isViewer || !isEditable) return;
+        if (!await DialogService.ConfirmAsync("Удалить элемент?", "Удаление", "Удалить", "danger")) return;
+        var r = await RetrospectiveService.DeleteRetrospectiveItemAsync(id);
+        if (r.Success) await LoadData();
     }
 
-    private class StringRef
+    private async Task ExportRetro()
     {
-        private readonly Func<string> _getter;
-        private readonly Action<string> _setter;
-
-        public StringRef(Func<string> getter, Action<string> setter)
-        {
-            _getter = getter;
-            _setter = setter;
-        }
-
-        public string Value
-        {
-            get => _getter();
-            set => _setter(value);
-        }
+        var text = $"РЕТРОСПЕКТИВА\nСпринт: {sprint?.Name}\n{sprint?.StartDate:dd.MM.yyyy} — {sprint?.EndDate:dd.MM.yyyy}\n\n" +
+                   "=== Что прошло хорошо ===\n" + string.Join("\n", (retrospective?.GoodItems ?? new()).Select(i => $"• {i.Content} ({i.VoteCount}🗳)")) + "\n\n" +
+                   "=== Чему научились ===\n" + string.Join("\n", (retrospective?.Ideas ?? new()).Select(i => $"• {i.Content} ({i.VoteCount}🗳)")) + "\n\n" +
+                   "=== Чего не хватило ===\n" + string.Join("\n", (retrospective?.BadItems ?? new()).Select(i => $"• {i.Content} ({i.VoteCount}🗳)")) + "\n\n" +
+                   "=== Действия ===\n" + string.Join("\n", (retrospective?.Actions ?? new()).Select(i => $"• {i.Content} ({i.VoteCount}🗳)"));
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", text);
+        await DialogService.AlertAsync("Скопировано в буфер обмена", "Экспорт", "", "success");
     }
+
+    private void GoBack() => Navigation.NavigateTo($"/sprints/{SprintId}");
 }

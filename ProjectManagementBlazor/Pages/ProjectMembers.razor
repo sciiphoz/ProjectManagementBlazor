@@ -413,7 +413,7 @@
                     await DialogService.AlertAsync(
                         $"Приглашение отправлено на {inviteEmail}. Пользователь присоединится к проекту после принятия приглашения.",
                         "Приглашение отправлено",
-                        "bi bi-envelope-check",
+                        "",
                         "success");
                 }
                 else
@@ -422,7 +422,7 @@
                     await DialogService.AlertAsync(
                         $"Пользователь {r.Data.FullName} добавлен в проект.",
                         "Участник добавлен",
-                        "bi bi-person-check",
+                        "",
                         "success");
                 }
 

@@ -65,6 +65,12 @@
                             <i class="bi bi-x me-1"></i> Отменить
                         </button>
                     }
+                    @if (sprint.Status == "Completed")
+                    {
+                        <button class="btn btn-outline-info btn-sm" @onclick="GoToRetrospective">
+                            <i class="bi bi-people me-1"></i> Ретроспектива
+                        </button>
+                    }
                 }
             </div>
         </div>
@@ -188,15 +194,15 @@
                         <button type="button" class="btn-close btn-close-white" @onclick="CloseTaskDetail"></button>
                     </div>
                     <div class="modal-body p-0">
-                        <ul class="nav nav-tabs px-3 pt-3">
+                        <ul class="nav nav-tabs px-3 pt-3 flex-nowrap">
                             <li class="nav-item"><button class="nav-link @(taskDetailTab == "info" ? "active" : "")" @onclick="ShowInfoTab"><i class="bi bi-info-circle me-1"></i> Описание</button></li>
-                            <li class="nav-item"><button class="nav-link @(taskDetailTab == "subtasks" ? "active" : "")" @onclick="ShowSubtasksTab"><i class="bi bi-list-check me-1"></i> Подзадачи @(taskDetail.SubTasks?.Any() == true ? $"({taskDetail.SubTasks.Count})" : "")</button></li>
+                            <li class="nav-item"><button class="nav-link @(taskDetailTab == "subtasks" ? "active" : "")" @onclick="ShowSubtasksTab"><i class="bi bi-list-check me-1"></i> Подзадачи</button></li>
                             @if (!isViewer)
                             {
-                                <li class="nav-item"><button class="nav-link @(taskDetailTab == "comments" ? "active" : "")" @onclick="ShowCommentsTab"><i class="bi bi-chat me-1"></i> Комментарии @(taskDetail.Comments?.Any() == true ? $"({taskDetail.Comments.Count})" : "")</button></li>
+                                <li class="nav-item"><button class="nav-link @(taskDetailTab == "comments" ? "active" : "")" @onclick="ShowCommentsTab"><i class="bi bi-chat me-1"></i> Комментарии</button></li>
                             }
-                            <li class="nav-item"><button class="nav-link @(taskDetailTab == "blockers" ? "active" : "")" @onclick="ShowBlockersTab"><i class="bi bi-exclamation-triangle me-1"></i> Блокеры @(taskDetail.ActiveBlockers?.Any() == true ? $"({taskDetail.ActiveBlockers.Count})" : "")</button></li>
-                            <li class="nav-item"><button class="nav-link @(taskDetailTab == "attachments" ? "active" : "")" @onclick="ShowAttachmentsTab"><i class="bi bi-paperclip me-1"></i> Вложения @(taskDetail.Attachments?.Any() == true ? $"({taskDetail.Attachments.Count})" : "")</button></li>
+                            <li class="nav-item"><button class="nav-link @(taskDetailTab == "blockers" ? "active" : "")" @onclick="ShowBlockersTab"><i class="bi bi-exclamation-triangle me-1"></i> Блокеры</button></li>
+                            <li class="nav-item"><button class="nav-link @(taskDetailTab == "attachments" ? "active" : "")" @onclick="ShowAttachmentsTab"><i class="bi bi-paperclip me-1"></i> Вложения</button></li>
                         </ul>
                         <div class="p-3">
                             @if (taskDetailTab == "info")
@@ -755,6 +761,21 @@
         justify-content: center;
         border-radius: 50%;
     }
+
+    .nav-tabs.flex-nowrap {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+    }
+
+        .nav-tabs.flex-nowrap .nav-item {
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .nav-tabs.flex-nowrap .nav-link {
+            font-size: 0.78rem;
+            padding: 0.4rem 0.6rem;
+        }
 
     .attachments-list {
         display: flex;
@@ -1518,7 +1539,7 @@
         if (r.Success)
         {
             await LoadSprint();
-            await DialogService.AlertAsync("Спринт запущен", "", "bi bi-play-circle", "success");
+            await DialogService.AlertAsync("Спринт запущен", "", "", "success");
         }
         else
         {
@@ -1551,7 +1572,7 @@
         {
             CloseCompleteModal();
             await LoadSprint();
-            await DialogService.AlertAsync("Спринт завершён", "", "bi bi-check-circle", "success");
+            await DialogService.AlertAsync("Спринт завершён", "", "", "success");
         }
         else
         {
@@ -1574,7 +1595,7 @@
         if (r.Success)
         {
             await LoadSprint();
-            await DialogService.AlertAsync("Спринт отменён", "", "bi bi-x-circle", "info");
+            await DialogService.AlertAsync("Спринт отменён", "", "", "info");
         }
         else
         {

@@ -459,7 +459,7 @@
             }
 
             await JS.InvokeVoidAsync("navigator.clipboard.writeText", sb.ToString());
-            await DialogService.AlertAsync("Сводка скопирована в буфер обмена", "", "bi bi-clipboard-check", "success");
+            await DialogService.AlertAsync("Сводка скопирована в буфер обмена", "", "", "success");
         }
         catch (Exception ex)
         {

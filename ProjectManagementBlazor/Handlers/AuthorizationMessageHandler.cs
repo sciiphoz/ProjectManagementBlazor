@@ -12,6 +12,7 @@ namespace ProjectManagementBlazor.Handlers
     {
         private readonly ILocalStorageService _localStorage;
         private readonly NavigationManager _navigationManager;
+        private static readonly SemaphoreSlim _refreshLock = new SemaphoreSlim(1, 1);
 
         public AuthorizationMessageHandler(ILocalStorageService localStorage, NavigationManager navigationManager)
         {
@@ -23,16 +24,8 @@ namespace ProjectManagementBlazor.Handlers
             HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
-            // НЕ трогаем запросы аутентификации — они должны идти как есть
             var path = request.RequestUri?.AbsolutePath ?? "";
-            var isAuthEndpoint = path.Contains("/auth/login") ||
-                                 path.Contains("/auth/register") ||
-                                 path.Contains("/auth/refresh-token") ||
-                                 path.Contains("/auth/forgot-password") ||
-                                 path.Contains("/auth/reset-password") ||
-                                 path.Contains("/auth/verify-reset-code") ||
-                                 path.Contains("/auth/reset-password-with-code") ||
-                                 path.Contains("/auth/confirm-email");
+            var isAuthEndpoint = path.Contains("/auth/");
 
             if (!isAuthEndpoint)
             {
@@ -58,6 +51,9 @@ namespace ProjectManagementBlazor.Handlers
 
                 await _localStorage.RemoveItemAsync("authToken");
                 await _localStorage.RemoveItemAsync("refreshToken");
+                _navigationManager.NavigateTo("/login", true);
+
+                return response;
             }
 
             return response;
@@ -65,6 +61,9 @@ namespace ProjectManagementBlazor.Handlers
 
         private async Task<string?> TryRefreshToken()
         {
+            if (!await _refreshLock.WaitAsync(TimeSpan.FromSeconds(3)))
+                return null;
+
             try
             {
                 var refreshToken = await _localStorage.GetItemAsStringAsync("refreshToken");
@@ -88,17 +87,17 @@ namespace ProjectManagementBlazor.Handlers
                     if (result?.Success == true && result.Data != null)
                     {
                         await _localStorage.SetItemAsStringAsync("authToken", result.Data.Token);
-
                         if (!string.IsNullOrEmpty(result.Data.RefreshToken))
-                        {
                             await _localStorage.SetItemAsStringAsync("refreshToken", result.Data.RefreshToken);
-                        }
-
                         return result.Data.Token;
                     }
                 }
             }
             catch { }
+            finally
+            {
+                _refreshLock.Release();
+            }
 
             return null;
         }
@@ -106,23 +105,15 @@ namespace ProjectManagementBlazor.Handlers
         private async Task<HttpRequestMessage> CloneRequest(HttpRequestMessage request)
         {
             var clone = new HttpRequestMessage(request.Method, request.RequestUri);
-
             if (request.Content != null)
             {
                 var content = await request.Content.ReadAsStringAsync();
                 clone.Content = new StringContent(content);
-
                 if (request.Content.Headers.ContentType != null)
-                {
                     clone.Content.Headers.ContentType = request.Content.Headers.ContentType;
-                }
             }
-
             foreach (var header in request.Headers)
-            {
                 clone.Headers.TryAddWithoutValidation(header.Key, header.Value);
-            }
-
             return clone;
         }
     }

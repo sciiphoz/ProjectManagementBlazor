@@ -9,9 +9,7 @@ namespace ProjectManagementBlazor.Services
     public class RetrospectiveService : BaseApiService, IRetrospectiveService
     {
         public RetrospectiveService(HttpClient httpClient, IErrorHandlingService errorHandling)
-            : base(httpClient, errorHandling)
-        {
-        }
+            : base(httpClient, errorHandling) { }
 
         public async Task<ApiResponse<RetrospectiveBoardResponse>> GetRetrospectiveBoardAsync(Guid sprintId)
         {
@@ -23,17 +21,7 @@ namespace ProjectManagementBlazor.Services
         public async Task<ApiResponse<RetrospectiveItemResponse>> AddRetrospectiveItemAsync(Guid sprintId, AddRetrospectiveItemRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.Content))
-            {
-                await _errorHandling.TriggerError("Содержание элемента не может быть пустым");
-                return ApiResponse<RetrospectiveItemResponse>.Fail("Содержание элемента не может быть пустым");
-            }
-
-            var validCategories = new[] { "Good", "Bad", "Idea", "Action" };
-            if (!validCategories.Contains(request.Category))
-            {
-                await _errorHandling.TriggerError("Неверная категория элемента");
-                return ApiResponse<RetrospectiveItemResponse>.Fail("Неверная категория элемента");
-            }
+                return ApiResponse<RetrospectiveItemResponse>.Fail("Содержание не может быть пустым");
 
             return await SendRequestAsync<RetrospectiveItemResponse>(
                 () => _httpClient.PostAsJsonAsync($"api/retrospective/sprint/{sprintId}/items", request),

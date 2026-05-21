@@ -773,7 +773,7 @@
         { 
             CloseMoveModal(); 
             await LoadBacklog(); 
-            await DialogService.AlertAsync("Задача перемещена в спринт", "", "bi bi-arrow-right-circle", "success"); 
+            await DialogService.AlertAsync("Задача перемещена в спринт", "", "", "success"); 
         }
         else await ErrorHandling.TriggerError(r.Message);
     }

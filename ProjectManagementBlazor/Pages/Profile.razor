@@ -190,7 +190,7 @@
     private async Task UpdateProfile()
     {
         isSaving = true;
-        try { var r = await UserService.UpdateProfileAsync(profileRequest); if (r.Success) { await LoadUserData(); await DialogService.AlertAsync("Профиль обновлён", "", "bi bi-check-circle", "success"); } else await ErrorHandling.TriggerError(r.Message); }
+        try { var r = await UserService.UpdateProfileAsync(profileRequest); if (r.Success) { await LoadUserData(); await DialogService.AlertAsync("Профиль обновлён", "", "", "success"); } else await ErrorHandling.TriggerError(r.Message); }
         catch { await ErrorHandling.TriggerError("Ошибка"); }
         finally { isSaving = false; }
     }
@@ -198,7 +198,7 @@
     private async Task ChangePassword()
     {
         isSavingPassword = true;
-        try { var r = await UserService.ChangePasswordAsync(passwordRequest); if (r.Success) { passwordRequest = new(); await DialogService.AlertAsync("Пароль изменён", "", "bi bi-shield-check", "success"); } else await ErrorHandling.TriggerError(r.Message); }
+        try { var r = await UserService.ChangePasswordAsync(passwordRequest); if (r.Success) { passwordRequest = new(); await DialogService.AlertAsync("Пароль изменён", "", "", "success"); } else await ErrorHandling.TriggerError(r.Message); }
         catch { await ErrorHandling.TriggerError("Ошибка"); }
         finally { isSavingPassword = false; }
     }
