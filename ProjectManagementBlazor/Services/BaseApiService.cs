@@ -34,54 +34,6 @@ namespace ProjectManagementBlazor.Services
             };
         }
 
-        protected async Task<ApiResponse<T>> SendRequestAsync<T>(
-            Func<Task<HttpResponseMessage>> requestFunc,
-            string errorMessage)
-        {
-            try
-            {
-                var response = await requestFunc();
-                var content = await response.Content.ReadAsStringAsync();
-
-                // Проверка 401 — токен истёк
-                if (response.StatusCode == HttpStatusCode.Unauthorized)
-                {
-                    _navigationManager?.NavigateTo("/login", true);
-                    return ApiResponse<T>.Fail("Требуется авторизация");
-                }
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    var error = $"Ошибка {response.StatusCode}: {errorMessage}";
-                    await _errorHandling.TriggerError(error);
-                    return ApiResponse<T>.Fail(error);
-                }
-
-                var result = JsonSerializer.Deserialize<ApiResponse<T>>(content, _options);
-                return result ?? ApiResponse<T>.Fail("Ошибка десериализации ответа");
-            }
-            catch (HttpRequestException ex)
-            {
-                await _errorHandling.TriggerError($"Ошибка сети: {ex.Message}");
-                return ApiResponse<T>.Fail("Ошибка подключения к серверу. Проверьте соединение.");
-            }
-            catch (TaskCanceledException)
-            {
-                await _errorHandling.TriggerError("Превышено время ожидания ответа от сервера");
-                return ApiResponse<T>.Fail("Превышено время ожидания ответа от сервера");
-            }
-            catch (JsonException ex)
-            {
-                await _errorHandling.TriggerError($"Ошибка обработки данных: {ex.Message}");
-                return ApiResponse<T>.Fail("Ошибка обработки данных от сервера");
-            }
-            catch (Exception ex)
-            {
-                await _errorHandling.TriggerError($"Неизвестная ошибка: {ex.Message}");
-                return ApiResponse<T>.Fail("Произошла неизвестная ошибка");
-            }
-        }
-
         protected async Task<ApiResponse> SendRequestAsync(
             Func<Task<HttpResponseMessage>> requestFunc,
             string errorMessage)
@@ -89,39 +41,46 @@ namespace ProjectManagementBlazor.Services
             try
             {
                 var response = await requestFunc();
-                var content = await response.Content.ReadAsStringAsync();
 
-                // Проверка 401 — токен истёк
-                if (response.StatusCode == HttpStatusCode.Unauthorized)
+                if (response.IsSuccessStatusCode)
                 {
-                    _navigationManager?.NavigateTo("/login", true);
-                    return ApiResponse.Fail("Требуется авторизация");
+                    var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse>();
+                    return apiResponse ?? ApiResponse.Ok();
                 }
-
-                if (!response.IsSuccessStatusCode)
+                else
                 {
-                    var error = $"Ошибка {response.StatusCode}: {errorMessage}";
-                    await _errorHandling.TriggerError(error);
-                    return ApiResponse.Fail(error);
+                    var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse>();
+                    return apiResponse ?? ApiResponse.Fail(errorMessage);
                 }
-
-                var result = JsonSerializer.Deserialize<ApiResponse>(content, _options);
-                return result ?? ApiResponse.Fail("Ошибка десериализации ответа");
-            }
-            catch (HttpRequestException ex)
-            {
-                await _errorHandling.TriggerError($"Ошибка сети: {ex.Message}");
-                return ApiResponse.Fail("Ошибка подключения к серверу. Проверьте соединение.");
-            }
-            catch (TaskCanceledException)
-            {
-                await _errorHandling.TriggerError("Превышено время ожидания ответа от сервера");
-                return ApiResponse.Fail("Превышено время ожидания ответа от сервера");
             }
             catch (Exception ex)
             {
-                await _errorHandling.TriggerError($"Неизвестная ошибка: {ex.Message}");
-                return ApiResponse.Fail("Произошла неизвестная ошибка");
+                return ApiResponse.Fail($"{errorMessage}: {ex.Message}");
+            }
+        }
+
+        protected async Task<ApiResponse<T>> SendRequestAsync<T>(
+            Func<Task<HttpResponseMessage>> requestFunc,
+            string errorMessage)
+        {
+            try
+            {
+                var response = await requestFunc();
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse<T>>();
+                    return apiResponse ?? ApiResponse<T>.Fail(errorMessage);
+                }
+                else
+                {
+                    var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse<T>>();
+                    return apiResponse ?? ApiResponse<T>.Fail(errorMessage);
+                }
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<T>.Fail($"{errorMessage}: {ex.Message}");
             }
         }
     }

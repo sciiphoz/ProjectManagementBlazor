@@ -23,15 +23,29 @@ namespace ProjectManagementBlazor.Handlers
             HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
-            var token = await _localStorage.GetItemAsStringAsync("authToken");
-            if (!string.IsNullOrEmpty(token))
+            // НЕ трогаем запросы аутентификации — они должны идти как есть
+            var path = request.RequestUri?.AbsolutePath ?? "";
+            var isAuthEndpoint = path.Contains("/auth/login") ||
+                                 path.Contains("/auth/register") ||
+                                 path.Contains("/auth/refresh-token") ||
+                                 path.Contains("/auth/forgot-password") ||
+                                 path.Contains("/auth/reset-password") ||
+                                 path.Contains("/auth/verify-reset-code") ||
+                                 path.Contains("/auth/reset-password-with-code") ||
+                                 path.Contains("/auth/confirm-email");
+
+            if (!isAuthEndpoint)
             {
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                var token = await _localStorage.GetItemAsStringAsync("authToken");
+                if (!string.IsNullOrEmpty(token))
+                {
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                }
             }
 
             var response = await base.SendAsync(request, cancellationToken);
 
-            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            if (response.StatusCode == HttpStatusCode.Unauthorized && !isAuthEndpoint)
             {
                 var newToken = await TryRefreshToken();
 
@@ -44,7 +58,6 @@ namespace ProjectManagementBlazor.Handlers
 
                 await _localStorage.RemoveItemAsync("authToken");
                 await _localStorage.RemoveItemAsync("refreshToken");
-                _navigationManager.NavigateTo("/login", true);
             }
 
             return response;

@@ -4,46 +4,56 @@ using ProjectManagementBlazor.DTO.Requests;
 using ProjectManagementBlazor.DTO.Responses;
 using ProjectManagementBlazor.Interfaces;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace ProjectManagementBlazor.Services
 {
-    public class AuthService : BaseApiService, IAuthService
+    public class AuthService : IAuthService
     {
+        private readonly HttpClient _httpClient;
         private readonly AuthenticationStateProvider _authStateProvider;
 
         public AuthService(
             HttpClient httpClient,
-            IErrorHandlingService errorHandling,
             AuthenticationStateProvider authStateProvider)
-            : base(httpClient, errorHandling)
         {
+            _httpClient = httpClient;
             _authStateProvider = authStateProvider;
         }
 
         public async Task<ApiResponse<AuthResponse>> LoginAsync(LoginRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.UsernameOrEmail))
-            {
-                await _errorHandling.TriggerError("Введите логин или email");
                 return ApiResponse<AuthResponse>.Fail("Введите логин или email");
-            }
 
             if (string.IsNullOrWhiteSpace(request.Password))
-            {
-                await _errorHandling.TriggerError("Введите пароль");
                 return ApiResponse<AuthResponse>.Fail("Введите пароль");
-            }
 
-            var result = await SendRequestAsync<AuthResponse>(
-                () => _httpClient.PostAsJsonAsync("api/auth/login", request),
-                "Не удалось выполнить вход");
-
-            if (result.Success && result.Data != null && _authStateProvider is CustomAuthStateProvider customProvider)
+            try
             {
-                await customProvider.MarkUserAsAuthenticated(result.Data.Token);
-            }
+                var response = await _httpClient.PostAsJsonAsync("api/auth/login", request);
+                var content = await response.Content.ReadAsStringAsync();
 
-            return result;
+                Console.WriteLine($"Login HTTP {response.StatusCode}: {content}");
+
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var apiResponse = JsonSerializer.Deserialize<ApiResponse<AuthResponse>>(content, options);
+
+                if (apiResponse == null)
+                    return ApiResponse<AuthResponse>.Fail("Не удалось выполнить вход");
+
+                if (apiResponse.Success && apiResponse.Data != null && _authStateProvider is CustomAuthStateProvider customProvider)
+                {
+                    await customProvider.MarkUserAsAuthenticated(apiResponse.Data.Token);
+                }
+
+                return apiResponse;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Login exception: {ex.Message}");
+                return ApiResponse<AuthResponse>.Fail($"Не удалось выполнить вход: {ex.Message}");
+            }
         }
 
         public async Task<ApiResponse> LogoutAsync()
@@ -58,45 +68,53 @@ namespace ProjectManagementBlazor.Services
         public async Task<ApiResponse<AuthResponse>> RegisterAsync(RegisterRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.Username))
-            {
-                await _errorHandling.TriggerError("Введите имя пользователя");
                 return ApiResponse<AuthResponse>.Fail("Введите имя пользователя");
-            }
 
             if (string.IsNullOrWhiteSpace(request.Email))
-            {
-                await _errorHandling.TriggerError("Введите email");
                 return ApiResponse<AuthResponse>.Fail("Введите email");
-            }
 
             if (string.IsNullOrWhiteSpace(request.Password))
-            {
-                await _errorHandling.TriggerError("Введите пароль");
                 return ApiResponse<AuthResponse>.Fail("Введите пароль");
-            }
 
             if (request.Password != request.ConfirmPassword)
-            {
-                await _errorHandling.TriggerError("Пароли не совпадают");
                 return ApiResponse<AuthResponse>.Fail("Пароли не совпадают");
-            }
 
             if (request.Password.Length < 6)
-            {
-                await _errorHandling.TriggerError("Пароль должен содержать минимум 6 символов");
                 return ApiResponse<AuthResponse>.Fail("Пароль должен содержать минимум 6 символов");
-            }
 
-            return await SendRequestAsync<AuthResponse>(
-                () => _httpClient.PostAsJsonAsync("api/auth/register", request),
-                "Не удалось зарегистрироваться");
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync("api/auth/register", request);
+                var content = await response.Content.ReadAsStringAsync();
+
+                Console.WriteLine($"Register HTTP {response.StatusCode}: {content}");
+
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var apiResponse = JsonSerializer.Deserialize<ApiResponse<AuthResponse>>(content, options);
+
+                return apiResponse ?? ApiResponse<AuthResponse>.Fail("Не удалось зарегистрироваться");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Register exception: {ex.Message}");
+                return ApiResponse<AuthResponse>.Fail($"Не удалось зарегистрироваться: {ex.Message}");
+            }
         }
 
         public async Task<ApiResponse<UserResponse>> GetCurrentUserAsync()
         {
-            return await SendRequestAsync<UserResponse>(
-                () => _httpClient.GetAsync("api/users/me"),
-                "Не удалось получить данные пользователя");
+            try
+            {
+                var response = await _httpClient.GetAsync("api/users/me");
+                var content = await response.Content.ReadAsStringAsync();
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var apiResponse = JsonSerializer.Deserialize<ApiResponse<UserResponse>>(content, options);
+                return apiResponse ?? ApiResponse<UserResponse>.Fail("Не удалось получить данные пользователя");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<UserResponse>.Fail($"Ошибка: {ex.Message}");
+            }
         }
     }
 }

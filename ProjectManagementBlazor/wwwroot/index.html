@@ -223,27 +223,256 @@
     window.drawVelocityChart = (sprintHistory) => {
         try {
             const canvas = document.getElementById('velocityChart');
-            if (!canvas) { setTimeout(() => window.drawVelocityChart(sprintHistory), 100); return; }
+            if (!canvas) {
+                setTimeout(() => window.drawVelocityChart(sprintHistory), 100);
+                return;
+            }
+
             if (!sprintHistory || sprintHistory.length === 0) return;
-            if (window.velocityChartInstance) window.velocityChartInstance.destroy();
+
+            if (window.velocityChartInstance) {
+                window.velocityChartInstance.destroy();
+                window.velocityChartInstance = null;
+            }
+
+            const labels = sprintHistory.map(s => s.sprintName || 'Без названия');
+            const completed = sprintHistory.map(s => s.completedStoryPoints || 0);
+            const total = sprintHistory.map(s => s.totalStoryPoints || 0);
 
             window.velocityChartInstance = new Chart(canvas, {
                 type: 'bar',
                 data: {
-                    labels: sprintHistory.map(s => s.sprintName),
+                    labels: labels,
                     datasets: [
-                        { label: 'Выполнено SP', data: sprintHistory.map(s => s.completedStoryPoints), backgroundColor: 'rgba(40,167,69,0.7)', borderColor: 'rgb(40,167,69)', borderWidth: 1 },
-                        { label: 'Запланировано SP', data: sprintHistory.map(s => s.totalStoryPoints), backgroundColor: 'rgba(23,162,184,0.7)', borderColor: 'rgb(23,162,184)', borderWidth: 1 }
+                        {
+                            label: 'Выполнено SP',
+                            data: completed,
+                            backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                            borderColor: 'rgb(34, 197, 94)',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            barPercentage: 0.5,
+                            categoryPercentage: 0.7
+                        },
+                        {
+                            label: 'Запланировано SP',
+                            data: total,
+                            backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                            borderColor: 'rgb(59, 130, 246)',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            barPercentage: 0.5,
+                            categoryPercentage: 0.7
+                        }
                     ]
                 },
                 options: {
-                    responsive: true, maintainAspectRatio: true,
-                    plugins: { legend: { position: 'top' }, title: { display: true, text: 'Velocity Chart' } },
-                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20,
+                                font: { size: 12 },
+                                color: '#475569'
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Velocity Chart (Story Points)',
+                            font: { size: 16, weight: 'bold' },
+                            color: '#475569',
+                            padding: { bottom: 15 }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1,
+                                font: { size: 12 },
+                                color: '#64748B'
+                            },
+                            grid: { color: 'rgba(148, 163, 184, 0.15)' }
+                        },
+                        x: {
+                            ticks: {
+                                font: { size: 12, weight: '500' },
+                                color: '#475569'
+                            },
+                            grid: { display: false }
+                        }
+                    }
                 }
             });
         } catch (error) {
-            console.error('Ошибка Velocity:', error);
+            console.error('Velocity: ошибка', error);
+        }
+    };
+</script>
+
+<script>
+    window.drawCycleTimeChart = (cycleTimeData) => {
+        try {
+            const canvas = document.getElementById('cycleTimeChart');
+            if (!canvas) {
+                setTimeout(() => window.drawCycleTimeChart(cycleTimeData), 100);
+                return;
+            }
+
+            if (!cycleTimeData || cycleTimeData.length === 0) return;
+
+            if (window.cycleTimeChartInstance) {
+                window.cycleTimeChartInstance.destroy();
+                window.cycleTimeChartInstance = null;
+            }
+
+            const typeGroups = {};
+            cycleTimeData.forEach(t => {
+                const type = t.type || 'Other';
+                if (!typeGroups[type]) {
+                    typeGroups[type] = { count: 0, totalDays: 0 };
+                }
+                typeGroups[type].count++;
+                typeGroups[type].totalDays += t.cycleDays;
+            });
+
+            const typeNames = {
+                'UserStory': 'Истории',
+                'Bug': 'Баг',
+                'TechnicalTask': 'Тех. задача',
+                'Improvement': 'Улучшение'
+            };
+
+            const keys = Object.keys(typeGroups);
+            const labels = keys.map(k => typeNames[k] || k);
+            const counts = keys.map(k => typeGroups[k].count);
+
+            const colors = [
+                'rgba(59, 130, 246, 0.9)',
+                'rgba(239, 68, 68, 0.9)',
+                'rgba(234, 179, 8, 0.9)',
+                'rgba(34, 197, 94, 0.9)',
+                'rgba(168, 85, 247, 0.9)'
+            ];
+
+            // Определяем, тёмная ли тема, по фону canvas или его родителя
+            let isDark = false;
+
+            // Проверяем ближайший родительский элемент с фоном
+            let parent = canvas.parentElement;
+            while (parent && !isDark) {
+                const bgColor = getComputedStyle(parent).backgroundColor;
+                if (bgColor && bgColor !== 'rgba(0, 0, 0, 0)' && bgColor !== 'transparent') {
+                    // Анализируем яркость фона
+                    const rgb = bgColor.match(/\d+/g);
+                    if (rgb && rgb.length >= 3) {
+                        const brightness = (parseInt(rgb[0]) * 299 + parseInt(rgb[1]) * 587 + parseInt(rgb[2]) * 114) / 1000;
+                        isDark = brightness < 128;
+                    }
+                    break;
+                }
+                parent = parent.parentElement;
+            }
+
+            // Резервный вариант — проверяем data-bs-theme
+            if (!isDark) {
+                const theme = document.documentElement.getAttribute('data-bs-theme');
+                isDark = theme === 'dark';
+            }
+
+            const textColor = isDark ? '#CBD5E1' : '#334155';
+            const borderColor = isDark ? '#1E293B' : '#FFFFFF';
+
+            window.cycleTimeChartInstance = new Chart(canvas, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: counts,
+                        backgroundColor: colors.slice(0, labels.length),
+                        borderColor: borderColor,
+                        borderWidth: 3,
+                        hoverBorderWidth: 4,
+                        hoverBorderColor: borderColor
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    cutout: '50%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            align: 'center',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                boxWidth: 14,
+                                boxHeight: 14,
+                                generateLabels: function (chart) {
+                                    const data = chart.data;
+                                    if (data.labels.length && data.datasets.length) {
+                                        return data.labels.map((label, i) => {
+                                            const key = keys[i];
+                                            const avg = (typeGroups[key].totalDays / typeGroups[key].count).toFixed(1);
+                                            return {
+                                                text: `${label}: ${typeGroups[key].count} шт. (≈${avg} дн.)`,
+                                                fillStyle: data.datasets[0].backgroundColor[i],
+                                                strokeStyle: data.datasets[0].backgroundColor[i],
+                                                lineWidth: 0,
+                                                hidden: false,
+                                                index: i,
+                                                pointStyle: 'circle',
+                                                rotation: 0
+                                            };
+                                        });
+                                    }
+                                    return [];
+                                },
+                                font: {
+                                    size: 12,
+                                    weight: '500'
+                                },
+                                color: textColor
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Распределение задач по типам',
+                            font: {
+                                size: 15,
+                                weight: 'bold'
+                            },
+                            color: textColor,
+                            padding: { bottom: 10 }
+                        },
+                        tooltip: {
+                            backgroundColor: isDark ? 'rgba(30, 41, 59, 0.98)' : 'rgba(15, 23, 42, 0.95)',
+                            titleColor: '#F8FAFC',
+                            bodyColor: '#E2E8F0',
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 13 },
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: (context) => {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                    const key = keys[context.dataIndex];
+                                    const avg = (typeGroups[key].totalDays / typeGroups[key].count).toFixed(1);
+                                    return `Задач: ${context.parsed} (${percentage}%) | ≈${avg} дн.`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('CycleTime: ошибка', error);
         }
     };
 </script>
@@ -253,40 +482,138 @@
     window.drawGanttChart = (tasks, sprintStartDate, sprintEndDate) => {
         try {
             const canvas = document.getElementById('ganttChart');
-            if (!canvas) { if (++ganttDrawAttempt < 5) setTimeout(() => window.drawGanttChart(tasks, sprintStartDate, sprintEndDate), 200); return; }
-            if (window.ganttChartInstance) { window.ganttChartInstance.destroy(); window.ganttChartInstance = null; }
-            if (!tasks || tasks.length === 0) { ganttDrawAttempt = 0; return; }
+            if (!canvas) {
+                if (++ganttDrawAttempt < 5) setTimeout(() => window.drawGanttChart(tasks, sprintStartDate, sprintEndDate), 200);
+                return;
+            }
+            if (window.ganttChartInstance) {
+                window.ganttChartInstance.destroy();
+                window.ganttChartInstance = null;
+            }
+            if (!tasks || tasks.length === 0) {
+                ganttDrawAttempt = 0;
+                return;
+            }
 
-            const getColor = s => ({ 'Done': { bg: 'rgba(40,167,69,0.7)', border: 'rgb(40,167,69)' }, 'InProgress': { bg: 'rgba(255,193,7,0.7)', border: 'rgb(255,193,7)' }, 'ToDo': { bg: 'rgba(108,117,125,0.7)', border: 'rgb(108,117,125)' } }[s] || { bg: 'rgba(173,181,189,0.7)', border: 'rgb(173,181,189)' });
-            const getStatusText = s => ({ 'Done': 'Выполнено', 'InProgress': 'В работе', 'ToDo': 'К выполнению' }[s] || s);
+            const taskCount = tasks.length;
+            const rowHeight = 44;
+            const minHeight = Math.max(400, taskCount * rowHeight + 100);
+            canvas.style.height = minHeight + 'px';
+            if (canvas.parentElement) canvas.parentElement.style.height = minHeight + 'px';
 
-            const datasets = tasks.map((t, i) => {
-                const c = getColor(t.status);
-                return {
-                    label: t.title,
-                    data: [{ x: [new Date(t.startDate).getTime(), new Date(t.endDate).getTime()], y: i }],
-                    backgroundColor: c.bg, borderColor: c.border, borderWidth: 1, borderRadius: 3, borderSkipped: false,
-                    taskInfo: t
-                };
-            }).reverse();
+            const getColor = s => ({
+                'Done': { bg: 'rgba(34, 197, 94, 0.9)', border: 'rgb(22, 163, 74)' },
+                'InProgress': { bg: 'rgba(234, 179, 8, 0.9)', border: 'rgb(202, 138, 4)' },
+                'ToDo': { bg: 'rgba(148, 163, 184, 0.85)', border: 'rgb(100, 116, 139)' }
+            }[s] || { bg: 'rgba(203, 213, 225, 0.85)', border: 'rgb(148, 163, 184)' });
+
+            const getStatusText = s => ({
+                'Done': 'Выполнено',
+                'InProgress': 'В работе',
+                'ToDo': 'К выполнению'
+            }[s] || s);
+
+            const sortedTasks = [...tasks].sort((a, b) => {
+                const order = { 'Done': 0, 'InProgress': 1, 'ToDo': 2 };
+                return (order[a.status] || 3) - (order[b.status] || 3);
+            });
+
+            const labels = sortedTasks.map(t => t.title.length > 30 ? t.title.substring(0, 28) + '…' : t.title);
+            const sprintStart = new Date(sprintStartDate).getTime();
+            const sprintEnd = new Date(sprintEndDate).getTime();
+
+            // Один датасет с плавающими барами — классический подход для Ганта
+            const datasets = [{
+                label: 'Задачи',
+                data: sortedTasks.map((t, i) => ({
+                    x: [new Date(t.startDate).getTime(), new Date(t.endDate).getTime()],
+                    y: labels[i]
+                })),
+                backgroundColor: sortedTasks.map(t => getColor(t.status).bg),
+                borderColor: sortedTasks.map(t => getColor(t.status).border),
+                borderWidth: 2,
+                borderRadius: 8,
+                borderSkipped: false,
+                barPercentage: 0.85,
+                categoryPercentage: 0.9,
+                taskInfo: sortedTasks
+            }];
 
             window.ganttChartInstance = new Chart(canvas, {
                 type: 'bar',
-                data: { labels: tasks.map(t => t.title).reverse(), datasets },
+                data: { labels, datasets },
                 options: {
-                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    parsing: {
+                        xAxisKey: 'x',
+                        yAxisKey: 'y'
+                    },
                     plugins: {
                         legend: { display: false },
-                        tooltip: { callbacks: { title: i => i[0].dataset.taskInfo.fullTitle, label: c => { const t = c.dataset.taskInfo; return [`Статус: ${getStatusText(t.status)}`, `SP: ${t.storyPoints}`, `${t.estimatedHours} ч.`, t.assignee]; } } },
-                        title: { display: true, text: 'Диаграмма Ганта', font: { size: 14, weight: 'bold' } }
+                        tooltip: {
+                            backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                            titleColor: '#F8FAFC',
+                            bodyColor: '#CBD5E1',
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 13 },
+                            padding: 14,
+                            cornerRadius: 8,
+                            displayColors: false,
+                            callbacks: {
+                                title: (items) => {
+                                    if (!items.length) return '';
+                                    const idx = items[0].dataIndex;
+                                    return sortedTasks[idx]?.title || '';
+                                },
+                                label: (context) => {
+                                    const t = sortedTasks[context.dataIndex];
+                                    return [
+                                        `Статус: ${getStatusText(t.status)}`,
+                                        `SP: ${t.storyPoints} | ${t.estimatedHours} ч.`,
+                                        `Исполнитель: ${t.assignee}`
+                                    ];
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Диаграмма Ганта',
+                            font: { size: 18, weight: 'bold' },
+                            color: '#475569',
+                            padding: { bottom: 20 }
+                        }
                     },
                     scales: {
-                        x: { type: 'linear', min: new Date(sprintStartDate).getTime(), max: new Date(sprintEndDate).getTime(), ticks: { callback: v => new Date(v).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }), maxTicksLimit: 10 } }
+                        x: {
+                            type: 'linear',
+                            min: sprintStart,
+                            max: sprintEnd,
+                            grid: { color: 'rgba(148, 163, 184, 0.12)' },
+                            ticks: {
+                                callback: v => new Date(v).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
+                                maxTicksLimit: 8,
+                                font: { size: 12, weight: '500' },
+                                color: '#64748B'
+                            }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: {
+                                font: { size: 13, weight: '500' },
+                                color: '#475569',
+                                padding: 10
+                            }
+                        }
                     }
                 }
             });
             ganttDrawAttempt = 0;
-        } catch (error) { console.error('Ошибка Ганта:', error.message); ganttDrawAttempt = 0; }
+        } catch (error) {
+            console.error('Ошибка Ганта:', error.message);
+            ganttDrawAttempt = 0;
+        }
     };
 </script>
 

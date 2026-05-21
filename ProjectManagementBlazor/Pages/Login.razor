@@ -59,9 +59,13 @@
                     </button>
                 </EditForm>
 
-                @if (!string.IsNullOrEmpty(errorMessage))
+                @if (hasError)
                 {
-                    <div class="alert alert-danger mt-3 small" style="white-space: pre-line;">@errorMessage</div>
+                    <div class="alert alert-danger alert-dismissible fade show mt-3 small" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <span style="white-space: pre-line;">@errorMessage</span>
+                        <button type="button" class="btn-close" @onclick="ClearError" aria-label="Close"></button>
+                    </div>
                 }
 
                 <p class="text-center mt-3 mb-0 small">
@@ -224,6 +228,7 @@
     private string errorMessage = string.Empty;
     private bool showPassword = false;
     private string? returnUrl;
+    private bool hasError = false;
 
     protected override void OnInitialized()
     {
@@ -234,39 +239,73 @@
 
     private async Task HandleLogin()
     {
-        isLoading = true;
         errorMessage = string.Empty;
+        hasError = false;
+
+        if (string.IsNullOrWhiteSpace(loginModel.UsernameOrEmail))
+        {
+            errorMessage = "Введите логин или email";
+            hasError = true;
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(loginModel.Password))
+        {
+            errorMessage = "Введите пароль";
+            hasError = true;
+            return;
+        }
+
+        isLoading = true;
+        StateHasChanged();
 
         try
         {
             var result = await AuthService.LoginAsync(loginModel);
 
+            if (result == null)
+            {
+                errorMessage = "Не удалось выполнить вход: сервер не ответил";
+                hasError = true;
+                return;
+            }
+
             if (result.Success)
             {
                 Navigation.NavigateTo(returnUrl ?? "/", true);
+                return;
             }
             else
             {
-                errorMessage = result.Message;
+                errorMessage = string.IsNullOrEmpty(result.Message) ? "Неверный логин или пароль" : result.Message;
 
                 if (result.Errors != null && result.Errors.Any())
                 {
-                    errorMessage += "\n\n" + string.Join("\n", result.Errors.Select(e => $"• {e}"));
+                    errorMessage += "\n" + string.Join("\n", result.Errors.Select(e => $"• {e}"));
                 }
+                hasError = true;
             }
         }
         catch (Exception ex)
         {
-            errorMessage = $"Ошибка: {ex.Message}";
+            errorMessage = $"Ошибка соединения: {ex.Message}";
+            hasError = true;
         }
         finally
         {
             isLoading = false;
+            StateHasChanged();
         }
     }
 
     private void TogglePasswordVisibility()
     {
         showPassword = !showPassword;
+    }
+
+    private void ClearError()
+    {
+        errorMessage = string.Empty;
+        hasError = false;
     }
 }

@@ -64,14 +64,22 @@
                     </button>
                 </EditForm>
 
-                @if (!string.IsNullOrEmpty(errorMessage))
+                @if (hasError)
                 {
-                    <div class="alert alert-danger mt-3 small" style="white-space: pre-line;">@errorMessage</div>
+                    <div class="alert alert-danger alert-dismissible fade show mt-3 small" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <span style="white-space: pre-line;">@errorMessage</span>
+                        <button type="button" class="btn-close" @onclick="ClearError" aria-label="Close"></button>
+                    </div>
                 }
 
-                @if (!string.IsNullOrEmpty(successMessage))
+                @if (hasSuccess)
                 {
-                    <div class="alert alert-success mt-3 small">@successMessage</div>
+                    <div class="alert alert-success alert-dismissible fade show mt-3 small" role="alert">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        @successMessage
+                        <button type="button" class="btn-close" @onclick="ClearSuccess" aria-label="Close"></button>
+                    </div>
                 }
 
                 <p class="text-center mt-3 mb-0 small">
@@ -223,6 +231,8 @@
     private string errorMessage = string.Empty;
     private string successMessage = string.Empty;
     private string? returnUrl;
+    private bool hasError = false;
+    private bool hasSuccess = false;
 
     protected override void OnInitialized()
     {
@@ -233,43 +243,114 @@
         if (query.Get("registered") == "true")
         {
             successMessage = "Регистрация успешна! Теперь вы можете войти.";
+            hasSuccess = true;
         }
     }
 
     private async Task HandleRegister()
     {
-        isLoading = true;
         errorMessage = string.Empty;
         successMessage = string.Empty;
+        hasError = false;
+        hasSuccess = false;
+
+        if (string.IsNullOrWhiteSpace(registerModel.Username))
+        {
+            errorMessage = "Введите имя пользователя";
+            hasError = true;
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(registerModel.Email))
+        {
+            errorMessage = "Введите email";
+            hasError = true;
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(registerModel.FullName))
+        {
+            errorMessage = "Введите полное имя";
+            hasError = true;
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(registerModel.Password))
+        {
+            errorMessage = "Введите пароль";
+            hasError = true;
+            return;
+        }
+
+        if (registerModel.Password.Length < 6)
+        {
+            errorMessage = "Пароль должен содержать минимум 6 символов";
+            hasError = true;
+            return;
+        }
+
+        if (registerModel.Password != registerModel.ConfirmPassword)
+        {
+            errorMessage = "Пароли не совпадают";
+            hasError = true;
+            return;
+        }
+
+        isLoading = true;
+        StateHasChanged();
 
         try
         {
             var result = await AuthService.RegisterAsync(registerModel);
 
+            if (result == null)
+            {
+                errorMessage = "Не удалось зарегистрироваться: сервер не ответил";
+                hasError = true;
+                return;
+            }
+
             if (result.Success)
             {
+                hasSuccess = true;
                 successMessage = "Регистрация успешна! Перенаправляем на страницу входа...";
                 StateHasChanged();
                 await Task.Delay(1500);
                 Navigation.NavigateTo($"/login?registered=true{(returnUrl != null ? $"&returnUrl={Uri.EscapeDataString(returnUrl)}" : "")}");
+                return;
             }
             else
             {
-                errorMessage = result.Message;
+                errorMessage = string.IsNullOrEmpty(result.Message) ? "Ошибка регистрации" : result.Message;
 
                 if (result.Errors != null && result.Errors.Any())
                 {
-                    errorMessage += "\n\n" + string.Join("\n", result.Errors.Select(e => $"• {e}"));
+                    errorMessage += "\n" + string.Join("\n", result.Errors.Select(e => $"• {e}"));
                 }
+                hasError = true;
             }
         }
         catch (Exception ex)
         {
-            errorMessage = $"Ошибка: {ex.Message}";
+            errorMessage = $"Ошибка соединения: {ex.Message}";
+            hasError = true;
         }
         finally
         {
             isLoading = false;
+            StateHasChanged();
         }
+    }
+
+    private void ClearError()
+    {
+        errorMessage = string.Empty;
+        hasError = false;
+    }
+
+    private void ClearSuccess()
+    {
+        successMessage = string.Empty;
+        hasSuccess = false;
     }
 }

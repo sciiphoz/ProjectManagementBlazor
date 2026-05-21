@@ -1,9 +1,9 @@
 ﻿@page "/accept-invitation"
-@layout MainLayout
 @inject IProjectService ProjectService
 @inject NavigationManager Navigation
 @inject IErrorHandlingService ErrorHandling
 @inject AuthenticationStateProvider AuthStateProvider
+@using System.Security.Claims
 
 <PageTitle>Принятие приглашения</PageTitle>
 
@@ -62,7 +62,7 @@
             }
             else
             {
-                <button class="btn btn-success btn-lg" @onclick="AcceptInvitation">
+                <button class="btn btn-success btn-lg" @onclick="AcceptInvitationAsync">
                     <i class="bi bi-person-check me-2"></i> Принять приглашение
                 </button>
             }
@@ -106,6 +106,15 @@
             var result = await ProjectService.CheckInvitationAsync(token);
             if (result.Success && result.Data != null)
             {
+                // Проверяем, что текущий пользователь — получатель приглашения
+                var userEmail = user.FindFirst("email")?.Value ?? user.FindFirst(ClaimTypes.Email)?.Value;
+                if (!string.IsNullOrEmpty(userEmail) && !string.Equals(userEmail, result.Data.Email, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Не получатель — редирект на главную
+                    Navigation.NavigateTo("/", true);
+                    return;
+                }
+
                 isValid = true;
                 projectName = result.Data.ProjectName;
                 roleName = GetRoleLabel(result.Data.Role);
@@ -119,7 +128,7 @@
         isLoading = false;
     }
 
-    private async Task AcceptInvitation()
+    private async Task AcceptInvitationAsync()
     {
         if (string.IsNullOrEmpty(token)) return;
 

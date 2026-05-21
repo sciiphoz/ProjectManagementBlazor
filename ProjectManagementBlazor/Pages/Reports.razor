@@ -125,7 +125,6 @@
             }
         }
 
-        <!-- Cycle Time -->
         @if (activeTab == "cycleTime")
         {
             @if (isCycleTimeLoading)
@@ -134,6 +133,11 @@
             }
             else if (cycleTimeData?.Any() == true)
             {
+                <div class="chart-card" style="display: flex; justify-content: center; align-items: center; min-height: 380px;">
+                    <div style="position: relative; width: 350px; height: 350px;">
+                        <canvas id="cycleTimeChart"></canvas>
+                    </div>
+                </div>
                 <div class="report-metrics">
                     <div class="report-metric">
                         <span class="metric-value text-primary">@cycleTimeData.Average(t => t.CycleDays).ToString("F1") дн.</span>
@@ -270,6 +274,26 @@
             border-bottom: none;
         }
 
+    .chart-card canvas {
+        max-width: 100%;
+    }
+
+    .chart-card .chart-legend {
+        color: var(--text-secondary, #64748B) !important;
+    }
+
+    [data-bs-theme="light"] .chart-card canvas,
+    .chart-card canvas {
+        --legend-color: #475569;
+    }
+
+    [data-bs-theme="dark"] .chart-card canvas,
+    .dark .chart-card canvas,
+    html.dark .chart-card canvas,
+    body.dark .chart-card canvas {
+        --legend-color: #CBD5E1;
+    }
+
     [data-bs-theme="dark"] .chart-card, [data-bs-theme="dark"] .report-metric, [data-bs-theme="dark"] .table-mini {
         background: #1E293B;
         border-color: #334155;
@@ -297,120 +321,216 @@
 
     private List<CycleTimeItem>? cycleTimeData;
     private bool isCycleTimeLoading = false;
+    private bool cycleTimeChartDrawn = false;
 
-    protected override async Task OnInitializedAsync() { await LoadData(); }
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (activeTab == "velocity" && velocityReport?.SprintHistory?.Any() == true && !velocityChartDrawn)
         {
             velocityChartDrawn = true;
-            await Task.Delay(200);
+            await Task.Delay(300);
             await JS.InvokeVoidAsync("drawVelocityChart", velocityReport.SprintHistory);
+            StateHasChanged();
         }
         if (activeTab == "burndown" && sprintBurndownComparison?.Any() == true && !burndownTrendChartDrawn)
         {
             burndownTrendChartDrawn = true;
-            await Task.Delay(200);
+            await Task.Delay(300);
             await JS.InvokeVoidAsync("drawBurndownTrendChart", sprintBurndownComparison);
+            StateHasChanged();
+        }
+        if (activeTab == "cycleTime" && cycleTimeData?.Any() == true && !cycleTimeChartDrawn)
+        {
+            cycleTimeChartDrawn = true;
+            await Task.Delay(300);
+            await JS.InvokeVoidAsync("drawCycleTimeChart", cycleTimeData);
+            StateHasChanged();
         }
     }
 
     private async Task LoadData()
     {
         isLoading = true;
+        StateHasChanged();
         try
         {
             var pr = await ProjectService.GetProjectByIdAsync(ProjectId);
-            if (pr.Success && pr.Data != null) project = pr.Data;
-            else { Navigation.NavigateTo("/projects"); return; }
-            await LoadVelocityReport();
+            if (pr.Success && pr.Data != null)
+            {
+                project = pr.Data;
+                await LoadVelocityReport();
+            }
+            else
+            {
+                Navigation.NavigateTo("/projects");
+                return;
+            }
         }
         catch { }
-        finally { isLoading = false; }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
     }
 
     private void SwitchTab(string tab)
     {
         activeTab = tab;
-        if (tab == "velocity") velocityChartDrawn = false;
-        else if (tab == "burndown") burndownTrendChartDrawn = false;
+        if (tab == "velocity")
+        {
+            velocityChartDrawn = false;
+            if (velocityReport == null)
+            {
+                _ = LoadVelocityReport();
+            }
+        }
+        else if (tab == "burndown")
+        {
+            burndownTrendChartDrawn = false;
+            if (sprintBurndownComparison == null)
+            {
+                _ = LoadBurndownTrend();
+            }
+        }
+        else if (tab == "cycleTime") 
+        { 
+            cycleTimeChartDrawn = false; 
+            if (cycleTimeData == null) _ = LoadCycleTimeReport(); 
+        }
         StateHasChanged();
-        if (tab == "velocity" && velocityReport == null) _ = LoadVelocityReport();
-        else if (tab == "burndown" && sprintBurndownComparison == null) _ = LoadBurndownTrend();
-        else if (tab == "cycleTime" && cycleTimeData == null) _ = LoadCycleTimeReport();
     }
 
     private async Task LoadVelocityReport()
     {
-        isVelocityLoading = true; StateHasChanged();
-        var r = await ReportService.GenerateVelocityReportAsync(ProjectId);
-        if (r.Success && r.Data?.SprintHistory?.Any() == true) { velocityReport = r.Data; velocityChartDrawn = false; }
-        isVelocityLoading = false; StateHasChanged();
+        isVelocityLoading = true;
+        StateHasChanged();
+        try
+        {
+            var r = await ReportService.GenerateVelocityReportAsync(ProjectId);
+            if (r.Success && r.Data?.SprintHistory?.Any() == true)
+            {
+                velocityReport = r.Data;
+                velocityChartDrawn = false;
+            }
+            else
+            {
+                velocityReport = null;
+            }
+        }
+        catch { }
+        finally
+        {
+            isVelocityLoading = false;
+            StateHasChanged();
+        }
     }
 
     private async Task LoadBurndownTrend()
     {
-        isBurndownTrendLoading = true; StateHasChanged();
-        var sr = await SprintService.GetProjectSprintsAsync(ProjectId);
-        if (sr.Success && sr.Data != null)
+        isBurndownTrendLoading = true;
+        StateHasChanged();
+        try
         {
-            var completed = sr.Data.Where(s => s.Status == "Completed").OrderByDescending(s => s.EndDate).Take(5).ToList();
-            sprintBurndownComparison = new();
-            foreach (var s in completed)
+            var sr = await SprintService.GetProjectSprintsAsync(ProjectId);
+            if (sr.Success && sr.Data != null)
             {
-                var d = await SprintService.GetSprintBoardAsync(s.Id);
-                if (d.Success && d.Data != null)
+                var completed = sr.Data
+                    .Where(s => s.Status == "Completed")
+                    .OrderByDescending(s => s.EndDate)
+                    .Take(5)
+                    .ToList();
+
+                sprintBurndownComparison = new();
+                foreach (var s in completed)
                 {
-                    var td = (s.EndDate - s.StartDate).Days;
-                    sprintBurndownComparison.Add(new SprintBurndownComparison
+                    var d = await SprintService.GetSprintBoardAsync(s.Id);
+                    if (d.Success && d.Data != null)
                     {
-                        SprintName = s.Name,
-                        StartDate = s.StartDate,
-                        EndDate = s.EndDate,
-                        TotalSP = d.Data.TotalStoryPoints ?? 0,
-                        CompletedSP = d.Data.CompletedStoryPoints ?? 0,
-                        TotalTasks = d.Data.TotalTasksCount,
-                        CompletedTasks = d.Data.CompletedTasksCount,
-                        CompletionPercentage = d.Data.CompletionPercentage,
-                        IdealCompletionPercentage = td > 0 ? Math.Min(100, (double)Math.Min(td, (DateTime.Now - s.StartDate).Days) / td * 100) : 100
-                    });
+                        var td = (s.EndDate - s.StartDate).Days;
+                        sprintBurndownComparison.Add(new SprintBurndownComparison
+                        {
+                            SprintName = s.Name,
+                            StartDate = s.StartDate,
+                            EndDate = s.EndDate,
+                            TotalSP = d.Data.TotalStoryPoints ?? 0,
+                            CompletedSP = d.Data.CompletedStoryPoints ?? 0,
+                            TotalTasks = d.Data.TotalTasksCount,
+                            CompletedTasks = d.Data.CompletedTasksCount,
+                            CompletionPercentage = d.Data.CompletionPercentage,
+                            IdealCompletionPercentage = td > 0 ? Math.Min(100, (double)Math.Min(td, (DateTime.Now - s.StartDate).Days) / td * 100) : 100
+                        });
+                    }
                 }
+                burndownTrendChartDrawn = false;
             }
-            burndownTrendChartDrawn = false;
         }
-        isBurndownTrendLoading = false; StateHasChanged();
+        catch { }
+        finally
+        {
+            isBurndownTrendLoading = false;
+            StateHasChanged();
+        }
     }
 
     private async Task LoadCycleTimeReport()
     {
-        isCycleTimeLoading = true; StateHasChanged();
-        var sr = await SprintService.GetProjectSprintsAsync(ProjectId);
-        if (sr.Success && sr.Data != null)
+        isCycleTimeLoading = true;
+        StateHasChanged();
+        try
         {
-            cycleTimeData = new();
-            foreach (var s in sr.Data.Where(s => s.Status is "Completed" or "Active").OrderByDescending(s => s.EndDate).Take(5))
+            var sr = await SprintService.GetProjectSprintsAsync(ProjectId);
+            if (sr.Success && sr.Data != null)
             {
-                var sd = await SprintService.GetSprintBoardAsync(s.Id);
-                if (sd.Success && sd.Data != null)
+                cycleTimeData = new();
+                foreach (var s in sr.Data.Where(s => s.Status is "Completed" or "Active").OrderByDescending(s => s.EndDate).Take(5))
                 {
-                    foreach (var t in sd.Data.Tasks.Where(t => t.Status == "Done"))
+                    var sd = await SprintService.GetSprintBoardAsync(s.Id);
+                    if (sd.Success && sd.Data != null)
                     {
-                        var d = await BacklogService.GetBacklogItemDetailAsync(t.Id);
-                        if (d.Success && d.Data != null)
+                        foreach (var t in sd.Data.Tasks.Where(t => t.Status == "Done"))
                         {
-                            var start = d.Data.SubTasks?.Where(st => st.Status == "Done" && st.StartedAt.HasValue).MinBy(st => st.StartedAt)?.StartedAt ?? d.Data.UpdatedAt ?? d.Data.CreatedAt;
-                            var end = d.Data.SubTasks?.Where(st => st.Status == "Done" && st.CompletedAt.HasValue).MaxBy(st => st.CompletedAt)?.CompletedAt ?? d.Data.UpdatedAt ?? DateTime.UtcNow;
-                            cycleTimeData.Add(new CycleTimeItem { Id = t.Id, Title = t.Title, Type = t.Type, SprintName = s.Name, AssigneeName = t.Assignee?.FullName, StartedAt = start, CompletedAt = end, CycleDays = Math.Round((end - start).TotalDays, 1) });
+                            var d = await BacklogService.GetBacklogItemDetailAsync(t.Id);
+                            if (d.Success && d.Data != null)
+                            {
+                                var start = d.Data.SubTasks?.Where(st => st.Status == "Done" && st.StartedAt.HasValue).MinBy(st => st.StartedAt)?.StartedAt ?? d.Data.UpdatedAt ?? d.Data.CreatedAt;
+                                var end = d.Data.SubTasks?.Where(st => st.Status == "Done" && st.CompletedAt.HasValue).MaxBy(st => st.CompletedAt)?.CompletedAt ?? d.Data.UpdatedAt ?? DateTime.UtcNow;
+                                cycleTimeData.Add(new CycleTimeItem
+                                {
+                                    Id = t.Id,
+                                    Title = t.Title,
+                                    Type = t.Type,
+                                    SprintName = s.Name,
+                                    AssigneeName = t.Assignee?.FullName,
+                                    StartedAt = start,
+                                    CompletedAt = end,
+                                    CycleDays = Math.Round((end - start).TotalDays, 1)
+                                });
+                            }
                         }
                     }
                 }
             }
         }
-        isCycleTimeLoading = false; StateHasChanged();
+        catch { }
+        finally
+        {
+            isCycleTimeLoading = false;
+            StateHasChanged();
+        }
     }
 
-    private double GetMedian(IEnumerable<double> v) { var s = v.OrderBy(x => x).ToList(); return s.Any() ? (s.Count % 2 == 0 ? (s[s.Count / 2 - 1] + s[s.Count / 2]) / 2.0 : s[s.Count / 2]) : 0; }
+    private double GetMedian(IEnumerable<double> v)
+    {
+        var s = v.OrderBy(x => x).ToList();
+        return s.Any() ? (s.Count % 2 == 0 ? (s[s.Count / 2 - 1] + s[s.Count / 2]) / 2.0 : s[s.Count / 2]) : 0;
+    }
+
     private string GetTypeBadgeClass(string t) => t switch { "UserStory" => "bg-primary", "Bug" => "bg-danger", "TechnicalTask" => "bg-warning text-dark", "Improvement" => "bg-success", _ => "bg-secondary" };
     private string GetTypeName(string t) => t switch { "UserStory" => "Story", "Bug" => "Bug", "TechnicalTask" => "Task", "Improvement" => "Impr", _ => t };
 

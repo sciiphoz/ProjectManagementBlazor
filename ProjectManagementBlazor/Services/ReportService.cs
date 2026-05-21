@@ -35,12 +35,9 @@ namespace ProjectManagementBlazor.Services
 
         public async Task<ApiResponse<VelocityReportResponse>> GenerateVelocityReportAsync(Guid projectId, int lastSprintsCount = 5)
         {
-            if (lastSprintsCount <= 0)
-                lastSprintsCount = 5;
-
             return await SendRequestAsync<VelocityReportResponse>(
                 () => _httpClient.GetAsync($"api/reports/velocity/{projectId}?lastSprintsCount={lastSprintsCount}"),
-                "Не удалось сформировать Velocity отчёт");
+                "Не удалось загрузить Velocity-отчёт");
         }
     }
 }

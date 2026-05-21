@@ -37,8 +37,7 @@ builder.Services.AddScoped<IAuthService>(sp =>
 {
     var clientFactory = sp.GetRequiredService<IHttpClientFactory>();
     var client = clientFactory.CreateClient("AuthorizedClient");
-    var errorHandling = sp.GetRequiredService<IErrorHandlingService>();
-    return new AuthService(client, errorHandling, sp.GetRequiredService<AuthenticationStateProvider>());
+    return new AuthService(client, sp.GetRequiredService<AuthenticationStateProvider>());
 });
 
 builder.Services.AddScoped<IUserService>(sp =>
