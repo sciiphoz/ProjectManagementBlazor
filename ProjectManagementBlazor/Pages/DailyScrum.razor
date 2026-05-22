@@ -47,7 +47,7 @@
                 <button class="btn btn-outline-secondary btn-sm" @onclick="RefreshData">
                     <i class="bi bi-arrow-repeat"></i>
                 </button>
-                <button class="btn btn-outline-info btn-sm" @onclick="CopyToClipboard" disabled="@(dailyScrum == null)">
+                <button class="btn btn-outline-info btn-sm" @onclick="CopyToClipboard">
                     <i class="bi bi-clipboard me-1"></i> Копировать
                 </button>
                 <button class="btn btn-outline-secondary btn-sm" @onclick="GoBack">
@@ -63,134 +63,131 @@
                 <p class="mt-2">Нет активного спринта</p>
             </div>
         }
-        else if (dailyScrum != null)
+        else
         {
-            <div class="dsc-card">
-                <div class="dsc-card-header">
-                    <span>Прогресс спринта</span>
-                    <span class="text-muted small">@activeSprint.Name</span>
+            <div class="dsc-summary">
+                <div class="dsc-summary-item">
+                    <span class="dsc-summary-value">@activeSprint.Name</span>
+                    <span class="dsc-summary-label">Активный спринт</span>
                 </div>
-                <div class="dsc-metrics">
-                    <div class="dsc-metric">
-                        <span class="dsc-metric-value">@dailyScrum.SprintProgress.CompletedTasks / @dailyScrum.SprintProgress.TotalTasks</span>
-                        <span class="dsc-metric-label">Выполнено задач</span>
-                        <div class="progress mt-1" style="height:4px">
-                            <div class="progress-bar bg-success" style="width:@dailyScrum.SprintProgress.CompletionPercentage%"></div>
-                        </div>
+                <div class="dsc-summary-item">
+                    <span class="dsc-summary-value">@sprintProgress.completed / @sprintProgress.total</span>
+                    <span class="dsc-summary-label">Задач выполнено</span>
+                    <div class="progress mt-1" style="height:4px">
+                        <div class="progress-bar bg-success" style="width:@sprintProgress.percent%"></div>
                     </div>
-                    <div class="dsc-metric">
-                        <span class="dsc-metric-value">@dailyScrum.SprintProgress.InProgressTasks</span>
-                        <span class="dsc-metric-label">В работе</span>
-                    </div>
-                    <div class="dsc-metric">
-                        <span class="dsc-metric-value">@dailyScrum.SprintProgress.DaysRemaining</span>
-                        <span class="dsc-metric-label">Осталось дней</span>
-                    </div>
-                    <div class="dsc-metric">
-                        <span class="dsc-metric-value">@dailyScrum.SprintProgress.StartDate.ToString("dd.MM") — @dailyScrum.SprintProgress.EndDate.ToString("dd.MM")</span>
-                        <span class="dsc-metric-label">Даты</span>
-                    </div>
+                </div>
+                <div class="dsc-summary-item">
+                    <span class="dsc-summary-value">@sprintProgress.daysLeft дн.</span>
+                    <span class="dsc-summary-label">Осталось</span>
+                </div>
+                <div class="dsc-summary-item">
+                    <span class="dsc-summary-value">@developers.Sum(d => d.totalSP) / @sprintProgress.totalSP SP</span>
+                    <span class="dsc-summary-label">Story Points</span>
                 </div>
             </div>
 
-            @if (dailyScrum.TeamBlockers?.Any() == true)
+            @if (teamBlockers.Any())
             {
-                <div class="dsc-card border-danger">
+                <div class="dsc-card border-danger mb-3">
                     <div class="dsc-card-header text-danger">
-                        <i class="bi bi-exclamation-triangle me-1"></i> Командные блокеры · @dailyScrum.TeamBlockers.Count
+                        <i class="bi bi-exclamation-triangle me-1"></i> Командные блокеры · @teamBlockers.Count
                     </div>
                     <div class="dsc-card-body">
-                        @foreach (var blocker in dailyScrum.TeamBlockers)
+                        @foreach (var b in teamBlockers)
                         {
                             <div class="dsc-blocker">
-                                <span>@blocker.Description</span>
-                                <span class="badge @GetSeverityBadge(blocker.Severity)">@blocker.Severity</span>
+                                <span>@b.description</span>
+                                <span class="badge @GetSeverityBadge(b.severity)">@b.severity</span>
                             </div>
                         }
                     </div>
                 </div>
             }
 
-            <div class="dsc-card">
-                <div class="dsc-card-header">Участники команды</div>
-                <div class="dsc-table">
-                    @foreach (var member in dailyScrum.TeamMembers)
-                    {
-                        <div class="dsc-row @(member.IsAvailable ? "" : "absent")">
-                            <div class="dsc-row-user">
-                                <strong>@member.User.FullName</strong>
-                                <span class="text-muted small">@member.User.Role</span>
+            <div class="dsc-devs">
+                @foreach (var dev in developers)
+                {
+                    <div class="dsc-dev-card @(dev.isOverloaded ? "overloaded" : "")">
+                        <div class="dsc-dev-header">
+                            <div class="dsc-dev-avatar">@GetInitials(dev.fullName)</div>
+                            <div>
+                                <strong>@dev.fullName</strong>
+                                <span class="text-muted small d-block">@dev.role</span>
                             </div>
-                            <div class="dsc-row-col">
-                                <span class="dsc-row-label">Вчера</span>
-                                @if (member.WorkedYesterday?.Any() == true)
-                                {
-                                    <ul class="mb-0">
-                                        @foreach (var t in member.WorkedYesterday)
-                                        {
-                                            <li>@t.Title</li>
-                                        }
-                                    </ul>
-                                }
-                                else
-                                {
+                            @if (dev.isOverloaded)
+                            {
+                                <span class="badge bg-danger ms-auto" title="Более 2 задач в работе">⚠ Перегруз</span>
+                            }
+                        </div>
 
-                                    <span class="text-muted">—</span>
-                                }
+                        <div class="dsc-dev-stats">
+                            <div class="dsc-dev-stat">
+                                <span class="stat-value">@dev.totalTasks</span>
+                                <span class="stat-label">Задач</span>
                             </div>
-                            <div class="dsc-row-col">
-                                <span class="dsc-row-label">Сегодня</span>
-                                @if (member.PlanForToday?.Any() == true)
-                                {
-                                    <ul class="mb-0">
-                                        @foreach (var t in member.PlanForToday)
-                                        {
-                                            <li>@t.Title</li>
-                                        }
-                                    </ul>
-                                }
-                                else
-                                {
-
-                                    <span class="text-muted">—</span>
-                                }
+                            <div class="dsc-dev-stat">
+                                <span class="stat-value">@dev.totalSP</span>
+                                <span class="stat-label">SP</span>
                             </div>
-                            <div class="dsc-row-col">
-                                <span class="dsc-row-label">Блокеры</span>
-                                @if (member.Blockers?.Any() == true)
-                                {
-                                    @foreach (var b in member.Blockers)
-                                    {
-                                        <span class="badge bg-danger d-block mb-1">@b.Description</span>
-                                    }
-                                }
-                                else
-                                {
-                                    <span class="badge bg-success">Нет</span>
-                                }
+                            <div class="dsc-dev-stat">
+                                <span class="stat-value">@dev.totalHours.ToString("F0") ч.</span>
+                                <span class="stat-label">Оценка</span>
                             </div>
-                            <div class="dsc-row-status">
-                                @if (member.IsAvailable)
-                                {
-                                    <span class="badge bg-success">Доступен</span>
-                                }
-                                else
-                                {
-
-                                    <span class="badge bg-secondary">Отсутствует</span>
-                                }
+                            <div class="dsc-dev-stat">
+                                <span class="stat-value">@dev.completedPercent.ToString("F0")%</span>
+                                <span class="stat-label">Прогресс</span>
                             </div>
                         </div>
-                    }
-                </div>
+
+                        <div class="dsc-dev-progress">
+                            <div class="progress" style="height:6px">
+                                <div class="progress-bar @(dev.completedPercent >= 80 ? "bg-success" : dev.completedPercent >= 40 ? "bg-warning" : "bg-danger")"
+                                     style="width:@dev.completedPercent%"></div>
+                            </div>
+                        </div>
+
+                        @if (dev.tasks.Any())
+                        {
+                            <div class="dsc-dev-tasks">
+                                @foreach (var task in dev.tasks.OrderBy(t => t.status == "InProgress" ? 0 : 1))
+                                {
+                                    <div class="dsc-task-row @(task.status == "Done" ? "done" : task.status == "InProgress" ? "in-progress" : "")">
+                                        <div class="dsc-task-info">
+                                            <span class="dsc-task-title">@task.title</span>
+                                            <span class="dsc-task-meta">@task.type · @task.sp SP · @task.hours ч.</span>
+                                        </div>
+                                        <span class="badge @GetTaskStatusBadge(task.status)">@GetTaskStatusText(task.status)</span>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center text-muted small py-2">Нет задач в спринте</div>
+                        }
+
+                        @if (dev.blockers.Any())
+                        {
+                            <div class="dsc-dev-blockers">
+                                @foreach (var b in dev.blockers)
+                                {
+                                    <span class="badge bg-danger d-block mb-1 text-start">⚠ @b.description</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
             </div>
+
+            <div style="height: 2rem;"></div>
         }
     }
 </div>
 
 <style>
     .daily-scrum-page {
-        max-width: 800px;
+        max-width: 900px;
         margin: 0 auto;
     }
 
@@ -206,10 +203,137 @@
             margin: 0;
         }
 
-    .dsc-card {
-        border: 1px solid var(--border-color,#E2E8F0);
+    .dsc-summary {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .dsc-summary-item {
+        flex: 1;
+        text-align: center;
+        padding: 0.5rem;
+        border: 1px solid var(--border-color);
         border-radius: 0.5rem;
-        margin-bottom: 0.75rem;
+        background: var(--bg-card, #fff);
+    }
+
+    .dsc-summary-value {
+        font-size: 1.1rem;
+        font-weight: 700;
+        display: block;
+    }
+
+    .dsc-summary-label {
+        font-size: 0.65rem;
+        color: var(--text-secondary);
+    }
+
+    .dsc-devs {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    .dsc-dev-card {
+        border: 1px solid var(--border-color);
+        border-radius: 0.6rem;
+        padding: 0.75rem;
+        background: var(--bg-card, #fff);
+    }
+
+        .dsc-dev-card.overloaded {
+            border-color: #EF4444;
+            background: rgba(239,68,68,0.02);
+        }
+
+    .dsc-dev-header {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .dsc-dev-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary-color), #3730A3);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+
+    .dsc-dev-stats {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .dsc-dev-stat {
+        flex: 1;
+        text-align: center;
+    }
+
+    .stat-value {
+        font-size: 0.85rem;
+        font-weight: 700;
+        display: block;
+    }
+
+    .stat-label {
+        font-size: 0.6rem;
+        color: var(--text-secondary);
+    }
+
+    .dsc-dev-progress {
+        margin-bottom: 0.5rem;
+    }
+
+    .dsc-dev-tasks {
+        margin-top: 0.25rem;
+    }
+
+    .dsc-task-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.35rem 0.5rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.3rem;
+        margin-bottom: 0.2rem;
+        font-size: 0.75rem;
+    }
+
+        .dsc-task-row.done {
+            opacity: 0.5;
+        }
+
+        .dsc-task-row.in-progress {
+            border-left: 3px solid #F59E0B;
+        }
+
+    .dsc-task-title {
+        font-weight: 500;
+    }
+
+    .dsc-task-meta {
+        font-size: 0.65rem;
+        color: var(--text-secondary);
+        display: block;
+    }
+
+    .dsc-dev-blockers {
+        margin-top: 0.5rem;
+    }
+
+    .dsc-card {
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
         overflow: hidden;
     }
 
@@ -220,10 +344,9 @@
     .dsc-card-header {
         display: flex;
         justify-content: space-between;
-        align-items: center;
         padding: 0.5rem 0.75rem;
-        background: var(--bg-light,#F8F9FB);
-        border-bottom: 1px solid var(--border-color,#E2E8F0);
+        background: var(--bg-light);
+        border-bottom: 1px solid var(--border-color);
         font-weight: 600;
         font-size: 0.8rem;
     }
@@ -232,34 +355,12 @@
         padding: 0.5rem 0.75rem;
     }
 
-    .dsc-metrics {
-        display: flex;
-        gap: 0;
-        padding: 0.5rem 0.75rem;
-    }
-
-    .dsc-metric {
-        flex: 1;
-        text-align: center;
-    }
-
-    .dsc-metric-value {
-        font-size: 1.1rem;
-        font-weight: 700;
-        display: block;
-    }
-
-    .dsc-metric-label {
-        font-size: 0.65rem;
-        color: var(--text-secondary);
-    }
-
     .dsc-blocker {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0.375rem 0;
-        border-bottom: 1px solid var(--border-color,#E2E8F0);
+        padding: 0.3rem 0;
+        border-bottom: 1px solid var(--border-color);
         font-size: 0.8rem;
     }
 
@@ -267,76 +368,19 @@
             border-bottom: none;
         }
 
-    .dsc-table {
+    [data-bs-theme="dark"] .dsc-summary-item, [data-bs-theme="dark"] .dsc-dev-card {
+        background: #1E293B;
+        border-color: #334155;
     }
 
-    .dsc-row {
-        display: flex;
-        align-items: flex-start;
-        gap: 0;
-        padding: 0.5rem 0.75rem;
-        border-bottom: 1px solid var(--border-color,#E2E8F0);
-        font-size: 0.8rem;
-    }
-
-        .dsc-row:last-child {
-            border-bottom: none;
-        }
-
-        .dsc-row.absent {
-            opacity: 0.5;
-            background: var(--bg-light,#F8F9FB);
-        }
-
-    .dsc-row-user {
-        width: 15%;
-        flex-shrink: 0;
-    }
-
-    .dsc-row-col {
-        width: 25%;
-        padding: 0 0.5rem;
-    }
-
-        .dsc-row-col ul {
-            padding-left: 1rem;
-        }
-
-    .dsc-row-label {
-        display: none;
-        font-size: 0.6rem;
-        color: var(--text-secondary);
-        text-transform: uppercase;
-        margin-bottom: 0.125rem;
-    }
-
-    .dsc-row-status {
-        width: 10%;
-        text-align: center;
+    [data-bs-theme="dark"] .dsc-task-row {
+        background: #0F172A;
+        border-color: #334155;
     }
 
     @@media (max-width: 768px) {
-        .dsc-row {
-            flex-direction: column;
-            gap: 0.25rem;
-        }
-
-        .dsc-row-user {
-            width: 100%;
-        }
-
-        .dsc-row-col {
-            width: 100%;
-            padding: 0;
-        }
-
-        .dsc-row-status {
-            width: 100%;
-            text-align: left;
-        }
-
-        .dsc-row-label {
-            display: block;
+        .dsc-devs {
+            grid-template-columns: 1fr;
         }
     }
 </style>
@@ -346,139 +390,157 @@
 
     private ProjectResponse? project;
     private SprintBriefResponse? activeSprint;
-    private DailyScrumResponse? dailyScrum;
     private UserResponse? currentUser;
     private bool isLoading = true;
     private bool isAuthorized = false;
 
-    protected override async Task OnInitializedAsync()
+    private (int total, int completed, double percent, int daysLeft, decimal totalSP) sprintProgress;
+    private List<DevSummary> developers = new();
+    private List<(string description, string severity)> teamBlockers = new();
+
+    public class DevSummary
     {
-        try
-        {
-            var projectResult = await ProjectService.GetProjectByIdAsync(ProjectId);
-            if (projectResult.Success && projectResult.Data != null)
-            {
-                project = projectResult.Data;
-            }
-            else
-            {
-                isLoading = false;
-                return;
-            }
-
-            var userResult = await AuthService.GetCurrentUserAsync();
-            if (userResult.Success && userResult.Data != null)
-            {
-                currentUser = userResult.Data;
-                var membersResult = await ProjectService.GetProjectMembersAsync(ProjectId);
-                if (membersResult.Success && membersResult.Data != null)
-                {
-                    var currentMember = membersResult.Data.FirstOrDefault(m => m.UserId == currentUser.Id);
-                    if (currentMember != null)
-                    {
-                        isAuthorized = currentMember.Role is "ScrumMaster" or "ProductOwner";
-                    }
-                }
-            }
-
-            if (isAuthorized)
-            {
-                var sprintsResult = await SprintService.GetProjectSprintsAsync(ProjectId);
-                if (sprintsResult.Success && sprintsResult.Data != null)
-                {
-                    activeSprint = sprintsResult.Data.FirstOrDefault(s => s.IsActive);
-                }
-
-                var dashboardResult = await DashboardService.GetDailyScrumViewAsync(ProjectId, activeSprint?.Id);
-                if (dashboardResult.Success && dashboardResult.Data != null)
-                {
-                    dailyScrum = dashboardResult.Data;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка загрузки: {ex.Message}");
-        }
-        finally
-        {
-            isLoading = false;
-        }
+        public string userId { get; set; } = "";
+        public string fullName { get; set; } = "";
+        public string role { get; set; } = "";
+        public int totalTasks { get; set; }
+        public int completedTasks { get; set; }
+        public decimal totalSP { get; set; }
+        public decimal totalHours { get; set; }
+        public double completedPercent => totalTasks > 0 ? (double)completedTasks / totalTasks * 100 : 0;
+        public bool isOverloaded => totalTasks > 2;
+        public List<TaskInfo> tasks { get; set; } = new();
+        public List<BlockerInfo> blockers { get; set; } = new();
     }
 
-    private async Task RefreshData()
+    public class TaskInfo
+    {
+        public Guid id { get; set; }
+        public string title { get; set; } = "";
+        public string type { get; set; } = "";
+        public string status { get; set; } = "";
+        public decimal sp { get; set; }
+        public decimal hours { get; set; }
+    }
+
+    public class BlockerInfo
+    {
+        public string description { get; set; } = "";
+        public string severity { get; set; } = "";
+    }
+
+    protected override async Task OnInitializedAsync() => await LoadAll();
+
+    private async Task LoadAll()
     {
         isLoading = true;
-        StateHasChanged();
         try
         {
-            var sprintsResult = await SprintService.GetProjectSprintsAsync(ProjectId);
-            if (sprintsResult.Success && sprintsResult.Data != null)
+            var pr = await ProjectService.GetProjectByIdAsync(ProjectId);
+            if (!pr.Success || pr.Data == null) { isLoading = false; return; }
+            project = pr.Data;
+
+            var ur = await AuthService.GetCurrentUserAsync();
+            if (ur.Success && ur.Data != null) currentUser = ur.Data;
+
+            var mr = await ProjectService.GetProjectMembersAsync(ProjectId);
+            if (mr.Success && mr.Data != null)
             {
-                activeSprint = sprintsResult.Data.FirstOrDefault(s => s.IsActive);
+                var cm = mr.Data.FirstOrDefault(m => m.UserId == currentUser?.Id);
+                isAuthorized = cm?.Role is "ScrumMaster" or "ProductOwner" || project.Owner?.Id == currentUser?.Id;
             }
+
+            if (!isAuthorized) { isLoading = false; return; }
+
+            var sr = await SprintService.GetProjectSprintsAsync(ProjectId);
+            if (sr.Success && sr.Data != null)
+            {
+                activeSprint = sr.Data.FirstOrDefault(s => s.IsActive);
+            }
+
             if (activeSprint != null)
             {
-                var result = await DashboardService.GetDailyScrumViewAsync(ProjectId, activeSprint.Id);
-                if (result.Success && result.Data != null)
+                var board = await SprintService.GetSprintBoardAsync(activeSprint.Id);
+                if (board.Success && board.Data != null)
                 {
-                    dailyScrum = result.Data;
+                    var tasks = board.Data.Tasks;
+                    sprintProgress.total = tasks.Count;
+                    sprintProgress.completed = tasks.Count(t => t.Status == "Done");
+                    sprintProgress.percent = sprintProgress.total > 0 ? (double)sprintProgress.completed / sprintProgress.total * 100 : 0;
+                    sprintProgress.daysLeft = Math.Max(0, (activeSprint.EndDate - DateTime.Now.Date).Days);
+                    sprintProgress.totalSP = tasks.Sum(t => t.StoryPoints ?? 0);
+
+                    var devMembers = mr.Data.Where(m => m.Role == "Developer").ToList();
+                    foreach (var dev in devMembers)
+                    {
+                        var devTasks = tasks.Where(t => t.Assignee?.Id == dev.UserId).ToList();
+                        var devBlockers = tasks
+                            .Where(t => t.Assignee?.Id == dev.UserId)
+                            .SelectMany(t => t.ActiveBlockers ?? new())
+                            .ToList();
+
+                        developers.Add(new DevSummary
+                        {
+                            userId = dev.UserId.ToString(),
+                            fullName = dev.FullName,
+                            role = dev.Role,
+                            totalTasks = devTasks.Count,
+                            completedTasks = devTasks.Count(t => t.Status == "Done"),
+                            totalSP = devTasks.Sum(t => t.StoryPoints ?? 0),
+                            totalHours = devTasks.Sum(t => t.EstimatedHours ?? 0),
+                            tasks = devTasks.Select(t => new TaskInfo
+                            {
+                                id = t.Id,
+                                title = t.Title,
+                                type = t.Type,
+                                status = t.Status,
+                                sp = t.StoryPoints ?? 0,
+                                hours = t.EstimatedHours ?? 0
+                            }).ToList(),
+                            blockers = devBlockers.Select(b => new BlockerInfo { description = b.Description, severity = b.Severity }).ToList()
+                        });
+                    }
+
+                    teamBlockers = tasks
+                        .Where(t => t.HasBlockers)
+                        .SelectMany(t => t.ActiveBlockers ?? new())
+                        .GroupBy(b => b.Description)
+                        .Select(g => (description: g.Key, severity: g.First().Severity))
+                        .ToList();
                 }
             }
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка обновления: {ex.Message}");
-        }
-        finally
-        {
-            isLoading = false;
-        }
+        catch (Exception ex) { Console.WriteLine($"Ошибка: {ex.Message}"); }
+        finally { isLoading = false; }
     }
+
+    private async Task RefreshData() => await LoadAll();
 
     private async Task CopyToClipboard()
     {
-        if (dailyScrum == null) return;
-        try
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"Daily Scrum — {DateTime.Now:dd.MM.yyyy HH:mm}");
+        sb.AppendLine($"Проект: {project?.Name}");
+        sb.AppendLine($"Спринт: {activeSprint?.Name}");
+        sb.AppendLine($"Прогресс: {sprintProgress.completed}/{sprintProgress.total} задач, {sprintProgress.daysLeft} дн. осталось");
+        sb.AppendLine();
+        foreach (var dev in developers)
         {
-            var sb = new System.Text.StringBuilder();
-            sb.AppendLine($"Daily Scrum — {DateTime.Now:dd.MM.yyyy HH:mm}");
-            sb.AppendLine($"Проект: {project?.Name}");
-            sb.AppendLine($"Спринт: {activeSprint?.Name}");
+            sb.AppendLine($"{dev.fullName} ({dev.role}) — {dev.completedTasks}/{dev.totalTasks} задач, {dev.totalSP} SP, {dev.totalHours:F0} ч., {dev.completedPercent:F0}%");
+            foreach (var t in dev.tasks)
+                sb.AppendLine($"  [{t.status}] {t.title} ({t.type}, {t.sp} SP, {t.hours} ч.)");
+            if (dev.blockers.Any())
+                foreach (var b in dev.blockers)
+                    sb.AppendLine($"  ⚠ {b.description}");
             sb.AppendLine();
-            sb.AppendLine($"Прогресс: {dailyScrum.SprintProgress.CompletedTasks}/{dailyScrum.SprintProgress.TotalTasks} задач, {dailyScrum.SprintProgress.InProgressTasks} в работе, {dailyScrum.SprintProgress.DaysRemaining} дн.");
-            sb.AppendLine();
-            sb.AppendLine("Команда:");
-            foreach (var member in dailyScrum.TeamMembers)
-            {
-                sb.AppendLine();
-                sb.AppendLine($"{member.User.FullName} ({member.User.Role})");
-                sb.AppendLine($"  Вчера: {string.Join(", ", member.WorkedYesterday?.Select(t => t.Title) ?? new[] { "—" })}");
-                sb.AppendLine($"  Сегодня: {string.Join(", ", member.PlanForToday?.Select(t => t.Title) ?? new[] { "—" })}");
-                sb.AppendLine($"  Блокеры: {string.Join(", ", member.Blockers?.Select(b => b.Description) ?? new[] { "Нет" })}");
-            }
-
-            await JS.InvokeVoidAsync("navigator.clipboard.writeText", sb.ToString());
-            await DialogService.AlertAsync("Сводка скопирована в буфер обмена", "", "", "success");
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка копирования: {ex.Message}");
-        }
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", sb.ToString());
+        await DialogService.AlertAsync("Сводка скопирована", "", "", "success");
     }
 
-    private string GetSeverityBadge(string s)
-    {
-        return s switch
-        {
-            "Critical" => "bg-danger",
-            "High" => "bg-warning text-dark",
-            _ => "bg-info"
-        };
-    }
-
-    private void GoBack()
-    {
-        Navigation.NavigateTo($"/projects/{ProjectId}");
-    }
+    private string GetTaskStatusBadge(string s) => s switch { "Done" => "bg-success", "InProgress" => "bg-warning text-dark", _ => "bg-secondary" };
+    private string GetTaskStatusText(string s) => s switch { "Done" => "Готово", "InProgress" => "В работе", _ => "К выполнению" };
+    private string GetSeverityBadge(string s) => s switch { "Critical" => "bg-danger", "High" => "bg-warning text-dark", _ => "bg-info" };
+    private string GetInitials(string n) => string.IsNullOrEmpty(n) ? "?" : n.Split(' ')[0][..Math.Min(2, n.Split(' ')[0].Length)].ToUpper();
+    private void GoBack() => Navigation.NavigateTo($"/projects/{ProjectId}");
 }

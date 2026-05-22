@@ -194,15 +194,51 @@
                         <button type="button" class="btn-close btn-close-white" @onclick="CloseTaskDetail"></button>
                     </div>
                     <div class="modal-body p-0">
-                        <ul class="nav nav-tabs px-3 pt-3 flex-nowrap">
-                            <li class="nav-item"><button class="nav-link @(taskDetailTab == "info" ? "active" : "")" @onclick="ShowInfoTab"><i class="bi bi-info-circle me-1"></i> Описание</button></li>
-                            <li class="nav-item"><button class="nav-link @(taskDetailTab == "subtasks" ? "active" : "")" @onclick="ShowSubtasksTab"><i class="bi bi-list-check me-1"></i> Подзадачи</button></li>
+                        <ul class="nav nav-tabs px-3 pt-2 flex-nowrap task-tabs">
+                            <li class="nav-item">
+                                <button class="nav-link @(taskDetailTab == "info" ? "active" : "")" @onclick="ShowInfoTab">
+                                    <i class="bi bi-info-circle me-1"></i>Описание
+                                </button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link @(taskDetailTab == "subtasks" ? "active" : "")" @onclick="ShowSubtasksTab">
+                                    <i class="bi bi-list-check me-1"></i>Подзадачи
+                                    @if (taskDetail?.SubTasks?.Any() == true)
+                                    {
+                                        <span class="tab-badge">@taskDetail.SubTasks.Count</span>
+                                    }
+                                </button>
+                            </li>
                             @if (!isViewer)
                             {
-                                <li class="nav-item"><button class="nav-link @(taskDetailTab == "comments" ? "active" : "")" @onclick="ShowCommentsTab"><i class="bi bi-chat me-1"></i> Комментарии</button></li>
+                                <li class="nav-item">
+                                    <button class="nav-link @(taskDetailTab == "comments" ? "active" : "")" @onclick="ShowCommentsTab">
+                                        <i class="bi bi-chat me-1"></i>Комментарии
+                                        @if (taskDetail?.Comments?.Any() == true)
+                                        {
+                                            <span class="tab-badge">@taskDetail.Comments.Count</span>
+                                        }
+                                    </button>
+                                </li>
                             }
-                            <li class="nav-item"><button class="nav-link @(taskDetailTab == "blockers" ? "active" : "")" @onclick="ShowBlockersTab"><i class="bi bi-exclamation-triangle me-1"></i> Блокеры</button></li>
-                            <li class="nav-item"><button class="nav-link @(taskDetailTab == "attachments" ? "active" : "")" @onclick="ShowAttachmentsTab"><i class="bi bi-paperclip me-1"></i> Вложения</button></li>
+                            <li class="nav-item">
+                                <button class="nav-link @(taskDetailTab == "blockers" ? "active" : "")" @onclick="ShowBlockersTab">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>Блокеры
+                                    @if (taskDetail?.ActiveBlockers?.Any() == true)
+                                    {
+                                        <span class="tab-badge">@taskDetail.ActiveBlockers.Count</span>
+                                    }
+                                </button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link @(taskDetailTab == "attachments" ? "active" : "")" @onclick="ShowAttachmentsTab">
+                                    <i class="bi bi-paperclip me-1"></i>Вложения
+                                    @if (taskDetail?.Attachments?.Any() == true)
+                                    {
+                                        <span class="tab-badge">@taskDetail.Attachments.Count</span>
+                                    }
+                                </button>
+                            </li>
                         </ul>
                         <div class="p-3">
                             @if (taskDetailTab == "info")
@@ -224,16 +260,40 @@
                                                 <div class="mb-2"><small class="text-muted">SP</small><div><strong>@selectedTask.StoryPoints</strong></div></div>
                                                 <div class="mb-2"><small class="text-muted">Оценка</small><div><strong>@(selectedTask.EstimatedHours?.ToString() ?? "—") ч.</strong></div></div>
                                                 <div class="mb-3"><small class="text-muted">Исполнитель</small><div><strong>@(selectedTask.Assignee?.FullName ?? "Не назначен")</strong></div></div>
-                                                @if (!isViewer)
+                                                @if (!isViewer && (IsDeveloper || IsScrumMaster))
                                                 {
                                                     if (selectedTask.Assignee == null)
                                                     {
-                                                        <button class="btn btn-sm btn-outline-success w-100" @onclick="AssignToMe"><i class="bi bi-person-check me-1"></i> Назначить себе</button>
+                                                        <button class="btn btn-sm btn-outline-success w-100" @onclick="AssignToMe">
+                                                            <i class="bi bi-person-check me-1"></i> Назначить себе
+                                                        </button>
                                                     }
                                                     else if (selectedTask.Assignee.Id == currentUserId)
                                                     {
-                                                        <button class="btn btn-sm btn-outline-danger w-100 mt-1" @onclick="UnassignFromMe"><i class="bi bi-person-x me-1"></i> Снять</button>
+                                                        <button class="btn btn-sm btn-outline-danger w-100 mt-1" @onclick="UnassignFromMe">
+                                                            <i class="bi bi-person-x me-1"></i> Снять
+                                                        </button>
                                                     }
+                                                }
+                                                @if (!isViewer && IsScrumMaster)
+                                                {
+                                                    <div class="mt-2 pt-2 border-top">
+                                                        <label class="form-label small text-muted">Назначить разработчика</label>
+                                                        <select class="form-select form-select-sm" @bind="selectedDeveloperId">
+                                                            <option value="">— Выберите —</option>
+                                                            @foreach (var dev in availableDevelopers)
+                                                            {
+                                                                <option value="@dev.UserId" disabled="@(!dev.CanAssign)">
+                                                                    @dev.FullName (@dev.CurrentTasks задач)
+                                                                </option>
+                                                            }
+                                                        </select>
+                                                        <button class="btn btn-sm btn-outline-primary w-100 mt-1"
+                                                                @onclick="() => AssignDeveloper(selectedTask.Id)"
+                                                                disabled="@(string.IsNullOrEmpty(selectedDeveloperId))">
+                                                            <i class="bi bi-person-check me-1"></i> Назначить
+                                                        </button>
+                                                    </div>
                                                 }
                                             </div>
                                         </div>
@@ -762,19 +822,95 @@
         border-radius: 50%;
     }
 
-    .nav-tabs.flex-nowrap {
+    .task-tabs {
         flex-wrap: nowrap;
         overflow-x: auto;
+        overflow-y: hidden;
+        gap: 0.25rem;
+        border-bottom: 2px solid var(--border-color, #E2E8F0);
     }
 
-        .nav-tabs.flex-nowrap .nav-item {
-            white-space: nowrap;
+        .task-tabs::-webkit-scrollbar {
+            height: 3px;
+        }
+
+        .task-tabs::-webkit-scrollbar-thumb {
+            background: var(--border-color, #CBD5E1);
+            border-radius: 3px;
+        }
+
+        .task-tabs .nav-item {
             flex-shrink: 0;
         }
 
-        .nav-tabs.flex-nowrap .nav-link {
-            font-size: 0.78rem;
-            padding: 0.4rem 0.6rem;
+        .task-tabs .nav-link {
+            font-size: 0.8rem;
+            padding: 0.5rem 0.75rem;
+            border: none;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            color: var(--text-secondary, #64748B);
+            background: transparent;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            white-space: nowrap;
+            transition: color 0.15s, border-color 0.15s;
+        }
+
+            .task-tabs .nav-link:hover {
+                color: var(--primary-color, #4F46E5);
+                border-bottom-color: transparent;
+            }
+
+            .task-tabs .nav-link.active {
+                color: var(--primary-color, #4F46E5);
+                border-bottom-color: var(--primary-color, #4F46E5);
+                font-weight: 600;
+            }
+
+            .task-tabs .nav-link i {
+                font-size: 0.9rem;
+            }
+
+    .tab-badge {
+        background: var(--bg-light, #E2E8F0);
+        color: var(--text-secondary, #64748B);
+        border-radius: 50%;
+        min-width: 20px;
+        height: 20px;
+        padding: 0;
+        font-size: 0.65rem;
+        font-weight: 600;
+        line-height: 20px;
+        text-align: center;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        vertical-align: middle;
+    }
+
+    .task-tabs .nav-link.active .tab-badge {
+        background: var(--primary-color, #4F46E5);
+        color: #fff;
+    }
+
+    [data-bs-theme="dark"] .tab-badge {
+        background: #334155;
+        color: #CBD5E1;
+    }
+
+    [data-bs-theme="dark"] .task-tabs .nav-link.active .tab-badge {
+        background: #818CF8;
+        color: #fff;
+    }
+
+    [data-bs-theme="dark"] .task-tabs {
+        border-color: #334155;
+    }
+
+        [data-bs-theme="dark"] .task-tabs .nav-link {
+            color: #94A3B8;
         }
 
     .attachments-list {
@@ -888,6 +1024,9 @@
     private bool isUpdating = false;
     private IBrowserFile? selectedFile = null;
     private bool isUploading = false;
+    private bool IsDeveloper => currentUserRole == "Developer";
+    private string selectedDeveloperId = "";
+    private List<DeveloperInfo> availableDevelopers = new();
 
     private string GetPriorityClass(int? p)
     {
@@ -1209,6 +1348,19 @@
                     isProductOwner = true;
                 }
             }
+            if (IsScrumMaster && membersResult.Data != null)
+            {
+                availableDevelopers = membersResult.Data
+                    .Where(m => m.Role == "Developer")
+                    .Select(m => new DeveloperInfo
+                    {
+                        UserId = m.UserId.ToString(),
+                        FullName = m.FullName,
+                        CurrentTasks = sprint?.Tasks.Count(t => t.Assignee?.Id == m.UserId && t.Status != "Done") ?? 0
+                    })
+                    .OrderBy(d => d.CurrentTasks)
+                    .ToList();
+            }
         }
         catch
         {
@@ -1284,6 +1436,20 @@
         {
             await ErrorHandling.TriggerError(r.Message);
         }
+    }
+
+    private async Task AssignDeveloper(Guid taskId)
+    {
+        if (!IsScrumMaster || string.IsNullOrEmpty(selectedDeveloperId)) return;
+        var devId = Guid.Parse(selectedDeveloperId);
+        var r = await BacklogService.UpdateBacklogItemAsync(taskId, new UpdateBacklogItemRequest { AssigneeId = devId });
+        if (r.Success)
+        {
+            selectedDeveloperId = "";
+            await LoadSprint();
+            await OpenTaskDetail(taskId, forceReload: true);
+        }
+        else await ErrorHandling.TriggerError(r.Message);
     }
 
     private async Task AddComment()
@@ -1748,5 +1914,13 @@
             "Low" => "severity-low",
             _ => ""
         };
+    }
+
+    public class DeveloperInfo
+    {
+        public string UserId { get; set; } = "";
+        public string FullName { get; set; } = "";
+        public int CurrentTasks { get; set; }
+        public bool CanAssign => CurrentTasks <= 1;
     }
 }

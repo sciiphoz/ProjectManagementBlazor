@@ -58,26 +58,20 @@
                         {
                             <span class="badge bg-primary">Владелец</span>
                         }
-                        else if (canAddMembers && !isViewer)
+                        else if (canChangeRoles && member.Role != "ScrumMaster")
                         {
                             <select class="form-select form-select-sm" style="width: auto;"
                                     value="@member.Role"
                                     @onchange="(ChangeEventArgs e) => ChangeRole(member.UserId, e.Value?.ToString())">
-                                <option value="ProductOwner">Product Owner</option>
-                                <option value="ScrumMaster">Scrum Master</option>
-                                <option value="Developer">Developer</option>
-                                <option value="Viewer">Viewer</option>
+                                @foreach (var role in editableRoles)
+                                {
+                                    <option value="@role.Value" selected="@(member.Role == role.Value)">@role.Label</option>
+                                }
                             </select>
                         }
                         else
                         {
                             <span class="badge bg-secondary">@GetRoleLabel(member.Role)</span>
-                        }
-                        @if (!member.IsOwner && canAddMembers && !isViewer)
-                        {
-                            <button class="btn btn-link btn-sm text-danger p-0" @onclick="() => RemoveMember(member.UserId, member.FullName)">
-                                <i class="bi bi-x-circle"></i>
-                            </button>
                         }
                     </div>
                 </div>
@@ -110,10 +104,10 @@
                         <div class="mb-2">
                             <label class="form-label small">Роль</label>
                             <select @bind="inviteRole" class="form-select form-select-sm">
-                                <option value="ProductOwner">Product Owner</option>
-                                <option value="ScrumMaster">Scrum Master</option>
-                                <option value="Developer">Developer</option>
-                                <option value="Viewer">Viewer</option>
+                                @foreach (var role in availableRoles)
+                                {
+                                    <option value="@role.Value">@role.Label</option>
+                                }
                             </select>
                         </div>
                     </div>
@@ -234,20 +228,48 @@
     private string inviteEmail = "";
     private string inviteRole = "Developer";
     private bool isSaving = false;
-    private bool canAddMembers = false;
     private string currentUserRole = "";
     private string roleFilter = "";
     private bool isViewer = false;
+    private bool isOwner = false;
+
+    private bool canAddMembers => IsScrumMaster || isOwner;
+    private bool canChangeRoles => IsScrumMaster;
+    private bool canRemoveMembers => IsScrumMaster || isOwner;
+    private bool IsScrumMaster => currentUserRole == "ScrumMaster";
+    private bool IsDeveloper => currentUserRole == "Developer";
 
     private List<ProjectMemberResponse> filteredMembers
     {
         get
         {
             if (string.IsNullOrEmpty(roleFilter))
-            {
                 return members ?? new();
-            }
             return (members ?? new()).Where(m => m.Role == roleFilter && !m.IsOwner).ToList();
+        }
+    }
+
+    // Доступные роли для добавления: Владелец → ScrumMaster, ScrumMaster → Developer/Viewer
+    private List<(string Value, string Label)> availableRoles
+    {
+        get
+        {
+            if (isOwner)
+                return new() { ("ScrumMaster", "Scrum Master") };
+            if (IsScrumMaster)
+                return new() { ("Developer", "Developer"), ("Viewer", "Viewer") };
+            return new();
+        }
+    }
+
+    // Роли, доступные для изменения
+    private List<(string Value, string Label)> editableRoles
+    {
+        get
+        {
+            if (IsScrumMaster)
+                return new() { ("Developer", "Developer"), ("Viewer", "Viewer") };
+            return new();
         }
     }
 
@@ -264,6 +286,7 @@
             var u = await AuthService.GetCurrentUserAsync();
             if (u.Success && u.Data != null)
             {
+                isOwner = project?.Owner?.Id == u.Data.Id;
                 var m = await ProjectService.GetProjectMembersAsync(ProjectId);
                 if (m.Success && m.Data != null)
                 {
@@ -272,11 +295,9 @@
                     {
                         currentUserRole = cm.Role;
                         isViewer = cm.Role == "Viewer";
-                        canAddMembers = cm.Role is "ProductOwner" or "ScrumMaster";
                     }
-                    else if (project?.Owner?.Id == u.Data.Id)
+                    else if (isOwner)
                     {
-                        canAddMembers = true;
                         currentUserRole = "ProductOwner";
                     }
                 }
@@ -291,217 +312,83 @@
         try
         {
             var p = await ProjectService.GetProjectByIdAsync(ProjectId);
-            if (p.Success && p.Data != null)
-            {
-                project = p.Data;
-            }
-            else
-            {
-                Navigation.NavigateTo("/projects");
-                return;
-            }
+            if (p.Success && p.Data != null) project = p.Data;
+            else { Navigation.NavigateTo("/projects"); return; }
             var m = await ProjectService.GetProjectMembersAsync(ProjectId);
-            if (m.Success && m.Data != null)
-            {
-                members = m.Data;
-            }
+            if (m.Success && m.Data != null) members = m.Data;
         }
-        catch
-        {
-            await ErrorHandling.TriggerError("Ошибка загрузки");
-        }
-        finally
-        {
-            isLoading = false;
-        }
+        catch { await ErrorHandling.TriggerError("Ошибка загрузки"); }
+        finally { isLoading = false; }
     }
 
+    // Изменение роли — только ScrumMaster, только на Dev/Viewer
     private async Task ChangeRole(Guid userId, string? newRole)
     {
-        if (string.IsNullOrEmpty(newRole) || !canAddMembers || isViewer)
-        {
-            return;
-        }
+        if (!canChangeRoles || string.IsNullOrEmpty(newRole)) return;
+        if (!editableRoles.Any(r => r.Value == newRole)) return;
+
         try
         {
             var r = await ProjectService.UpdateMemberRoleAsync(ProjectId, new UpdateMemberRoleRequest { UserId = userId, NewRole = newRole });
-            if (r.Success)
-            {
-                await LoadData();
-            }
-            else
-            {
-                await ErrorHandling.TriggerError(r.Message);
-            }
+            if (r.Success) await LoadData();
+            else await ErrorHandling.TriggerError(r.Message);
         }
-        catch
-        {
-            await ErrorHandling.TriggerError("Ошибка");
-        }
+        catch { await ErrorHandling.TriggerError("Ошибка"); }
     }
 
     private async Task RemoveMember(Guid userId, string userName)
     {
-        if (!canAddMembers || isViewer)
-        {
-            return;
-        }
+        if (!canRemoveMembers) return;
         var ok = await DialogService.ConfirmAsync($"Удалить участника «{userName}»?", "Удаление", "Удалить", "danger");
-        if (!ok)
-        {
-            return;
-        }
+        if (!ok) return;
         try
         {
             var r = await ProjectService.RemoveMemberAsync(ProjectId, new RemoveMemberRequest { UserId = userId });
-            if (r.Success)
-            {
-                await LoadData();
-            }
-            else
-            {
-                await ErrorHandling.TriggerError(r.Message);
-            }
+            if (r.Success) await LoadData();
+            else await ErrorHandling.TriggerError(r.Message);
         }
-        catch
-        {
-            await ErrorHandling.TriggerError("Ошибка");
-        }
+        catch { await ErrorHandling.TriggerError("Ошибка"); }
     }
 
     private void ShowAddMemberModal()
     {
-        if (!canAddMembers || isViewer)
-        {
-            ErrorHandling.TriggerError("Нет прав");
-            return;
-        }
+        if (!canAddMembers) { ErrorHandling.TriggerError("Нет прав"); return; }
         inviteEmail = "";
-        inviteRole = "Developer";
+        inviteRole = availableRoles.First().Value;
         showAddModal = true;
     }
 
-    private void CloseAddModal()
-    {
-        showAddModal = false;
-    }
+    private void CloseAddModal() => showAddModal = false;
 
     private async Task AddMember()
     {
-        if (string.IsNullOrWhiteSpace(inviteEmail))
-        {
-            await ErrorHandling.TriggerError("Введите email");
-            return;
-        }
+        if (string.IsNullOrWhiteSpace(inviteEmail)) { await ErrorHandling.TriggerError("Введите email"); return; }
         isSaving = true;
         try
         {
-            var r = await ProjectService.AddMemberAsync(ProjectId, new AddProjectMemberRequest
-            {
-                Email = inviteEmail,
-                Role = inviteRole,
-                UserId = null  // Явно указываем, что добавляем по email, а не по ID
-            });
-
+            var r = await ProjectService.AddMemberAsync(ProjectId, new AddProjectMemberRequest { Email = inviteEmail, Role = inviteRole, UserId = null });
             if (r.Success)
             {
                 CloseAddModal();
-
                 if (r.Data == null)
-                {
-                    // Приглашение отправлено на почту
-                    await DialogService.AlertAsync(
-                        $"Приглашение отправлено на {inviteEmail}. Пользователь присоединится к проекту после принятия приглашения.",
-                        "Приглашение отправлено",
-                        "",
-                        "success");
-                }
+                    await DialogService.AlertAsync($"Приглашение отправлено на {inviteEmail}.", "Приглашение отправлено", "", "success");
                 else
-                {
-                    // Пользователь добавлен сразу
-                    await DialogService.AlertAsync(
-                        $"Пользователь {r.Data.FullName} добавлен в проект.",
-                        "Участник добавлен",
-                        "",
-                        "success");
-                }
-
+                    await DialogService.AlertAsync($"Пользователь {r.Data.FullName} добавлен.", "Участник добавлен", "", "success");
                 await LoadData();
             }
-            else
-            {
-                await ErrorHandling.TriggerError(r.Message ?? "Ошибка при добавлении участника");
-            }
+            else await ErrorHandling.TriggerError(r.Message ?? "Ошибка");
         }
-        catch (Exception ex)
-        {
-            await ErrorHandling.TriggerError($"Ошибка: {ex.Message}");
-        }
-        finally
-        {
-            isSaving = false;
-        }
+        catch (Exception ex) { await ErrorHandling.TriggerError($"Ошибка: {ex.Message}"); }
+        finally { isSaving = false; }
     }
 
-    private void ShowAllRoles()
-    {
-        SetRoleFilter("");
-    }
-
-    private void ShowProductOwner()
-    {
-        SetRoleFilter("ProductOwner");
-    }
-
-    private void ShowScrumMaster()
-    {
-        SetRoleFilter("ScrumMaster");
-    }
-
-    private void ShowDeveloper()
-    {
-        SetRoleFilter("Developer");
-    }
-
-    private void ShowViewer()
-    {
-        SetRoleFilter("Viewer");
-    }
-
-    private int GetRoleCount(string role)
-    {
-        return members?.Count(m => m.Role == role && !m.IsOwner) ?? 0;
-    }
-
-    private void SetRoleFilter(string role)
-    {
-        roleFilter = role;
-        StateHasChanged();
-    }
-
-    private string GetInitials(string n)
-    {
-        if (string.IsNullOrEmpty(n))
-        {
-            return "?";
-        }
-        return n.Split(' ')[0][..Math.Min(2, n.Split(' ')[0].Length)].ToUpper();
-    }
-
-    private string GetRoleLabel(string r)
-    {
-        return r switch
-        {
-            "ProductOwner" => "PO",
-            "ScrumMaster" => "SM",
-            "Developer" => "Dev",
-            "Viewer" => "View",
-            _ => r
-        };
-    }
-
-    private void GoBack()
-    {
-        Navigation.NavigateTo($"/projects/{ProjectId}");
-    }
+    private void ShowAllRoles() { roleFilter = ""; StateHasChanged(); }
+    private void ShowProductOwner() { roleFilter = "ProductOwner"; StateHasChanged(); }
+    private void ShowScrumMaster() { roleFilter = "ScrumMaster"; StateHasChanged(); }
+    private void ShowDeveloper() { roleFilter = "Developer"; StateHasChanged(); }
+    private void ShowViewer() { roleFilter = "Viewer"; StateHasChanged(); }
+    private int GetRoleCount(string role) => members?.Count(m => m.Role == role && !m.IsOwner) ?? 0;
+    private string GetInitials(string n) => string.IsNullOrEmpty(n) ? "?" : n.Split(' ')[0][..Math.Min(2, n.Split(' ')[0].Length)].ToUpper();
+    private string GetRoleLabel(string r) => r switch { "ProductOwner" => "PO", "ScrumMaster" => "SM", "Developer" => "Dev", "Viewer" => "View", _ => r };
+    private void GoBack() => Navigation.NavigateTo($"/projects/{ProjectId}");
 }

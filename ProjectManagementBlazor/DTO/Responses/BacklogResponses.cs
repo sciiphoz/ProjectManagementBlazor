@@ -40,6 +40,7 @@ namespace ProjectManagementBlazor.DTO.Responses
         public decimal? StoryPoints { get; set; }
         public decimal? EstimatedHours { get; set; }
         public UserBriefResponse? Assignee { get; set; }
+        public List<BlockerResponse> ActiveBlockers { get; set; } = new();
         public bool HasBlockers { get; set; }
         public int SubTasksCount { get; set; }
         public int CompletedSubTasksCount { get; set; }

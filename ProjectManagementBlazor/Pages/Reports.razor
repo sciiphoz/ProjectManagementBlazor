@@ -484,22 +484,29 @@
         StateHasChanged();
         try
         {
+            cycleTimeData = new();
+
             var sr = await SprintService.GetProjectSprintsAsync(ProjectId);
             if (sr.Success && sr.Data != null)
             {
-                cycleTimeData = new();
-                foreach (var s in sr.Data.Where(s => s.Status is "Completed" or "Active").OrderByDescending(s => s.EndDate).Take(5))
+                foreach (var s in sr.Data.OrderByDescending(s => s.EndDate).Take(5))
                 {
+                    Console.WriteLine($"Проверяем спринт: {s.Name} (Статус: {s.Status})");
+
                     var sd = await SprintService.GetSprintBoardAsync(s.Id);
                     if (sd.Success && sd.Data != null)
                     {
-                        foreach (var t in sd.Data.Tasks.Where(t => t.Status == "Done"))
+                        var doneTasks = sd.Data.Tasks.Where(t => t.Status == "Done").ToList();
+                        Console.WriteLine($"Найдено Done-задач: {doneTasks.Count}");
+
+                        foreach (var t in doneTasks)
                         {
-                            var d = await BacklogService.GetBacklogItemDetailAsync(t.Id);
-                            if (d.Success && d.Data != null)
+                            var detail = await BacklogService.GetBacklogItemDetailAsync(t.Id);
+                            if (detail.Success && detail.Data != null)
                             {
-                                var start = d.Data.SubTasks?.Where(st => st.Status == "Done" && st.StartedAt.HasValue).MinBy(st => st.StartedAt)?.StartedAt ?? d.Data.UpdatedAt ?? d.Data.CreatedAt;
-                                var end = d.Data.SubTasks?.Where(st => st.Status == "Done" && st.CompletedAt.HasValue).MaxBy(st => st.CompletedAt)?.CompletedAt ?? d.Data.UpdatedAt ?? DateTime.UtcNow;
+                                var start = detail.Data.StartedAt ?? detail.Data.CreatedAt;
+                                var end = detail.Data.CompletedAt ?? DateTime.UtcNow;
+
                                 cycleTimeData.Add(new CycleTimeItem
                                 {
                                     Id = t.Id,
@@ -516,8 +523,13 @@
                     }
                 }
             }
+
+            Console.WriteLine($"Всего Cycle Time задач: {cycleTimeData.Count}");
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка Cycle Time: {ex.Message}");
+        }
         finally
         {
             isCycleTimeLoading = false;
