@@ -98,7 +98,7 @@
         @if (activeView == "board")
         {
             <div class="board-container">
-                @foreach (var col in new[] { ("Backlog", "Бэклог", "bg-secondary"), ("ToDo", "To Do", "bg-info"), ("InProgress", "In Progress", "bg-warning text-dark"), ("Done", "Done", "bg-success") })
+                @foreach (var col in new[] { ("Backlog", "Бэклог", "bg-secondary"), ("ToDo", "To Do", "bg-info"), ("InProgress", "In Progress", "bg-warning text-dark"), ("Review", "Review", "bg-purple text-white"), ("Done", "Done", "bg-success") })
                 {
                     var (status, title, badge) = col;
                     <div class="board-col">
@@ -560,6 +560,10 @@
 </div>
 
 <style>
+    .bg-purple {
+        background-color: #8B5CF6 !important;
+    }
+
     .sprint-page {
         max-width: 100%;
         margin: -1.1rem;

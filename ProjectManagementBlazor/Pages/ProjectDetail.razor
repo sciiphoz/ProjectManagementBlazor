@@ -21,6 +21,9 @@
     {
         <div class="detail-header">
             <div class="d-flex align-items-center gap-3 mb-3">
+                <button class="btn btn-outline-secondary btn-sm" @onclick="GoToProjects">
+                    <i class="bi bi-arrow-left me-1"></i>
+                </button>
                 <div class="project-avatar @(project.IsArchived ? "bg-secondary" : "bg-primary")">
                     @project.Name[..Math.Min(2, project.Name.Length)].ToUpper()
                 </div>
@@ -141,7 +144,7 @@
                             <div class="sprint-progress mt-2">
                                 <div class="progress" style="height: 4px;">
                                     <div class="progress-bar @(progress >= 80 ? "bg-success" : progress >= 40 ? "bg-warning" : "bg-danger")"
-                                         style="width: @progress%"></div>
+                                         style="width: @((int)progress)%"></div>
                                 </div>
                                 <span class="small text-muted mt-1">@((int)progress)%</span>
                             </div>
@@ -681,6 +684,11 @@
     private void GoToActivityLogs()
     {
         Navigation.NavigateTo($"/projects/{ProjectId}/logs");
+    }
+
+    private void GoToProjects()
+    {
+        Navigation.NavigateTo("/projects");
     }
 
     private void OpenDailyScrum()

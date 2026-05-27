@@ -32,8 +32,7 @@
                             <InputText type="@(showPassword ? "text" : "password")"
                                        @bind-Value="loginModel.Password"
                                        class="form-control" placeholder="Введите пароль" />
-                            <button class="btn btn-outline-secondary"
-                                    type="button"
+                            <button class="btn btn-outline-secondary" type="button"
                                     @onclick="TogglePasswordVisibility"
                                     title="@(showPassword ? "Скрыть пароль" : "Показать пароль")">
                                 <i class="bi @(showPassword ? "bi-eye-slash" : "bi-eye")"></i>
@@ -80,22 +79,10 @@
                 <p class="lead">Система управления проектами по методологии SCRUM</p>
                 <hr class="my-4" style="border-color: rgba(255,255,255,0.2);">
                 <div class="d-flex flex-column gap-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-kanban"></i>
-                        <span class="small">Канбан-доски с drag-and-drop</span>
-                    </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-graph-up"></i>
-                        <span class="small">Burndown-графики и отчёты</span>
-                    </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-people"></i>
-                        <span class="small">Командная работа и Daily Scrum</span>
-                    </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-chat-dots"></i>
-                        <span class="small">Комментарии и обсуждения задач</span>
-                    </div>
+                    <div class="d-flex align-items-center gap-2"><i class="bi bi-kanban"></i><span class="small">Scrum-доски с drag-and-drop</span></div>
+                    <div class="d-flex align-items-center gap-2"><i class="bi bi-graph-up"></i><span class="small">Burndown-графики и отчёты</span></div>
+                    <div class="d-flex align-items-center gap-2"><i class="bi bi-people"></i><span class="small">Командная работа и Daily Scrum</span></div>
+                    <div class="d-flex align-items-center gap-2"><i class="bi bi-chat-dots"></i><span class="small">Комментарии и обсуждения задач</span></div>
                 </div>
             </div>
         </div>
@@ -140,7 +127,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 3rem;
+        padding: 4rem;
     }
 
     .auth-brand-content {
@@ -163,6 +150,78 @@
             opacity: 0.85;
             width: 1.5rem;
             text-align: center;
+        }
+
+    /* Цельные input-group */
+    .input-group {
+        border-radius: 0.375rem;
+        overflow: hidden;
+        box-shadow: none;
+        border: 1px solid var(--border-color, #E2E8F0);
+    }
+
+        .input-group:focus-within {
+            border-color: var(--primary-color, #4F46E5);
+            box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.15);
+        }
+
+    .input-group-text {
+        background: var(--bg-light, #F8F9FB);
+        border: none;
+        font-size: 0.85rem;
+        padding: 0.375rem 0.625rem;
+    }
+
+    .input-group .form-control,
+    .input-group input[type="text"],
+    .input-group input[type="email"],
+    .input-group input[type="password"] {
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        outline: none !important;
+    }
+
+    .input-group .btn-outline-secondary {
+        border: none;
+        background: var(--bg-light, #F8F9FB);
+        border-radius: 0 !important;
+    }
+
+        .input-group .btn-outline-secondary:hover {
+            background: #E2E8F0;
+        }
+
+    .input-group input:focus,
+    .input-group .form-control:focus {
+        box-shadow: none !important;
+        border: none !important;
+        outline: none !important;
+    }
+
+    .form-control-plain {
+        border-radius: 0.375rem !important;
+        border: 1px solid var(--border-color, #E2E8F0) !important;
+    }
+
+        .form-control-plain:focus {
+            border-color: var(--primary-color, #4F46E5) !important;
+            box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.15) !important;
+        }
+
+    .form-label {
+        font-size: 0.8rem;
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+
+    .form-control, .input-group-text {
+        font-size: 0.85rem;
+    }
+
+        .form-control::placeholder {
+            color: #94A3B8;
+            font-size: 0.8rem;
         }
 
     [data-bs-theme="dark"] .auth-form-side {
@@ -203,6 +262,10 @@
         color: #818CF8;
     }
 
+    [data-bs-theme="dark"] .input-group .btn-outline-secondary {
+        background: #475569;
+    }
+
     @@media (max-width: 768px) {
         .auth-split {
             flex-direction: column;
@@ -214,10 +277,6 @@
 
         .auth-form-side {
             padding: 2rem 1.5rem;
-        }
-
-        .auth-container {
-            margin: 0;
         }
     }
 </style>
@@ -239,73 +298,24 @@
 
     private async Task HandleLogin()
     {
-        errorMessage = string.Empty;
-        hasError = false;
+        errorMessage = string.Empty; hasError = false;
+        if (string.IsNullOrWhiteSpace(loginModel.UsernameOrEmail)) { errorMessage = "Введите логин или email"; hasError = true; return; }
+        if (string.IsNullOrWhiteSpace(loginModel.Password)) { errorMessage = "Введите пароль"; hasError = true; return; }
 
-        if (string.IsNullOrWhiteSpace(loginModel.UsernameOrEmail))
-        {
-            errorMessage = "Введите логин или email";
-            hasError = true;
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(loginModel.Password))
-        {
-            errorMessage = "Введите пароль";
-            hasError = true;
-            return;
-        }
-
-        isLoading = true;
-        StateHasChanged();
-
+        isLoading = true; StateHasChanged();
         try
         {
             var result = await AuthService.LoginAsync(loginModel);
-
-            if (result == null)
-            {
-                errorMessage = "Не удалось выполнить вход: сервер не ответил";
-                hasError = true;
-                return;
-            }
-
-            if (result.Success)
-            {
-                Navigation.NavigateTo(returnUrl ?? "/", true);
-                return;
-            }
-            else
-            {
-                errorMessage = string.IsNullOrEmpty(result.Message) ? "Неверный логин или пароль" : result.Message;
-
-                if (result.Errors != null && result.Errors.Any())
-                {
-                    errorMessage += "\n" + string.Join("\n", result.Errors.Select(e => $"• {e}"));
-                }
-                hasError = true;
-            }
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Ошибка соединения: {ex.Message}";
+            if (result == null) { errorMessage = "Не удалось выполнить вход: сервер не ответил"; hasError = true; return; }
+            if (result.Success) { Navigation.NavigateTo(returnUrl ?? "/", true); return; }
+            errorMessage = string.IsNullOrEmpty(result.Message) ? "Неверный логин или пароль" : result.Message;
+            if (result.Errors?.Any() == true) errorMessage += "\n" + string.Join("\n", result.Errors.Select(e => $"• {e}"));
             hasError = true;
         }
-        finally
-        {
-            isLoading = false;
-            StateHasChanged();
-        }
+        catch (Exception ex) { errorMessage = $"Ошибка соединения: {ex.Message}"; hasError = true; }
+        finally { isLoading = false; StateHasChanged(); }
     }
 
-    private void TogglePasswordVisibility()
-    {
-        showPassword = !showPassword;
-    }
-
-    private void ClearError()
-    {
-        errorMessage = string.Empty;
-        hasError = false;
-    }
+    private void TogglePasswordVisibility() => showPassword = !showPassword;
+    private void ClearError() { errorMessage = string.Empty; hasError = false; }
 }

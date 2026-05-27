@@ -20,7 +20,6 @@
     }
     else if (project != null)
     {
-        <!-- Заголовок -->
         <div class="backlog-header">
             <div>
                 <h2>Бэклог</h2>
@@ -181,7 +180,6 @@
         }
     }
 
-    <!-- Модалка задачи -->
     @if (showModal)
     {
         <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);">
@@ -200,7 +198,7 @@
                             <div class="row mb-2">
                                 <div class="col-md-4">
                                     <label class="form-label small">Тип</label>
-                                    <InputSelect @bind-Value="taskForm.Type" class="form-select form-select-sm">
+                                    <InputSelect @bind-Value="taskFormTypeInt" class="form-select form-select-sm">
                                         <option value="0">User Story</option>
                                         <option value="1">Bug</option>
                                         <option value="2">Техническая</option>
@@ -240,7 +238,6 @@
         </div>
     }
 
-    <!-- Модалка спринта -->
     @if (showMoveToSprintModal)
     {
         <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);">
@@ -288,6 +285,16 @@
             margin: 0;
         }
 
+    .backlog-filters .form-select-sm {
+        padding-right: 1.5rem;
+        background-position: right 0.5rem center;
+        font-size: 0.78rem;
+        padding-top: 0.25rem !important;
+        padding-bottom: 0.25rem !important;
+        height: auto;
+        line-height: 1.4;
+    }
+
     .backlog-filters {
         display: flex;
         gap: 0.5rem;
@@ -300,6 +307,8 @@
         .backlog-filters .form-select-sm {
             padding-right: 1.5rem;
             background-position: right 0.5rem center;
+            height: 33px;
+            font-size: 0.78rem;
         }
 
     .search-box {
@@ -310,14 +319,10 @@
         max-width: 250px;
         background: var(--bg-light, #F8F9FB);
         border: 1px solid var(--border-color, #E2E8F0);
-        border-radius: 0.5rem;
-        padding: 0.2rem 0.5rem;
+        border-radius: 0.375rem;
+        padding: 0.25rem 0.5rem;
+        box-sizing: border-box;
     }
-
-        .search-box i {
-            color: var(--text-secondary);
-            font-size: 0.8rem;
-        }
 
         .search-box input {
             flex: 1;
@@ -325,20 +330,27 @@
             outline: none;
             font-size: 0.8rem;
             background: transparent;
-            padding: 0.125rem 0.375rem;
+            padding: 0;
             color: var(--text-primary);
+            min-width: 0;
+        }
+
+        .search-box i {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            flex-shrink: 0;
         }
 
     .backlog-list {
         border: 1px solid var(--border-color, #E2E8F0);
         border-radius: 0.5rem;
-        overflow: hidden;
+        overflow: visible;
     }
 
     .bl-header {
         display: flex;
         align-items: center;
-        padding: 0.375rem 0.75rem;
+        padding: 0.4rem 0.75rem;
         background: var(--bg-light, #F8F9FB);
         border-bottom: 1px solid var(--border-color, #E2E8F0);
         font-size: 0.7rem;
@@ -351,7 +363,7 @@
     .bl-row {
         display: flex;
         align-items: center;
-        padding: 0.5rem 0.75rem;
+        padding: 0.55rem 0.75rem;
         border-bottom: 1px solid var(--border-color, #E2E8F0);
         font-size: 0.8rem;
         cursor: pointer;
@@ -363,12 +375,17 @@
         }
 
         .bl-row:hover {
-            background: rgba(0,0,0,0.015);
+            background: rgba(0,0,0,0.02);
         }
 
         .bl-row.done {
-            opacity: 0.5;
+            background: var(--bg-light, #F8F9FB);
         }
+
+            .bl-row.done .bl-col-title span:first-child {
+                text-decoration: line-through;
+                color: var(--text-secondary);
+            }
 
     .bl-col-title {
         flex: 2.5;
@@ -417,6 +434,9 @@
 
     .dropdown-menu {
         z-index: 1060;
+        position: absolute;
+        right: 0;
+        top: 100%;
     }
 
     [data-bs-theme="dark"] .backlog-list, [data-bs-theme="dark"] .bl-header, [data-bs-theme="dark"] .bl-row {
@@ -424,13 +444,17 @@
         border-color: #334155;
     }
 
+        [data-bs-theme="dark"] .bl-row.done {
+            background: #0F172A;
+        }
+
+        [data-bs-theme="dark"] .bl-row:hover {
+            background: rgba(255,255,255,0.02);
+        }
+
     [data-bs-theme="dark"] .search-box {
         background: #1E293B;
         border-color: #334155;
-    }
-
-    [data-bs-theme="dark"] .bl-row:hover {
-        background: rgba(255,255,255,0.02);
     }
 </style>
 
@@ -555,6 +579,15 @@
         catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
+        }
+    }
+
+    private async Task CloseAllMenus()
+    {
+        if (openMenuId != Guid.Empty)
+        {
+            openMenuId = Guid.Empty;
+            StateHasChanged();
         }
     }
 
@@ -724,17 +757,19 @@
         }
     }
 
-    private async Task DeleteTask(Guid taskId) 
-    { 
-        if (isViewer) return; 
-        
-        var ok = await DialogService.ConfirmAsync("Удалить задачу?", "Удаление", "Удалить", "danger"); 
-        
-        if (!ok) return; 
-        
-        var r = await BacklogService.DeleteBacklogItemAsync(taskId); 
-        
-        if (r.Success) await LoadBacklog(); 
+    private async Task DeleteTask(Guid taskId)
+    {
+        if (isViewer) return;
+        var ok = await DialogService.ConfirmAsync("Удалить задачу?", "Удаление", "Удалить", "danger");
+        if (!ok) return;
+        var r = await BacklogService.DeleteBacklogItemAsync(taskId);
+        if (r.Success)
+        {
+            allTasks?.RemoveAll(t => t.Id == taskId);
+            currentPage = 1;
+            ApplyFilters();
+            StateHasChanged();
+        }
     }
 
     private void GoToProject() => Navigation.NavigateTo($"/projects/{ProjectId}");
@@ -785,6 +820,12 @@
         taskForm = new CreateBacklogItemRequest(); 
     }
 
+    private int taskFormTypeInt
+    {
+        get => (int)taskForm.Type;
+        set => taskForm.Type = (BacklogItemType)value;
+    }
+
     private string GetTypeBadgeClass(string t) => t switch 
     { 
         "UserStory" => "bg-primary", 
@@ -803,21 +844,23 @@
         _ => t 
     };
     
-    private string GetStatusBadgeClass(string s) => s switch 
-    { 
-        "Backlog" => "bg-secondary", 
-        "ToDo" => "bg-info", 
-        "InProgress" => "bg-warning", 
-        "Done" => "bg-success", 
-        _ => "bg-secondary" 
+    private string GetStatusBadgeClass(string s) => s switch
+    {
+        "Backlog" => "bg-secondary",
+        "ToDo" => "bg-info",
+        "InProgress" => "bg-warning text-dark",
+        "Review" => "bg-purple text-white",
+        "Done" => "bg-success",
+        _ => "bg-secondary"
     };
-    
-    private string GetStatusName(string s) => s switch 
-    { 
-        "Backlog" => "Бэклог", 
-        "ToDo" => "To Do", 
-        "InProgress" => "In Progress", 
-        "Done" => "Done", 
-        _ => s 
+
+    private string GetStatusName(string s) => s switch
+    {
+        "Backlog" => "Бэклог",
+        "ToDo" => "To Do",
+        "InProgress" => "In Progress",
+        "Review" => "Review",
+        "Done" => "Done",
+        _ => s
     };
 }

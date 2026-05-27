@@ -44,7 +44,7 @@
                 <button class="btn btn-outline-secondary btn-sm @(showArchived ? "active" : "")" @onclick="() => ToggleShowArchived(true)">Все</button>
                 <button class="btn btn-outline-secondary btn-sm @(!showArchived ? "active" : "")" @onclick="() => ToggleShowArchived(false)">Активные</button>
             </div>
-            <select value="@sortBy" class="form-select form-select-sm" style="width: auto;" @onchange="OnSortChanged">
+            <select value="@sortBy" class="form-select form-select-sm" style="width: 145px;" @onchange="OnSortChanged">
                 <option value="name">По названию</option>
                 <option value="created">По дате</option>
                 <option value="tasks">По задачам</option>
@@ -112,6 +112,10 @@
                             }
                         </div>
                         <h5 class="project-name">@project.Name</h5>
+                        @if (project.IsArchived)
+                        {
+                            <span class="badge bg-warning text-dark ms-0 align-middle" style="font-size:0.6rem; vertical-align: middle; margin-top: -6px;">Архив</span>
+                        }
                         @if (!string.IsNullOrEmpty(project.Description))
                         {
                             <p class="project-desc">@project.Description</p>
@@ -138,6 +142,10 @@
                         </div>
                         <div class="flex-grow-1 min-w-0">
                             <div class="fw-medium">@project.Name</div>
+                            @if (project.IsArchived)
+                            {
+                                <span class="badge bg-warning text-dark ms-0 align-middle" style="font-size:0.6rem; vertical-align: middle; margin-top: -2px;">Архив</span>
+                            }
                             @if (!string.IsNullOrEmpty(project.Description))
                             {
                                 <div class="text-muted small text-truncate">@project.Description</div>
@@ -315,8 +323,11 @@
         }
 
         .project-card.archived {
-            opacity: 0.65;
+            background: var(--bg-light, #F8F9FB);
+            border-color: #F59E0B;
         }
+
+
 
     .project-card-header {
         display: flex;
@@ -389,7 +400,8 @@
         }
 
         .project-row.archived {
-            opacity: 0.6;
+            background: var(--bg-light, #F8F9FB);
+            border-color: #F59E0B;
         }
 
     .project-icon-sm {
@@ -462,53 +474,39 @@
         try
         {
             var u = await AuthService.GetCurrentUserAsync();
-            if (u.Success && u.Data != null)
-            {
-                currentUserId = u.Data.Id;
-            }
+            if (u.Success && u.Data != null) currentUserId = u.Data.Id;
             await LoadProjects();
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка инициализации: {ex.Message}");
-        }
+        catch (Exception ex) { Console.WriteLine($"Ошибка инициализации: {ex.Message}"); }
     }
 
     private async Task LoadProjects()
     {
-        isLoading = true;
+        isLoading = true; StateHasChanged();
         try
         {
             var r = await ProjectService.GetUserProjectsAsync(new PagedRequest { PageNumber = 1, PageSize = 100 });
-            if (r.Success && r.Data != null)
-            {
-                allProjects = r.Data.Items;
-                ApplyFilter();
-            }
+            if (r.Success && r.Data != null) { allProjects = r.Data.Items; ApplyFilter(); }
         }
-        catch (Exception ex)
+        catch (Exception ex) { Console.WriteLine($"Ошибка загрузки: {ex.Message}"); }
+        finally { isLoading = false; StateHasChanged(); }
+    }
+
+    private async Task QuickRefresh()
+    {
+        try
         {
-            Console.WriteLine($"Ошибка загрузки проектов: {ex.Message}");
-            await ErrorHandling.TriggerError("Не удалось загрузить проекты");
+            var r = await ProjectService.GetUserProjectsAsync(new PagedRequest { PageNumber = 1, PageSize = 100 });
+            if (r.Success && r.Data != null) { allProjects = r.Data.Items; ApplyFilter(); }
         }
-        finally
-        {
-            isLoading = false;
-        }
+        catch { }
     }
 
     private void ApplyFilter()
     {
-        if (allProjects == null)
-        {
-            displayProjects = null;
-            return;
-        }
+        if (allProjects == null) { displayProjects = null; return; }
         var q = allProjects.AsQueryable();
-        if (!showArchived)
-        {
-            q = q.Where(p => !p.IsArchived);
-        }
+        if (!showArchived) q = q.Where(p => !p.IsArchived);
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
             var t = searchTerm.Trim();
@@ -523,182 +521,57 @@
         StateHasChanged();
     }
 
-    private void ShowGridView()
-    {
-        viewMode = "grid";
-        StateHasChanged();
-    }
-
-    private void ShowListView()
-    {
-        viewMode = "list";
-        StateHasChanged();
-    }
-
-    private async Task ClearSearch()
-    {
-        searchTerm = "";
-        ApplyFilter();
-        StateHasChanged();
-    }
-
-    private async Task ResetFilters()
-    {
-        searchTerm = "";
-        sortBy = "name";
-        showArchived = true;
-        ApplyFilter();
-        StateHasChanged();
-    }
-
-    private void ToggleShowArchived(bool show)
-    {
-        showArchived = show;
-        ApplyFilter();
-    }
-
-    private async Task OnSearchInput(ChangeEventArgs e)
-    {
-        searchTerm = e.Value?.ToString() ?? "";
-        ApplyFilter();
-    }
-
-    private async Task OnSortChanged(ChangeEventArgs e)
-    {
-        sortBy = e.Value?.ToString() ?? "name";
-        ApplyFilter();
-    }
-
-    private void ToggleProjectDropdown(Guid id)
-    {
-        openDropdownId = openDropdownId == id ? Guid.Empty : id;
-        StateHasChanged();
-    }
-
-    private void ShowCreateModal()
-    {
-        newProject = new CreateProjectRequest();
-        showCreateModal = true;
-    }
-
-    private void CloseModal()
-    {
-        showCreateModal = false;
-    }
+    private void ShowGridView() { viewMode = "grid"; StateHasChanged(); }
+    private void ShowListView() { viewMode = "list"; StateHasChanged(); }
+    private async Task ClearSearch() { searchTerm = ""; ApplyFilter(); StateHasChanged(); }
+    private async Task ResetFilters() { searchTerm = ""; sortBy = "name"; showArchived = true; ApplyFilter(); StateHasChanged(); }
+    private void ToggleShowArchived(bool show) { showArchived = show; ApplyFilter(); }
+    private async Task OnSearchInput(ChangeEventArgs e) { searchTerm = e.Value?.ToString() ?? ""; ApplyFilter(); }
+    private async Task OnSortChanged(ChangeEventArgs e) { sortBy = e.Value?.ToString() ?? "name"; ApplyFilter(); }
+    private void ToggleProjectDropdown(Guid id) { openDropdownId = openDropdownId == id ? Guid.Empty : id; StateHasChanged(); }
+    private void ShowCreateModal() { newProject = new CreateProjectRequest(); showCreateModal = true; }
+    private void CloseModal() { showCreateModal = false; }
 
     private async Task CreateProject()
     {
-        if (string.IsNullOrWhiteSpace(newProject.Name))
-        {
-            await ErrorHandling.TriggerError("Название обязательно");
-            return;
-        }
-        isCreating = true;
+        if (string.IsNullOrWhiteSpace(newProject.Name)) { await ErrorHandling.TriggerError("Название обязательно"); return; }
+        isCreating = true; StateHasChanged();
         try
         {
             var r = await ProjectService.CreateProjectAsync(newProject);
-            if (r.Success)
-            {
-                CloseModal();
-                await LoadProjects();
-                await DialogService.AlertAsync("Проект создан", "", "", "success");
-            }
-            else
-            {
-                await ErrorHandling.TriggerError(r.Message);
-            }
+            if (r.Success) { CloseModal(); await LoadProjects(); await DialogService.AlertAsync("Проект создан", "", "", "success"); }
+            else await ErrorHandling.TriggerError(r.Message);
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка создания проекта: {ex.Message}");
-            await ErrorHandling.TriggerError("Ошибка при создании проекта");
-        }
-        finally
-        {
-            isCreating = false;
-        }
+        catch (Exception ex) { await ErrorHandling.TriggerError("Ошибка"); }
+        finally { isCreating = false; StateHasChanged(); }
     }
 
     private async Task ArchiveProject(Guid id)
     {
         var ok = await DialogService.ConfirmAsync("Переместить проект в архив?", "Архивирование", "Архивировать", "warning");
-        if (!ok)
-        {
-            return;
-        }
-        try
-        {
-            var r = await ProjectService.ArchiveProjectAsync(id);
-            if (r.Success)
-            {
-                await LoadProjects();
-            }
-            else
-            {
-                await ErrorHandling.TriggerError(r.Message);
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка архивирования: {ex.Message}");
-            await ErrorHandling.TriggerError("Ошибка при архивировании");
-        }
+        if (!ok) return;
+        var r = await ProjectService.ArchiveProjectAsync(id);
+        if (r.Success) await QuickRefresh();
+        else await ErrorHandling.TriggerError(r.Message);
     }
 
     private async Task RestoreProject(Guid id)
     {
         var ok = await DialogService.ConfirmAsync("Восстановить проект?", "Восстановление", "Восстановить", "info");
-        if (!ok)
-        {
-            return;
-        }
-        try
-        {
-            var r = await ProjectService.RestoreProjectAsync(id);
-            if (r.Success)
-            {
-                await LoadProjects();
-            }
-            else
-            {
-                await ErrorHandling.TriggerError(r.Message);
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка восстановления: {ex.Message}");
-            await ErrorHandling.TriggerError("Ошибка при восстановлении");
-        }
+        if (!ok) return;
+        var r = await ProjectService.RestoreProjectAsync(id);
+        if (r.Success) await QuickRefresh();
+        else await ErrorHandling.TriggerError(r.Message);
     }
 
     private async Task DeleteProject(Guid id, string name)
     {
         var ok = await DialogService.ConfirmAsync($"Удалить «{name}» навсегда?", "Удаление", "Удалить", "danger");
-        if (!ok)
-        {
-            return;
-        }
-        try
-        {
-            var r = await ProjectService.DeleteProjectAsync(id);
-            if (r.Success)
-            {
-                await LoadProjects();
-            }
-            else
-            {
-                await ErrorHandling.TriggerError(r.Message);
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка удаления: {ex.Message}");
-            await ErrorHandling.TriggerError("Ошибка при удалении");
-        }
+        if (!ok) return;
+        var r = await ProjectService.DeleteProjectAsync(id);
+        if (r.Success) await QuickRefresh();
+        else await ErrorHandling.TriggerError(r.Message);
     }
 
-    private void OpenProject(Guid id)
-    {
-        Navigation.NavigateTo($"/projects/{id}");
-    }
+    private void OpenProject(Guid id) => Navigation.NavigateTo($"/projects/{id}");
 }

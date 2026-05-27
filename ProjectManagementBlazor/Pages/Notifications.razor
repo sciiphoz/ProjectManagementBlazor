@@ -264,6 +264,18 @@
         {
             Navigation.NavigateTo(n.ActionUrl);
         }
+        else if (n.RelatedEntityId.HasValue && !string.IsNullOrEmpty(n.RelatedEntityType))
+        {
+            var url = n.RelatedEntityType switch
+            {
+                "BacklogItem" => $"/sprints/backlog/{n.RelatedEntityId.Value}",
+                "Sprint" => $"/sprints/{n.RelatedEntityId.Value}",
+                "Project" => $"/projects/{n.RelatedEntityId.Value}",
+                _ => null
+            };
+            if (!string.IsNullOrEmpty(url))
+                Navigation.NavigateTo(url);
+        }
     }
 
     private async Task MarkAsRead(Guid id)
