@@ -39,6 +39,25 @@ namespace ProjectManagementBlazor.Services
                 "Не удалось получить данные проекта");
         }
 
+        public async Task<ApiResponse<List<SuggestedMemberResponse>>> GetSuggestedMembersAsync(Guid projectId)
+        {
+            try
+            {
+                Console.WriteLine($"GetSuggestedMembers: projectId={projectId}");
+                var response = await _httpClient.GetAsync($"api/projects/{projectId}/suggested-members");
+                Console.WriteLine($"GetSuggestedMembers: status={response.StatusCode}");
+                var content = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"GetSuggestedMembers: content={content}");
+                return System.Text.Json.JsonSerializer.Deserialize<ApiResponse<List<SuggestedMemberResponse>>>(
+                    content, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+                    ?? ApiResponse<List<SuggestedMemberResponse>>.Fail("Не удалось загрузить предложения");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"GetSuggestedMembers error: {ex.Message}");
+                return ApiResponse<List<SuggestedMemberResponse>>.Fail($"Ошибка: {ex.Message}");
+            }
+        }
         public async Task<ApiResponse<PagedResult<ProjectResponse>>> GetUserProjectsAsync(PagedRequest request)
         {
             var queryString = $"?pageNumber={request.PageNumber}&pageSize={request.PageSize}";

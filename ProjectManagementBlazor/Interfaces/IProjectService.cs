@@ -16,6 +16,7 @@ namespace ProjectManagementBlazor.Interfaces
         Task<ApiResponse> RestoreProjectAsync(Guid projectId);
 
         // Управление участниками
+        Task<ApiResponse<List<SuggestedMemberResponse>>> GetSuggestedMembersAsync(Guid projectId);
         Task<ApiResponse<List<ProjectMemberResponse>>> GetProjectMembersAsync(Guid projectId);
         Task<ApiResponse<ProjectMemberResponse>> AddMemberAsync(Guid projectId, AddProjectMemberRequest request);
         Task<ApiResponse> UpdateMemberRoleAsync(Guid projectId, UpdateMemberRoleRequest request);

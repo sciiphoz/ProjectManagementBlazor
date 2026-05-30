@@ -13,6 +13,8 @@
 @inject IJSRuntime JS
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject DialogService DialogService
+@implements IAsyncDisposable
+@using Microsoft.AspNetCore.SignalR.Client
 
 <PageTitle>@(sprint?.Name ?? "Доска")</PageTitle>
 
@@ -98,19 +100,22 @@
         @if (activeView == "board")
         {
             <div class="board-container">
-                @foreach (var col in new[] { ("Backlog", "Бэклог", "bg-secondary"), ("ToDo", "To Do", "bg-info"), ("InProgress", "In Progress", "bg-warning text-dark"), ("Review", "Review", "bg-purple text-white"), ("Done", "Done", "bg-success") })
+                @foreach (var col in new[] { ("Backlog", "Бэклог", "bg-secondary"), ("ToDo", "К работе", "bg-info"), ("InProgress", "В работе", "bg-warning text-dark"), ("Review", "На проверке", "bg-purple text-white"), ("Done", "Сделано", "bg-success") })
                 {
                     var (status, title, badge) = col;
+                    var isDropZone = !(IsDeveloper && status == "Done") && !IsProductOwner;
                     <div class="board-col">
                         <div class="board-col-header">
                             <span>@title</span>
                             <span class="board-col-count">@sprint.Tasks.Count(t => t.Status == status)</span>
                         </div>
-                        <div class="board-col-body drop-zone" @ondragover="OnDragOver" @ondrop="() => OnDropTo(status)">
+                        <div class="board-col-body @(isDropZone ? "drop-zone" : "")"
+                            @ondragover="OnDragOver"
+                            @ondrop="() => OnDropTo(status)">
                             @foreach (var task in sprint.Tasks.Where(t => t.Status == status))
                             {
                                 <div class="task-card @GetPriorityClass(task.Priority)"
-                                     draggable="@(CanModifyTask(task) ? "true" : "false")"
+                                     draggable="@(CanModifyTask(task) && !(IsDeveloper && task.Status == "Done") ? "true" : "false")"
                                      @ondragstart="() => OnDragStart(task)" @ondragend="OnDragEnd"
                                      @onclick="() => OpenTaskDetail(task.Id)">
                                     <div class="task-card-body">
@@ -1031,6 +1036,7 @@
     private bool IsDeveloper => currentUserRole == "Developer";
     private string selectedDeveloperId = "";
     private List<DeveloperInfo> availableDevelopers = new();
+    private HubConnection? _hubConnection;
 
     private string GetPriorityClass(int? p)
     {
@@ -1115,19 +1121,14 @@
 
     private bool CanModifyTask(BacklogItemBoardResponse t)
     {
-        if (isViewer)
-        {
-            return false;
-        }
-        if (t == null || currentUserId == null)
-        {
-            return false;
-        }
-        if (t.Assignee == null)
-        {
-            return true;
-        }
-        return t.Assignee.Id == currentUserId;
+        if (isViewer) return false;
+        if (t == null || currentUserId == null) return false;
+
+        if (IsDeveloper && t.Assignee?.Id == currentUserId) return true;
+
+        if (IsScrumMaster && t.Status == "Review") return true;
+
+        return false;
     }
 
     private bool IsProductOwner
@@ -1261,18 +1262,59 @@
     {
     }
 
+    private bool CanDragToStatus(string currentStatus, string targetStatus)
+    {
+        if (IsDeveloper)
+        {
+            if (targetStatus == "Done") return false;
+            if (targetStatus == "Review" && draggedTask != null)
+            {
+                var hasBlockers = draggedTask.HasBlockers;
+                var incompleteSubtasks = draggedTask.SubTasksCount > draggedTask.CompletedSubTasksCount;
+                return !hasBlockers && !incompleteSubtasks;
+            }
+            return true;
+        }
+
+        if (IsScrumMaster)
+            return currentStatus == "Review" && targetStatus == "Done";
+
+        return false;
+    }
 
     private async Task OnDropTo(string status)
     {
-        if (isViewer || isUpdating)
-        {
-            return;
-        }
-
+        if (isViewer || isUpdating) return;
         if (draggedTask == null || draggedTask.Status == status)
         {
             draggedTask = null;
             return;
+        }
+
+        if (!CanDragToStatus(draggedTask.Status, status))
+        {
+            draggedTask = null;
+            return;
+        }
+
+        if (IsDeveloper && status == "Review")
+        {
+            if (draggedTask.HasBlockers)
+            {
+                await DialogService.AlertAsync(
+                    "Нельзя отправить на проверку задачу с активными блокерами. Сначала разрешите блокеры.",
+                    "Действие запрещено", "", "warning");
+                draggedTask = null;
+                return;
+            }
+            if (draggedTask.SubTasksCount > draggedTask.CompletedSubTasksCount)
+            {
+                await DialogService.AlertAsync(
+                    "Нельзя отправить на проверку задачу с незавершёнными подзадачами. Сначала завершите все подзадачи.",
+                    "Действие запрещено", "", "warning");
+                draggedTask = null;
+                return;
+            }
         }
 
         isUpdating = true;
@@ -1282,21 +1324,11 @@
         try
         {
             var r = await SprintService.UpdateTaskStatusAsync(taskId, status);
-            if (r.Success)
+            if (r.Success) await LoadSprint();
+            else await InvokeAsync(async () =>
             {
-                await LoadSprint();
-            }
-            else
-            {
-                await InvokeAsync(async () =>
-                {
-                    await DialogService.AlertAsync(
-                        r.Message ?? "Не удалось изменить статус задачи",
-                        "Ошибка",
-                        "",
-                        "danger");
-                });
-            }
+                await DialogService.AlertAsync(r.Message ?? "Не удалось изменить статус", "Ошибка", "", "danger");
+            });
         }
         finally
         {
@@ -1305,11 +1337,86 @@
         }
     }
 
+    private async Task NotifyScrumMaster(Guid scrumMasterId, Guid taskId)
+    {
+        try
+        {
+            var task = sprint?.Tasks.FirstOrDefault(t => t.Id == taskId);
+            if (task == null) return;
+
+            var developerName = "Разработчик";
+            if (currentUserId != null)
+            {
+                var members = await ProjectService.GetProjectMembersAsync(sprint!.ProjectId);
+                if (members.Success && members.Data != null)
+                {
+                    var dev = members.Data.FirstOrDefault(m => m.UserId == currentUserId.Value);
+                    if (dev != null) developerName = dev.FullName;
+                }
+            }
+
+            await BacklogService.AddCommentAsync(taskId, new AddCommentRequest
+            {
+                Content = $"🔔 Задача «{task.Title}» перемещена в статус «На проверке» исполнителем {developerName}."
+            });
+        }
+        catch { }
+    }
+
     protected override async Task OnInitializedAsync()
     {
         await LoadCurrentUser();
         await LoadSprint();
         await CheckViewerRole();
+        await InitializeSignalR();
+    }
+
+    private async Task InitializeSignalR()
+    {
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl("https://localhost:7254/hubs/comments")
+            .WithAutomaticReconnect()
+            .Build();
+
+        _hubConnection.On<CommentResponse>("CommentAdded", (comment) =>
+        {
+            if (taskDetail != null && comment.BacklogItemId == taskDetail.Id)
+            {
+                taskDetail.Comments ??= new();
+                if (!taskDetail.Comments.Any(c => c.Id == comment.Id))
+                {
+                    taskDetail.Comments.Add(comment);
+                    InvokeAsync(StateHasChanged);
+                }
+            }
+        });
+
+        try
+        {
+            await _hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"SignalR не подключён: {ex.Message}");
+        }
+    }
+
+    private async Task SubscribeToTask(Guid taskId)
+    {
+        if (_hubConnection?.State == HubConnectionState.Connected)
+            await _hubConnection.InvokeAsync("SubscribeToTask", taskId.ToString());
+    }
+
+    private async Task UnsubscribeFromTask(Guid taskId)
+    {
+        if (_hubConnection?.State == HubConnectionState.Connected)
+            await _hubConnection.InvokeAsync("UnsubscribeFromTask", taskId.ToString());
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection != null)
+            await _hubConnection.DisposeAsync();
     }
 
     private async Task LoadCurrentUser()
@@ -1480,6 +1587,9 @@
 
     private async Task OpenTaskDetail(Guid id, bool forceReload = false)
     {
+        if (_hubConnection != null)
+            await SubscribeToTask(id);
+
         if (!forceReload && taskDetail?.Id == id)
         {
             selectedTask = sprint?.Tasks.FirstOrDefault(t => t.Id == id);
@@ -1585,8 +1695,11 @@
         }
     }
 
-    private void CloseTaskDetail()
+    private async void CloseTaskDetail()
     {
+        if (_hubConnection != null && selectedTask != null)
+            await UnsubscribeFromTask(selectedTask.Id);
+
         selectedTask = null;
         taskDetail = null;
     }

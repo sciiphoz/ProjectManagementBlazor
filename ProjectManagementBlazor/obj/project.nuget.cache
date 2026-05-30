@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "+iuryCH9G2s=",
+  "dgSpecHash": "RvCI3ebbGvk=",
   "success": true,
   "projectFilePath": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\ProjectManagementBlazor.csproj",
   "expectedPackageFiles": [
@@ -13,7 +13,14 @@
     "C:\\Users\\sciiphoz\\.nuget\\packages\\microsoft.aspnetcore.components.webassembly\\8.0.24\\microsoft.aspnetcore.components.webassembly.8.0.24.nupkg.sha512",
     "C:\\Users\\sciiphoz\\.nuget\\packages\\microsoft.aspnetcore.components.webassembly.authentication\\8.0.2\\microsoft.aspnetcore.components.webassembly.authentication.8.0.2.nupkg.sha512",
     "C:\\Users\\sciiphoz\\.nuget\\packages\\microsoft.aspnetcore.components.webassembly.devserver\\8.0.24\\microsoft.aspnetcore.components.webassembly.devserver.8.0.24.nupkg.sha512",
+    "C:\\Users\\sciiphoz\\.nuget\\packages\\microsoft.aspnetcore.connections.abstractions\\8.0.2\\microsoft.aspnetcore.connections.abstractions.8.0.2.nupkg.sha512",
+    "C:\\Users\\sciiphoz\\.nuget\\packages\\microsoft.aspnetcore.http.connections.client\\8.0.2\\microsoft.aspnetcore.http.connections.client.8.0.2.nupkg.sha512",
+    "C:\\Users\\sciiphoz\\.nuget\\packages\\microsoft.aspnetcore.http.connections.common\\8.0.2\\microsoft.aspnetcore.http.connections.common.8.0.2.nupkg.sha512",
     "C:\\Users\\sciiphoz\\.nuget\\packages\\microsoft.aspnetcore.metadata\\8.0.24\\microsoft.aspnetcore.metadata.8.0.24.nupkg.sha512",
+    "C:\\Users\\sciiphoz\\.nuget\\packages\\microsoft.aspnetcore.signalr.client\\8.0.2\\microsoft.aspnetcore.signalr.client.8.0.2.nupkg.sha512",
+    "C:\\Users\\sciiphoz\\.nuget\\packages\\microsoft.aspnetcore.signalr.client.core\\8.0.2\\microsoft.aspnetcore.signalr.client.core.8.0.2.nupkg.sha512",
+    "C:\\Users\\sciiphoz\\.nuget\\packages\\microsoft.aspnetcore.signalr.common\\8.0.2\\microsoft.aspnetcore.signalr.common.8.0.2.nupkg.sha512",
+    "C:\\Users\\sciiphoz\\.nuget\\packages\\microsoft.aspnetcore.signalr.protocols.json\\8.0.2\\microsoft.aspnetcore.signalr.protocols.json.8.0.2.nupkg.sha512",
     "C:\\Users\\sciiphoz\\.nuget\\packages\\microsoft.extensions.configuration\\8.0.0\\microsoft.extensions.configuration.8.0.0.nupkg.sha512",
     "C:\\Users\\sciiphoz\\.nuget\\packages\\microsoft.extensions.configuration.abstractions\\8.0.0\\microsoft.extensions.configuration.abstractions.8.0.0.nupkg.sha512",
     "C:\\Users\\sciiphoz\\.nuget\\packages\\microsoft.extensions.configuration.binder\\8.0.2\\microsoft.extensions.configuration.binder.8.0.2.nupkg.sha512",
@@ -23,6 +30,7 @@
     "C:\\Users\\sciiphoz\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\8.0.2\\microsoft.extensions.dependencyinjection.abstractions.8.0.2.nupkg.sha512",
     "C:\\Users\\sciiphoz\\.nuget\\packages\\microsoft.extensions.diagnostics\\8.0.1\\microsoft.extensions.diagnostics.8.0.1.nupkg.sha512",
     "C:\\Users\\sciiphoz\\.nuget\\packages\\microsoft.extensions.diagnostics.abstractions\\8.0.1\\microsoft.extensions.diagnostics.abstractions.8.0.1.nupkg.sha512",
+    "C:\\Users\\sciiphoz\\.nuget\\packages\\microsoft.extensions.features\\8.0.2\\microsoft.extensions.features.8.0.2.nupkg.sha512",
     "C:\\Users\\sciiphoz\\.nuget\\packages\\microsoft.extensions.fileproviders.abstractions\\8.0.0\\microsoft.extensions.fileproviders.abstractions.8.0.0.nupkg.sha512",
     "C:\\Users\\sciiphoz\\.nuget\\packages\\microsoft.extensions.fileproviders.physical\\8.0.0\\microsoft.extensions.fileproviders.physical.8.0.0.nupkg.sha512",
     "C:\\Users\\sciiphoz\\.nuget\\packages\\microsoft.extensions.filesystemglobbing\\8.0.0\\microsoft.extensions.filesystemglobbing.8.0.0.nupkg.sha512",
@@ -43,7 +51,8 @@
     "C:\\Users\\sciiphoz\\.nuget\\packages\\system.identitymodel.tokens.jwt\\8.17.0\\system.identitymodel.tokens.jwt.8.17.0.nupkg.sha512",
     "C:\\Users\\sciiphoz\\.nuget\\packages\\system.io.pipelines\\8.0.0\\system.io.pipelines.8.0.0.nupkg.sha512",
     "C:\\Users\\sciiphoz\\.nuget\\packages\\system.net.http.json\\8.0.1\\system.net.http.json.8.0.1.nupkg.sha512",
-    "C:\\Users\\sciiphoz\\.nuget\\packages\\system.text.json\\8.0.5\\system.text.json.8.0.5.nupkg.sha512"
+    "C:\\Users\\sciiphoz\\.nuget\\packages\\system.text.json\\8.0.5\\system.text.json.8.0.5.nupkg.sha512",
+    "C:\\Users\\sciiphoz\\.nuget\\packages\\system.threading.channels\\8.0.0\\system.threading.channels.8.0.0.nupkg.sha512"
   ],
   "logs": []
 }

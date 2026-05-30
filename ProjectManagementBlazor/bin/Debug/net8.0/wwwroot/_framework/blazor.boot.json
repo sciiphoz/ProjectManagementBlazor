@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "ProjectManagementBlazor",
   "resources": {
-    "hash": "sha256-u7IA14CAJSV5tgr4tqKu+ah3GMHn72CbqDMq4NPsseo=",
+    "hash": "sha256-0U0gntEW9hptydlKMFhSuMBEqDnl7Mo9hAw18apAN8c=",
     "jsModuleNative": {
       "dotnet.native.js": "sha256-nElGk+CZFyq0PbPm4JU8avD6lER7x9Z1C54BK7qY12Q="
     },
@@ -25,7 +25,14 @@
       "Microsoft.AspNetCore.Components.Web.wasm": "sha256-LycYMUFNCHCW/oGxBR8JO//2hF/I/E97ioYCAiwP5kA=",
       "Microsoft.AspNetCore.Components.WebAssembly.wasm": "sha256-g7SE759L4rE83gRvRDmDBrxWnIUabv8Oynxtlre3RI8=",
       "Microsoft.AspNetCore.Components.WebAssembly.Authentication.wasm": "sha256-FrFa2X8xSDlLAdR5NO2VGCNznnzkCpPkMwu6k8yMMNU=",
+      "Microsoft.AspNetCore.Connections.Abstractions.wasm": "sha256-uJ6FyXQO6anFE1UYGITfylFZZod5dKu9mHvvlu1r/Lw=",
+      "Microsoft.AspNetCore.Http.Connections.Client.wasm": "sha256-8PnPVxdyRyYs003tT2MkK2wozu+dq1sL/cbdsHxokbw=",
+      "Microsoft.AspNetCore.Http.Connections.Common.wasm": "sha256-BQMBPat9mKVUCIkL/nY7cp8tbO6ay/q93tacofYiexs=",
       "Microsoft.AspNetCore.Metadata.wasm": "sha256-iKBirrIxXF4mkyTlLD+YfNZwf8HEsrNTeSWtoGnjFYU=",
+      "Microsoft.AspNetCore.SignalR.Client.wasm": "sha256-ec1V7dzIrsAui5Q7KySbkf0LPu9ZZe9Ri/6TvoCdAxc=",
+      "Microsoft.AspNetCore.SignalR.Client.Core.wasm": "sha256-//zpgP5s8K5pgyDPD5gXKTn04ZTL1VMVE20kCP84ylE=",
+      "Microsoft.AspNetCore.SignalR.Common.wasm": "sha256-IMvuE8Fci6FHA9rYNR0lvLd9kSyK2gIhQS2qmrL5zuY=",
+      "Microsoft.AspNetCore.SignalR.Protocols.Json.wasm": "sha256-5JliDSoTnNJaPwe9YvDyu5ILDrKyi8nlpWuRgkhOCMw=",
       "Microsoft.Extensions.Configuration.wasm": "sha256-UDGEQR7J3WTfzYMgOzxVIBwFQtKEeJvO8UgrWagypdE=",
       "Microsoft.Extensions.Configuration.Abstractions.wasm": "sha256-yNdqbqDWGiJo943D7LPak5xryCBEsNH0wtdiuU1R9VE=",
       "Microsoft.Extensions.Configuration.Binder.wasm": "sha256-fNNlyyW44y8Gp6dvOtsvHoVNzpT8lrKmPleg5CDhRAo=",
@@ -35,6 +42,7 @@
       "Microsoft.Extensions.DependencyInjection.Abstractions.wasm": "sha256-NICKEw2hjoBhl1lvxOBh8cxOIN8kkrGHz3pvV1eLLbY=",
       "Microsoft.Extensions.Diagnostics.wasm": "sha256-MFVFI2HwI1mQqiiXvaLy8bt3VV9aPzyHpmctfcIyNc8=",
       "Microsoft.Extensions.Diagnostics.Abstractions.wasm": "sha256-dpN/LMJr0L1oxGxMzPw+PC8Nkzf+2WG8a3ccmvA35DE=",
+      "Microsoft.Extensions.Features.wasm": "sha256-vooYcQ9uE7EAMBHS9bmteWW+IfuD5XsDVPbLF3rpPtU=",
       "Microsoft.Extensions.FileProviders.Abstractions.wasm": "sha256-IUopixuV8E09mP+TIgRp/lXEbeacXbUTW7cu0v5B9Tc=",
       "Microsoft.Extensions.FileProviders.Physical.wasm": "sha256-MS+zB0xkKhKk/QdE32ZwKtdlrLMLI/y2NAKPUWhcBVg=",
       "Microsoft.Extensions.FileSystemGlobbing.wasm": "sha256-AnWUKd0qJ8ZNKkRC0AFK2cjjszB7reXiP+bXdIi8bic=",
@@ -220,10 +228,10 @@
       "mscorlib.wasm": "sha256-OWQk7msdg0kG9vfJqVNUrPJ8JkyUipH2afbnYJLsKjk=",
       "netstandard.wasm": "sha256-+Ya7AWY6kwjwbQw9fHax9L8Qnn+UZKQF05aZE4ZOXiY=",
       "System.Private.CoreLib.wasm": "sha256-ouVBjy2oz9hC308fAFLns0mvmtyaeUDXt3C5DAk1muc=",
-      "ProjectManagementBlazor.wasm": "sha256-Qwqtoma+Z5wQcHESKfKxNsSsZuYDVTpf5jBBJmv5FnY="
+      "ProjectManagementBlazor.wasm": "sha256-+ATxuwEaolJnYgnl3sCcEbwo2/WDI9e52bhGPqoyHX8="
     },
     "pdb": {
-      "ProjectManagementBlazor.pdb": "sha256-AT9GtPlcr372c1p+V6hcMFeLXkpDdFL/hmKmtEwX7Eg="
+      "ProjectManagementBlazor.pdb": "sha256-kwyeRQFowxpVETpYjaLxMWe72hHZxUM1NNcHu6ZtIqA="
     }
   },
   "cacheBootResources": true,
