@@ -8,6 +8,9 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 @inject DialogService DialogService
+@implements IAsyncDisposable
+@using Microsoft.AspNetCore.SignalR.Client
+@inject IJSRuntime JS
 
 <PageTitle>Ретроспектива спринта</PageTitle>
 
@@ -104,7 +107,6 @@
                 </div>
             </div>
 
-            @* Learned *@
             <div class="retro-col">
                 <div class="retro-col-header" style="background: #3b82f6;">
                     <span><i class="bi bi-book me-1"></i>Чему научились</span>
@@ -165,7 +167,6 @@
                 </div>
             </div>
 
-            @* Lacked *@
             <div class="retro-col">
                 <div class="retro-col-header" style="background: #f59e0b;">
                     <span><i class="bi bi-exclamation-diamond me-1"></i>Чего не хватило</span>
@@ -226,7 +227,6 @@
                 </div>
             </div>
 
-            @* Actions *@
             <div class="retro-col">
                 <div class="retro-col-header" style="background: #ef4444;">
                     <span><i class="bi bi-rocket-takeoff me-1"></i>Действия</span>
@@ -593,6 +593,8 @@
 
     private SprintResponse? sprint;
     private RetrospectiveBoardResponse? retrospective;
+    private HubConnection? _hubConnection;
+
     private Guid currentUserId;
     private bool isLoading = true;
     private bool isEditable = false;
@@ -627,6 +629,83 @@
     {
         await LoadCurrentUser();
         await LoadData();
+        await InitializeSignalR();
+    }
+
+    private async Task InitializeSignalR()
+    {
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl("https://localhost:7254/hubs/comments")
+            .WithAutomaticReconnect()
+            .Build();
+
+        _hubConnection.On<RetrospectiveItemResponse>("RetroItemAdded", (item) =>
+        {
+            if (retrospective == null) return;
+
+            switch (item.Category)
+            {
+                case "Good":
+                    retrospective.GoodItems ??= new();
+                    if (!retrospective.GoodItems.Any(i => i.Id == item.Id))
+                        retrospective.GoodItems.Add(item);
+                    break;
+                case "Bad":
+                    retrospective.BadItems ??= new();
+                    if (!retrospective.BadItems.Any(i => i.Id == item.Id))
+                        retrospective.BadItems.Add(item);
+                    break;
+                case "Idea":
+                    retrospective.Ideas ??= new();
+                    if (!retrospective.Ideas.Any(i => i.Id == item.Id))
+                        retrospective.Ideas.Add(item);
+                    break;
+                case "Action":
+                    retrospective.Actions ??= new();
+                    if (!retrospective.Actions.Any(i => i.Id == item.Id))
+                        retrospective.Actions.Add(item);
+                    break;
+            }
+            InvokeAsync(StateHasChanged);
+        });
+
+        _hubConnection.On<RetrospectiveItemResponse>("RetroVoteUpdated", (item) =>
+        {
+            if (retrospective == null) return;
+            ReplaceItem(retrospective.GoodItems, item);
+            ReplaceItem(retrospective.BadItems, item);
+            ReplaceItem(retrospective.Ideas, item);
+            ReplaceItem(retrospective.Actions, item);
+            InvokeAsync(StateHasChanged);
+        });
+
+        _hubConnection.On<Guid>("RetroItemDeleted", (itemId) =>
+        {
+            if (retrospective == null) return;
+            retrospective.GoodItems?.RemoveAll(i => i.Id == itemId);
+            retrospective.BadItems?.RemoveAll(i => i.Id == itemId);
+            retrospective.Ideas?.RemoveAll(i => i.Id == itemId);
+            retrospective.Actions?.RemoveAll(i => i.Id == itemId);
+            InvokeAsync(StateHasChanged);
+        });
+
+        try
+        {
+            await _hubConnection.StartAsync();
+            if (_hubConnection.State == HubConnectionState.Connected)
+                await _hubConnection.InvokeAsync("SubscribeToRetro", SprintId.ToString());
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"SignalR retro: {ex.Message}");
+        }
+    }
+
+    private void ReplaceItem(List<RetrospectiveItemResponse>? list, RetrospectiveItemResponse updated)
+    {
+        if (list == null) return;
+        var idx = list.FindIndex(i => i.Id == updated.Id);
+        if (idx >= 0) list[idx] = updated;
     }
 
     private async Task LoadCurrentUser()
@@ -689,6 +768,15 @@
         if (!await DialogService.ConfirmAsync("Удалить элемент?", "Удаление", "Удалить", "danger")) return;
         var r = await RetrospectiveService.DeleteRetrospectiveItemAsync(id);
         if (r.Success) await LoadData();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection != null)
+        {
+            await _hubConnection.InvokeAsync("UnsubscribeFromRetro", SprintId.ToString());
+            await _hubConnection.DisposeAsync();
+        }
     }
 
     private async Task ExportRetro()

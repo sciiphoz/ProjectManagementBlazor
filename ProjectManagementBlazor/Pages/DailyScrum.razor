@@ -391,10 +391,12 @@
     private ProjectResponse? project;
     private SprintBriefResponse? activeSprint;
     private UserResponse? currentUser;
+
     private bool isLoading = true;
     private bool isAuthorized = false;
 
     private (int total, int completed, double percent, int daysLeft, decimal totalSP) sprintProgress;
+    
     private List<DevSummary> developers = new();
     private List<(string description, string severity)> teamBlockers = new();
 

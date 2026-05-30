@@ -79,9 +79,11 @@
     private bool isSuccess = false;
     private bool isLoggedIn = false;
     private bool isAccepting = false;
+
     private string? projectName;
     private string? roleName;
     private string? token;
+
     private string errorMessage = "Срок действия ссылки истёк или приглашение уже использовано.";
 
     protected override async Task OnInitializedAsync()
@@ -106,11 +108,9 @@
             var result = await ProjectService.CheckInvitationAsync(token);
             if (result.Success && result.Data != null)
             {
-                // Проверяем, что текущий пользователь — получатель приглашения
                 var userEmail = user.FindFirst("email")?.Value ?? user.FindFirst(ClaimTypes.Email)?.Value;
                 if (!string.IsNullOrEmpty(userEmail) && !string.Equals(userEmail, result.Data.Email, StringComparison.OrdinalIgnoreCase))
                 {
-                    // Не получатель — редирект на главную
                     Navigation.NavigateTo("/", true);
                     return;
                 }

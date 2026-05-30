@@ -311,11 +311,14 @@
     private List<MyTaskViewModel> myTasks = new();
     private List<ProjectResponse> projects = new();
     private List<MyTaskViewModel> filteredTasks = new();
+
     private string? errorMessage = null;
     private bool isLoading = true;
+    
     private string selectedProjectFilter = "";
     private string sortBy = "deadline";
     private string statusFilter = "active";
+    
     private int allTasksCount = 0;
     private int completedTasksCount = 0;
     private int activeSprintsCount = 0;

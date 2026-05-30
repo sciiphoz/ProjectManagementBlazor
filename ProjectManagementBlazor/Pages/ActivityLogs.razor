@@ -32,7 +32,7 @@
             </div>
         </div>
 
-        <!-- Фильтры -->
+        <!-- Фильтрация -->
         <div class="logs-filters">
             <select value="@filterUserId" class="form-select form-select-sm" @onchange="OnUserFilterChange">
                 <option value="">Все пользователи</option>
@@ -59,7 +59,7 @@
             </button>
         </div>
 
-        <!-- Список логов -->
+        <!-- Контент -->
         <div class="logs-list">
             <div class="text-muted small mb-2">@totalCount записей</div>
             @if (logs != null && logs.Any())
@@ -294,10 +294,12 @@
     private ProjectResponse? project;
     private List<ActivityLogResponse>? logs;
     private List<UserBriefResponse> projectUsers = new();
+
     private int totalCount = 0;
     private int currentPage = 1;
     private int pageSize = 20;
     private int totalPages = 1;
+
     private bool isLoading = true;
     private long? expandedLogId = null;
 
@@ -370,17 +372,71 @@
         return json;
     }
 
-    private async Task ApplyFilters() { currentPage = 1; await LoadLogs(); StateHasChanged(); }
-    private async Task ClearFilters() { filterUserId = ""; filterActionType = ""; filterDateFrom = ""; filterDateTo = ""; await ApplyFilters(); }
-    private async Task RefreshData() { await LoadLogs(); StateHasChanged(); }
-    private async Task GoToPage(int p) { if (p >= 1 && p <= totalPages) { currentPage = p; await LoadLogs(); StateHasChanged(); } }
-    private void GoBack() { Navigation.NavigateTo($"/projects/{ProjectId}"); }
-    private void ToggleDetails(long id) { expandedLogId = expandedLogId == id ? null : id; }
+    private async Task ApplyFilters()
+    {
+        currentPage = 1;
+        await LoadLogs();
+        StateHasChanged();
+    }
 
-    private async Task OnUserFilterChange(ChangeEventArgs e) { filterUserId = e.Value?.ToString() ?? ""; await ApplyFilters(); }
-    private async Task OnActionFilterChange(ChangeEventArgs e) { filterActionType = e.Value?.ToString() ?? ""; await ApplyFilters(); }
-    private async Task OnDateFromChange(ChangeEventArgs e) { filterDateFrom = e.Value?.ToString() ?? ""; await ApplyFilters(); }
-    private async Task OnDateToChange(ChangeEventArgs e) { filterDateTo = e.Value?.ToString() ?? ""; await ApplyFilters(); }
+    private async Task ClearFilters()
+    {
+        filterUserId = "";
+        filterActionType = "";
+        filterDateFrom = "";
+        filterDateTo = "";
+        await ApplyFilters();
+    }
+
+    private async Task RefreshData()
+    {
+        await LoadLogs();
+        StateHasChanged();
+    }
+
+    private async Task GoToPage(int p)
+    {
+        if (p >= 1 && p <= totalPages)
+        {
+            currentPage = p;
+            await LoadLogs();
+            StateHasChanged();
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo($"/projects/{ProjectId}");
+    }
+
+    private void ToggleDetails(long id)
+    {
+        expandedLogId = expandedLogId == id ? null : id;
+    }
+
+    private async Task OnUserFilterChange(ChangeEventArgs e)
+    {
+        filterUserId = e.Value?.ToString() ?? "";
+        await ApplyFilters();
+    }
+
+    private async Task OnActionFilterChange(ChangeEventArgs e)
+    {
+        filterActionType = e.Value?.ToString() ?? "";
+        await ApplyFilters();
+    }
+
+    private async Task OnDateFromChange(ChangeEventArgs e)
+    {
+        filterDateFrom = e.Value?.ToString() ?? "";
+        await ApplyFilters();
+    }
+
+    private async Task OnDateToChange(ChangeEventArgs e)
+    {
+        filterDateTo = e.Value?.ToString() ?? "";
+        await ApplyFilters();
+    }
 
     private string GetLogClass(string t)
     {

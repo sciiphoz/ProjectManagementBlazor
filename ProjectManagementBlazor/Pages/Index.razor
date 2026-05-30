@@ -17,6 +17,7 @@
     }
     else if (currentUser != null)
     {
+        <!-- Заголовок -->
         <div class="welcome-card">
             <div class="d-flex align-items-center gap-3">
                 <div class="avatar-circle-lg">@GetInitials(currentUser.FullName)</div>
@@ -27,6 +28,7 @@
             </div>
         </div>
 
+        <!-- Быстрое перемещение -->
         <div class="quick-actions">
             <div class="action-card" @onclick="GoToProjects">
                 <div class="action-icon" style="background: rgba(79, 70, 229, 0.1); color: #4F46E5;">
@@ -60,6 +62,7 @@
             </div>
         </div>
 
+        <!-- Недавние проекты -->
         @if (myProjects != null && myProjects.Any())
         {
             <div class="section-title">Недавние проекты</div>
@@ -203,9 +206,13 @@
 @code {
     private UserResponse? currentUser;
     private List<ProjectResponse>? myProjects;
+
     private bool isLoading = true;
 
-    protected override async Task OnInitializedAsync() { await LoadData(); }
+    protected override async Task OnInitializedAsync() 
+    { 
+        await LoadData(); 
+    }
 
     private async Task LoadData()
     {

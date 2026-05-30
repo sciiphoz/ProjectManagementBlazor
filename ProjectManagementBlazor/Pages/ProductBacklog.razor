@@ -20,6 +20,7 @@
     }
     else if (project != null)
     {
+        <!-- Заголовок -->
         <div class="backlog-header">
             <div>
                 <h2>Бэклог</h2>
@@ -38,6 +39,7 @@
             </div>
         </div>
 
+        <!-- Поисковая система -->
         <div class="backlog-filters">
             <div class="search-box">
                 <i class="bi bi-search"></i>
@@ -79,6 +81,7 @@
             <button class="btn btn-outline-secondary btn-sm" @onclick="ResetFilters" title="Сбросить"><i class="bi bi-arrow-repeat"></i></button>
         </div>
 
+        <!-- Список задач -->
         <div class="backlog-list">
             @if (filteredTasks.Any())
             {
@@ -165,6 +168,7 @@
             }
         </div>
 
+        <!-- Пагинация -->
         @if (totalPages > 1)
         {
             <div class="backlog-pagination">
@@ -182,6 +186,7 @@
 
     @if (showModal)
     {
+        <!-- Модалка -->
         <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
@@ -240,6 +245,7 @@
 
     @if (showMoveToSprintModal)
     {
+        <!-- Перемещение в спринт -->
         <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);">
             <div class="modal-dialog modal-sm modal-dialog-centered">
                 <div class="modal-content">
