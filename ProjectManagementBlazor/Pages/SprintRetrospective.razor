@@ -672,6 +672,7 @@
         _hubConnection.On<RetrospectiveItemResponse>("RetroVoteUpdated", (item) =>
         {
             if (retrospective == null) return;
+
             ReplaceItem(retrospective.GoodItems, item);
             ReplaceItem(retrospective.BadItems, item);
             ReplaceItem(retrospective.Ideas, item);
@@ -705,7 +706,12 @@
     {
         if (list == null) return;
         var idx = list.FindIndex(i => i.Id == updated.Id);
-        if (idx >= 0) list[idx] = updated;
+        if (idx >= 0)
+        {
+            var oldHasVoted = list[idx].HasUserVoted;  
+            list[idx] = updated;
+            list[idx].HasUserVoted = oldHasVoted;      
+        }
     }
 
     private async Task LoadCurrentUser()

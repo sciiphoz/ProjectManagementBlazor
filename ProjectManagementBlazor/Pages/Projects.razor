@@ -474,11 +474,25 @@
         try
         {
             var u = await AuthService.GetCurrentUserAsync();
-            if (u.Success && u.Data != null) currentUserId = u.Data.Id;
+            if (u.Success && u.Data != null)
+            {
+                currentUserId = u.Data.Id;
+            }
+
+            var savedView = await JS.InvokeAsync<string>("localStorage.getItem", "projectsViewMode");
+            if (!string.IsNullOrEmpty(savedView) && (savedView == "grid" || savedView == "list"))
+            {
+                viewMode = savedView;
+            }
+
             await LoadProjects();
         }
-        catch (Exception ex) { Console.WriteLine($"Ошибка инициализации: {ex.Message}"); }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка инициализации: {ex.Message}");
+        }
     }
+
 
     private async Task LoadProjects()
     {
@@ -521,20 +535,87 @@
         StateHasChanged();
     }
 
-    private void ShowGridView() { viewMode = "grid"; StateHasChanged(); }
-    private void ShowListView() { viewMode = "list"; StateHasChanged(); }
-    private async Task ClearSearch() { searchTerm = ""; ApplyFilter(); StateHasChanged(); }
-    private async Task ResetFilters() { searchTerm = ""; sortBy = "name"; showArchived = true; ApplyFilter(); StateHasChanged(); }
-    private void ToggleShowArchived(bool show) { showArchived = show; ApplyFilter(); }
-    private async Task OnSearchInput(ChangeEventArgs e) { searchTerm = e.Value?.ToString() ?? ""; ApplyFilter(); }
-    private async Task OnSortChanged(ChangeEventArgs e) { sortBy = e.Value?.ToString() ?? "name"; ApplyFilter(); }
-    private void ToggleProjectDropdown(Guid id) { openDropdownId = openDropdownId == id ? Guid.Empty : id; StateHasChanged(); }
-    private void ShowCreateModal() { newProject = new CreateProjectRequest(); showCreateModal = true; }
-    private void CloseModal() { showCreateModal = false; }
+    private void ShowGridView()
+    {
+        viewMode = "grid";
+        SaveViewMode();
+        StateHasChanged();
+    }
+
+    private void ShowListView()
+    {
+        viewMode = "list";
+        SaveViewMode();
+        StateHasChanged();
+    }
+
+    private async void SaveViewMode()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("localStorage.setItem", "projectsViewMode", viewMode);
+        }
+        catch { }
+    }
+
+    private async Task ClearSearch() 
+    { 
+        searchTerm = ""; 
+        ApplyFilter(); 
+        StateHasChanged(); 
+    }
+    
+    private async Task ResetFilters() 
+    { 
+        searchTerm = ""; 
+        sortBy = "name"; 
+        showArchived = true; 
+        ApplyFilter(); 
+        StateHasChanged(); 
+    }
+    
+    private void ToggleShowArchived(bool show) 
+    { 
+        showArchived = show; 
+        ApplyFilter(); 
+    }
+    
+    private async Task OnSearchInput(ChangeEventArgs e) 
+    { 
+        searchTerm = e.Value?.ToString() ?? ""; 
+        ApplyFilter(); 
+    }
+    
+    private async Task OnSortChanged(ChangeEventArgs e) 
+    { 
+        sortBy = e.Value?.ToString() ?? "name"; 
+        ApplyFilter(); 
+    }
+    
+    private void ToggleProjectDropdown(Guid id) 
+    { 
+        openDropdownId = openDropdownId == id ? Guid.Empty : id; 
+        StateHasChanged(); 
+    }
+    
+    private void ShowCreateModal() 
+    { 
+        newProject = new CreateProjectRequest(); 
+        showCreateModal = true; 
+    }
+    
+    private void CloseModal() 
+    { 
+        showCreateModal = false; 
+    }
 
     private async Task CreateProject()
     {
-        if (string.IsNullOrWhiteSpace(newProject.Name)) { await ErrorHandling.TriggerError("Название обязательно"); return; }
+        if (string.IsNullOrWhiteSpace(newProject.Name)) 
+        { 
+            await ErrorHandling.TriggerError("Название обязательно"); 
+            return; 
+        }
         isCreating = true; StateHasChanged();
         try
         {
