@@ -45,10 +45,6 @@
                 <span class="dash-metric-value">@myTasks.Count(t => t.Status != "Done" && t.SprintEndDate.HasValue && t.SprintEndDate.Value.Date < DateTime.Now.Date)</span>
                 <span class="dash-metric-label">Просрочено</span>
             </div>
-            <div class="dash-metric text-success">
-                <span class="dash-metric-value">@completedTasksCount</span>
-                <span class="dash-metric-label">Выполнено</span>
-            </div>
         </div>
 
         <!-- Фильтры -->
@@ -320,7 +316,6 @@
     private string statusFilter = "active";
     
     private int allTasksCount = 0;
-    private int completedTasksCount = 0;
     private int activeSprintsCount = 0;
 
     private List<MyTaskViewModel> overdueTasks
@@ -489,7 +484,6 @@
                 }
             }
             allTasksCount = myTasks.Count;
-            completedTasksCount = myTasks.Count(t => t.Status == "Done");
         }
         catch (Exception ex)
         {

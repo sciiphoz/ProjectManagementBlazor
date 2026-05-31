@@ -54,7 +54,7 @@
                 {
                     if (!sprint.IsActive && sprint.Status != "Completed" && (IsScrumMaster || IsProductOwner))
                     {
-                        <button class="btn btn-success btn-sm" @onclick="StartSprint">
+                        <button class="btn btn-success btn-sm" @onclick="StartSprint" disabled="@hasOtherActiveSprint">
                             <i class="bi bi-play-fill me-1"></i> Запустить
                         </button>
                     }
@@ -91,7 +91,7 @@
                 <span>@sprint.CompletedStoryPoints / @sprint.TotalStoryPoints SP</span>
                 <span>@sprint.CompletedTasksCount / @sprint.TotalTasksCount задач</span>
                 <div class="progress" style="width:80px;height:6px">
-                    <div class="progress-bar bg-success" style="width:@sprint.CompletionPercentage%"></div>
+                    <div class="progress-bar bg-success" style="width:@((int)sprint.CompletionPercentage)%"></div>
                 </div>
                 <span>@((int)sprint.CompletionPercentage)%</span>
             </div>
@@ -265,7 +265,7 @@
                                                 <div class="mb-2"><small class="text-muted">SP</small><div><strong>@selectedTask.StoryPoints</strong></div></div>
                                                 <div class="mb-2"><small class="text-muted">Оценка</small><div><strong>@(selectedTask.EstimatedHours?.ToString() ?? "—") ч.</strong></div></div>
                                                 <div class="mb-3"><small class="text-muted">Исполнитель</small><div><strong>@(selectedTask.Assignee?.FullName ?? "Не назначен")</strong></div></div>
-                                                @if (!isViewer && (IsDeveloper || IsScrumMaster))
+                                                @if (!isViewer && (IsDeveloper))
                                                 {
                                                     if (selectedTask.Assignee == null)
                                                     {
@@ -1037,6 +1037,7 @@
     private string selectedDeveloperId = "";
     private List<DeveloperInfo> availableDevelopers = new();
     private HubConnection? _hubConnection;
+    private bool hasOtherActiveSprint = false;
 
     private string GetPriorityClass(int? p)
     {
@@ -1099,10 +1100,15 @@
         StateHasChanged();
     }
 
-    private void ShowBoardTab()
+    private async void ShowBoardTab()
     {
         activeView = "board";
         StateHasChanged();
+
+        if (_hubConnection?.State == HubConnectionState.Connected)
+        {
+            await _hubConnection.InvokeAsync("SubscribeToSprint", SprintId.ToString());
+        }
     }
 
     private void ShowBurndownTab()
@@ -1369,6 +1375,11 @@
         await LoadSprint();
         await CheckViewerRole();
         await InitializeSignalR();
+
+        if (_hubConnection?.State == HubConnectionState.Connected)
+        {
+            await _hubConnection.InvokeAsync("SubscribeToSprint", SprintId.ToString());
+        }
     }
 
     private async Task InitializeSignalR()
@@ -1389,6 +1400,33 @@
                     InvokeAsync(StateHasChanged);
                 }
             }
+        });
+
+        _hubConnection.On<BacklogItemBoardResponse>("TaskStatusUpdated", (updatedTask) =>
+        {
+            if (sprint?.Tasks == null) return;
+
+            var idx = sprint.Tasks.FindIndex(t => t.Id == updatedTask.Id);
+            if (idx >= 0)
+            {
+                sprint.Tasks[idx] = updatedTask;
+            }
+            else
+            {
+                sprint.Tasks.Add(updatedTask);
+            }
+
+            sprint.TotalTasksCount = sprint.Tasks.Count;
+            sprint.CompletedTasksCount = sprint.Tasks.Count(t => t.Status == "Done");
+            var totalSP = sprint.Tasks.Sum(t => t.StoryPoints) ?? 0;
+            var completedSP = sprint.Tasks.Where(t => t.Status == "Done").Sum(t => t.StoryPoints) ?? 0;
+            sprint.TotalStoryPoints = totalSP;
+            sprint.CompletedStoryPoints = completedSP;
+            sprint.CompletionPercentage = sprint.TotalTasksCount > 0
+                ? (double)sprint.CompletedTasksCount / sprint.TotalTasksCount * 100
+                : 0;
+
+            InvokeAsync(StateHasChanged);
         });
 
         try
@@ -1471,6 +1509,14 @@
                     })
                     .OrderBy(d => d.CurrentTasks)
                     .ToList();
+            }
+            if (sprint != null && !sprint.IsActive)
+            {
+                var sprintsResult = await SprintService.GetProjectSprintsAsync(sprint.ProjectId);
+                if (sprintsResult.Success && sprintsResult.Data != null)
+                {
+                    hasOtherActiveSprint = sprintsResult.Data.Any(s => s.IsActive && s.Id != SprintId);
+                }
             }
         }
         catch
@@ -1590,6 +1636,12 @@
         if (_hubConnection != null)
             await SubscribeToTask(id);
 
+        if (_hubConnection?.State == HubConnectionState.Connected)
+        {
+            await _hubConnection.InvokeAsync("SubscribeToSprint", SprintId.ToString());
+            await _hubConnection.InvokeAsync("SubscribeToTask", id.ToString());
+        }
+
         if (!forceReload && taskDetail?.Id == id)
         {
             selectedTask = sprint?.Tasks.FirstOrDefault(t => t.Id == id);
@@ -1699,6 +1751,11 @@
     {
         if (_hubConnection != null && selectedTask != null)
             await UnsubscribeFromTask(selectedTask.Id);
+
+        if (_hubConnection?.State == HubConnectionState.Connected && selectedTask != null)
+        {
+            await _hubConnection.InvokeAsync("UnsubscribeFromTask", selectedTask.Id.ToString());
+        }
 
         selectedTask = null;
         taskDetail = null;

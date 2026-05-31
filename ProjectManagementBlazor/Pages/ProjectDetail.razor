@@ -66,7 +66,7 @@
                         <i class="bi bi-list-task"></i> Бэклог
                     </button>
                 }
-                @if (!isViewer && (IsProductOwner || IsScrumMaster))
+                @if (!isViewer && (IsScrumMaster))
                 {
                     <button class="btn btn-outline-secondary btn-sm" @onclick="GoToReports">
                         <i class="bi bi-graph-up"></i> Отчёты
@@ -169,24 +169,26 @@
     @if (showEditModal)
     {
         <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);">
-            <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-dialog modal-dialog-centered" style="max-width: 500px;">
                 <div class="modal-content">
-                    <div class="modal-header">
+                    <div class="modal-header bg-primary text-white">
                         <h6 class="modal-title">Редактировать проект</h6>
-                        <button type="button" class="btn-close" @onclick="CloseEditModal"></button>
+                        <button type="button" class="btn-close btn-close-white" @onclick="CloseEditModal"></button>
                     </div>
                     <div class="modal-body">
                         <EditForm Model="@editProject" OnValidSubmit="@UpdateProject">
-                            <div class="mb-2">
-                                <label class="form-label small">Название</label>
-                                <InputText @bind-Value="editProject.Name" class="form-control form-control-sm" />
+                            <div class="mb-3">
+                                <label class="form-label small fw-medium">Название</label>
+                                <InputText @bind-Value="editProject.Name" class="form-control" />
                             </div>
-                            <div class="mb-2">
-                                <label class="form-label small">Описание</label>
-                                <InputTextArea @bind-Value="editProject.Description" class="form-control form-control-sm" rows="2" />
+                            <div class="mb-3">
+                                <label class="form-label small fw-medium">Описание</label>
+                                <InputTextArea @bind-Value="editProject.Description" class="form-control" rows="3" />
                             </div>
-                            <button type="submit" class="btn btn-primary btn-sm">Сохранить</button>
-                            <button type="button" class="btn btn-secondary btn-sm" @onclick="CloseEditModal">Отмена</button>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">Сохранить</button>
+                                <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Отмена</button>
+                            </div>
                         </EditForm>
                     </div>
                 </div>
@@ -194,11 +196,10 @@
         </div>
     }
 
-    <!-- Модалка создания спринта -->
     @if (showCreateSprintModal)
     {
         <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);">
-            <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-dialog modal-dialog-centered" style="max-width: 500px;">
                 <div class="modal-content">
                     <div class="modal-header bg-success text-white">
                         <h6 class="modal-title">Новый спринт</h6>
@@ -206,26 +207,28 @@
                     </div>
                     <div class="modal-body">
                         <EditForm Model="@newSprint" OnValidSubmit="@CreateSprint">
-                            <div class="mb-2">
-                                <label class="form-label small">Название *</label>
-                                <InputText @bind-Value="newSprint.Name" class="form-control form-control-sm" />
+                            <div class="mb-3">
+                                <label class="form-label small fw-medium">Название *</label>
+                                <InputText @bind-Value="newSprint.Name" class="form-control" />
                             </div>
-                            <div class="mb-2">
-                                <label class="form-label small">Цель</label>
-                                <InputTextArea @bind-Value="newSprint.Goal" class="form-control form-control-sm" rows="2" />
+                            <div class="mb-3">
+                                <label class="form-label small fw-medium">Цель</label>
+                                <InputTextArea @bind-Value="newSprint.Goal" class="form-control" rows="2" />
                             </div>
-                            <div class="row mb-2">
+                            <div class="row mb-3">
                                 <div class="col-6">
-                                    <label class="form-label small">Начало</label>
-                                    <InputDate @bind-Value="newSprint.StartDate" class="form-control form-control-sm" />
+                                    <label class="form-label small fw-medium">Начало</label>
+                                    <InputDate @bind-Value="newSprint.StartDate" class="form-control" />
                                 </div>
                                 <div class="col-6">
-                                    <label class="form-label small">Конец</label>
-                                    <InputDate @bind-Value="newSprint.EndDate" class="form-control form-control-sm" />
+                                    <label class="form-label small fw-medium">Конец</label>
+                                    <InputDate @bind-Value="newSprint.EndDate" class="form-control" />
                                 </div>
                             </div>
-                            <button type="submit" class="btn btn-success btn-sm">Создать</button>
-                            <button type="button" class="btn btn-secondary btn-sm" @onclick="CloseCreateSprintModal">Отмена</button>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-success">Создать</button>
+                                <button type="button" class="btn btn-secondary" @onclick="CloseCreateSprintModal">Отмена</button>
+                            </div>
                         </EditForm>
                     </div>
                 </div>
