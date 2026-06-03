@@ -8,8 +8,8 @@
 
 <div class="nav-container">
     <div class="nav-logo">
-        <i class="bi bi-kanban me-2" style="position: relative; top: 1px;"></i>
-        <span>PM System</span>
+        <i class="bi bi-kanban me-2"></i>
+        <span class="logo-text">скрам</span><span class="logo-dot">.</span><span class="logo-text">ли</span>
     </div>
 
     <nav class="nav-links">
@@ -63,18 +63,29 @@
         align-items: center;
         padding: 1.25rem 1.25rem 1rem;
         font-weight: 700;
-        font-size: 1rem;
+        font-size: 1.15rem;
         color: var(--text-primary);
         border-bottom: 1px solid var(--border-color);
+        font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
     }
 
         .nav-logo i {
             font-size: 1.3rem;
             color: var(--primary-color);
-            display: inline-block;
-            line-height: 1;
-            vertical-align: middle;
         }
+
+    .logo-text {
+        font-variant: small-caps;
+        letter-spacing: 0.02em;
+        font-weight: 800;
+        color: var(--text-primary);
+    }
+
+    .logo-dot {
+        color: var(--primary-color);
+        font-weight: 800;
+        margin: 0 -1px;
+    }
 
     .nav-links {
         flex: 1;
@@ -235,7 +246,7 @@
             if (result.Success && result.Data != null)
             {
                 currentUserName = result.Data.FullName;
-                currentUserEmail = result.Data.Email;  // заменить Role
+                currentUserEmail = result.Data.Email;  
                 StateHasChanged();
             }
         }

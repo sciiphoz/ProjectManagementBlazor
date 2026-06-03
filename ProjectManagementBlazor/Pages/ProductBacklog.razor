@@ -51,17 +51,18 @@
             </div>
             <select value="@selectedType" class="form-select form-select-sm" style="width: 90px;" @onchange="OnTypeChanged">
                 <option value="all">Тип</option>
-                <option value="UserStory">Story</option>
-                <option value="Bug">Bug</option>
-                <option value="TechnicalTask">Task</option>
-                <option value="Improvement">Impr</option>
+                <option value="UserStory">Сценарий</option>
+                <option value="Bug">Баг</option>
+                <option value="TechnicalTask">Задача</option>
+                <option value="Improvement">Улучшение</option>
             </select>
             <select value="@selectedStatus" class="form-select form-select-sm" style="width: 100px;" @onchange="OnStatusChanged">
                 <option value="all">Статус</option>
                 <option value="Backlog">Бэклог</option>
-                <option value="ToDo">To Do</option>
-                <option value="InProgress">In Progress</option>
-                <option value="Done">Done</option>
+                <option value="ToDo">К работе</option>
+                <option value="InProgress">В работе</option>
+                <option value="Review">На проверке</option>
+                <option value="Done">Сделано</option>
             </select>
             <select value="@selectedAssigneeId" class="form-select form-select-sm" style="width: 140px;" @onchange="OnAssigneeChanged">
                 <option value="">Исполнитель</option>
@@ -204,9 +205,9 @@
                                 <div class="col-md-4">
                                     <label class="form-label small">Тип</label>
                                     <InputSelect @bind-Value="taskFormTypeInt" class="form-select form-select-sm">
-                                        <option value="0">User Story</option>
-                                        <option value="1">Bug</option>
-                                        <option value="2">Техническая</option>
+                                        <option value="0">Сценарий</option>
+                                        <option value="1">Баг</option>
+                                        <option value="2">Задача</option>
                                         <option value="3">Улучшение</option>
                                     </InputSelect>
                                 </div>
@@ -841,13 +842,13 @@
         _ => "bg-secondary" 
     };
     
-    private string GetTypeName(string t) => t switch 
-    { 
-        "UserStory" => "Story", 
-        "Bug" => "Bug", 
-        "TechnicalTask" => "Task", 
-        "Improvement" => "Impr", 
-        _ => t 
+    private string GetTypeName(string t) => t switch
+    {
+        "UserStory" => "Сценарий",
+        "Bug" => "Баг",
+        "TechnicalTask" => "Задача",
+        "Improvement" => "Улучшение",
+        _ => t
     };
     
     private string GetStatusBadgeClass(string s) => s switch

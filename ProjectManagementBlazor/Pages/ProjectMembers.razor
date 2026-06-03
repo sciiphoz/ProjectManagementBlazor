@@ -38,10 +38,10 @@
 
         <div class="members-roles">
             <div class="role-chip @(roleFilter == "" ? "active" : "")" @onclick="ShowAllRoles">Все · @(members?.Count ?? 0)</div>
-            <div class="role-chip @(roleFilter == "ProductOwner" ? "active" : "")" @onclick="ShowProductOwner">Product Owner · @GetRoleCount("ProductOwner")</div>
-            <div class="role-chip @(roleFilter == "ScrumMaster" ? "active" : "")" @onclick="ShowScrumMaster">Scrum Master · @GetRoleCount("ScrumMaster")</div>
-            <div class="role-chip @(roleFilter == "Developer" ? "active" : "")" @onclick="ShowDeveloper">Developer · @GetRoleCount("Developer")</div>
-            <div class="role-chip @(roleFilter == "Viewer" ? "active" : "")" @onclick="ShowViewer">Viewer · @GetRoleCount("Viewer")</div>
+            <div class="role-chip @(roleFilter == "ProductOwner" ? "active" : "")" @onclick="ShowProductOwner">Владелец · @GetRoleCount("ProductOwner")</div>
+            <div class="role-chip @(roleFilter == "ScrumMaster" ? "active" : "")" @onclick="ShowScrumMaster">SCRUM-мастер · @GetRoleCount("ScrumMaster")</div>
+            <div class="role-chip @(roleFilter == "Developer" ? "active" : "")" @onclick="ShowDeveloper">Разработчик · @GetRoleCount("Developer")</div>
+            <div class="role-chip @(roleFilter == "Viewer" ? "active" : "")" @onclick="ShowViewer">Наблюдатель · @GetRoleCount("Viewer")</div>
         </div>
 
         <div class="members-list">
@@ -60,7 +60,7 @@
                         }
                         else if (canChangeRoles && member.Role != "ScrumMaster")
                         {
-                            <select class="form-select form-select-sm" style="width: auto;"
+                            <select class="form-select form-select-sm role-select"
                                     value="@member.Role"
                                     @onchange="(ChangeEventArgs e) => ChangeRole(member.UserId, e.Value?.ToString())">
                                 @foreach (var role in editableRoles)
@@ -202,6 +202,16 @@
         flex-wrap: wrap;
     }
 
+    .role-select {
+        width: 150px !important;
+        padding-right: 1.75rem;
+        background-position: right 0.5rem center;
+        font-size: 0.78rem;
+        height: 31px;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
     .role-chip {
         padding: 0.25rem 0.625rem;
         border-radius: 1rem;
@@ -339,7 +349,7 @@
         {
             if (string.IsNullOrEmpty(roleFilter))
                 return members ?? new();
-            return (members ?? new()).Where(m => m.Role == roleFilter && !m.IsOwner).ToList();
+            return (members ?? new()).Where(m => m.Role == roleFilter).ToList();
         }
     }
 
@@ -349,16 +359,6 @@
         {
             if (isOwner)
                 return new() { ("ScrumMaster", "Scrum Master") };
-            if (IsScrumMaster)
-                return new() { ("Developer", "Developer"), ("Viewer", "Viewer") };
-            return new();
-        }
-    }
-
-    private List<(string Value, string Label)> editableRoles
-    {
-        get
-        {
             if (IsScrumMaster)
                 return new() { ("Developer", "Developer"), ("Viewer", "Viewer") };
             return new();
@@ -443,7 +443,6 @@
         finally { isLoading = false; }
     }
 
-    // Изменение роли — только ScrumMaster, только на Dev/Viewer
     private async Task ChangeRole(Guid userId, string? newRole)
     {
         if (!canChangeRoles || string.IsNullOrEmpty(newRole)) return;
@@ -517,13 +516,50 @@
         finally { isSaving = false; }
     }
 
-    private void ShowAllRoles() { roleFilter = ""; StateHasChanged(); }
-    private void ShowProductOwner() { roleFilter = "ProductOwner"; StateHasChanged(); }
-    private void ShowScrumMaster() { roleFilter = "ScrumMaster"; StateHasChanged(); }
-    private void ShowDeveloper() { roleFilter = "Developer"; StateHasChanged(); }
-    private void ShowViewer() { roleFilter = "Viewer"; StateHasChanged(); }
-    private int GetRoleCount(string role) => members?.Count(m => m.Role == role && !m.IsOwner) ?? 0;
+    private void ShowAllRoles() 
+    { 
+        roleFilter = ""; 
+        StateHasChanged(); 
+    }
+    private void ShowProductOwner() 
+    { 
+        roleFilter = "ProductOwner"; 
+        StateHasChanged(); 
+    }
+    private void ShowScrumMaster() 
+    { 
+        roleFilter = "ScrumMaster"; 
+        StateHasChanged(); 
+    }
+    private void ShowDeveloper() 
+    { 
+        roleFilter = "Developer"; 
+        StateHasChanged(); 
+    }
+    private void ShowViewer() 
+    { 
+        roleFilter = "Viewer"; 
+        StateHasChanged(); 
+    }
+    private int GetRoleCount(string role) => members?.Count(m => m.Role == role) ?? 0;
     private string GetInitials(string n) => string.IsNullOrEmpty(n) ? "?" : n.Split(' ')[0][..Math.Min(2, n.Split(' ')[0].Length)].ToUpper();
-    private string GetRoleLabel(string r) => r switch { "ProductOwner" => "PO", "ScrumMaster" => "SM", "Developer" => "Dev", "Viewer" => "View", _ => r };
+    private string GetRoleLabel(string r) => r switch
+    {
+        "ProductOwner" => "Владелец",
+        "ScrumMaster" => "SCRUM-мастер",
+        "Developer" => "Разработчик",
+        "Viewer" => "Наблюдатель",
+        _ => r
+    };
+
+    private List<(string Value, string Label)> editableRoles
+    {
+        get
+        {
+            if (IsScrumMaster)
+                return new() { ("Developer", "Разработчик"), ("Viewer", "Наблюдатель") };
+            return new();
+        }
+    }
     private void GoBack() => Navigation.NavigateTo($"/projects/{ProjectId}");
 }

@@ -82,10 +82,10 @@
                 <i class="bi bi-kanban me-1"></i> Доска
             </button>
             <button class="sprint-tab @(activeView == "burndown" ? "active" : "")" @onclick="ShowBurndownTab">
-                <i class="bi bi-graph-up me-1"></i> Сгорание задачи
+                <i class="bi bi-graph-up me-1"></i> Сгорание задач
             </button>
             <button class="sprint-tab @(activeView == "gantt" ? "active" : "")" @onclick="ShowGanttTab">
-                <i class="bi bi-bar-chart-steps me-1"></i> Гант
+                <i class="bi bi-bar-chart-steps me-1"></i> Диаграмма Ганта
             </button>
             <div class="ms-auto small text-muted d-flex align-items-center gap-3">
                 <span>@sprint.CompletedStoryPoints / @sprint.TotalStoryPoints SP</span>
@@ -110,8 +110,8 @@
                             <span class="board-col-count">@sprint.Tasks.Count(t => t.Status == status)</span>
                         </div>
                         <div class="board-col-body @(isDropZone ? "drop-zone" : "")"
-                            @ondragover="OnDragOver"
-                            @ondrop="() => OnDropTo(status)">
+                             @ondragover="OnDragOver"
+                             @ondrop="() => OnDropTo(status)">
                             @foreach (var task in sprint.Tasks.Where(t => t.Status == status))
                             {
                                 <div class="task-card @GetPriorityClass(task.Priority)"
@@ -120,7 +120,7 @@
                                      @onclick="() => OpenTaskDetail(task.Id)">
                                     <div class="task-card-body">
                                         <div class="d-flex justify-content-between mb-1">
-                                            <span class="badge @badge small">@task.Type</span>
+                                            <span class="badge @badge small">@GetTypeName(task.Type)</span>
                                             <span class="text-muted small">@task.StoryPoints</span>
                                         </div>
                                         <div class="fw-medium small mb-1">@task.Title</div>
@@ -180,7 +180,7 @@
                     <div class="modal-header bg-warning"><h6 class="modal-title">Завершение спринта</h6><button type="button" class="btn-close" @onclick="CloseCompleteModal"></button></div>
                     <div class="modal-body">
                         <p>Завершить «<strong>@sprint?.Name</strong>»?</p>
-                        <div class="mb-2"><label class="form-label small">Заметки Review</label><textarea @bind="completeRequest.ReviewNotes" class="form-control form-control-sm" rows="2"></textarea></div>
+                        <div class="mb-2"><label class="form-label small">Заметки обзора</label><textarea @bind="completeRequest.ReviewNotes" class="form-control form-control-sm" rows="2"></textarea></div>
                         <div class="mb-2"><label class="form-label small">Заметки ретроспективы</label><textarea @bind="completeRequest.RetrospectiveNotes" class="form-control form-control-sm" rows="2"></textarea></div>
                     </div>
                     <div class="modal-footer"><button class="btn btn-secondary btn-sm" @onclick="CloseCompleteModal">Отмена</button><button class="btn btn-warning btn-sm" @onclick="CompleteSprint">Завершить</button></div>
@@ -195,7 +195,7 @@
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header bg-primary text-white">
-                        <div><h5 class="modal-title">@selectedTask.Title</h5><div class="d-flex gap-2 mt-1"><span class="badge @GetTypeBadge(selectedTask.Type)">@selectedTask.Type</span><span class="badge bg-light text-dark">@selectedTask.StoryPoints SP</span></div></div>
+                        <div><h5 class="modal-title">@selectedTask.Title</h5><div class="d-flex gap-2 mt-1"><span class="badge @GetTypeBadge(selectedTask.Type)">@GetTypeName(selectedTask.Type)</span><span class="badge bg-light text-dark">@selectedTask.StoryPoints SP</span></div></div>
                         <button type="button" class="btn-close btn-close-white" @onclick="CloseTaskDetail"></button>
                     </div>
                     <div class="modal-body p-0">
@@ -254,14 +254,14 @@
                                         <p>@(taskDetail.Description ?? "Нет описания")</p>
                                         @if (!string.IsNullOrEmpty(taskDetail.AcceptanceCriteria))
                                         {
-                                            <h6 class="text-muted text-uppercase small mt-3">Критерии</h6>
+                                            <h6 class="text-muted text-uppercase small mt-3">Критерии приёмки</h6>
                                             <div class="p-2 bg-light rounded">@taskDetail.AcceptanceCriteria</div>
                                         }
                                     </div>
                                     <div class="col-md-4">
                                         <div class="card bg-light border-0">
                                             <div class="card-body">
-                                                <div class="mb-2"><small class="text-muted">Тип</small><div><strong>@selectedTask.Type</strong></div></div>
+                                                <div class="mb-2"><small class="text-muted">Тип</small><div><strong>@GetTypeName(selectedTask.Type)</strong></div></div>
                                                 <div class="mb-2"><small class="text-muted">SP</small><div><strong>@selectedTask.StoryPoints</strong></div></div>
                                                 <div class="mb-2"><small class="text-muted">Оценка</small><div><strong>@(selectedTask.EstimatedHours?.ToString() ?? "—") ч.</strong></div></div>
                                                 <div class="mb-3"><small class="text-muted">Исполнитель</small><div><strong>@(selectedTask.Assignee?.FullName ?? "Не назначен")</strong></div></div>
@@ -1969,6 +1969,15 @@
     {
         return st.Status == "Done" ? "text-decoration-line-through text-muted" : "";
     }
+
+    private string GetTypeName(string t) => t switch
+    {
+        "UserStory" => "Сценарий",
+        "Bug" => "Баг",
+        "TechnicalTask" => "Задача",
+        "Improvement" => "Улучшение",
+        _ => t
+    };
 
     private async Task ToggleSubTask(SubTaskResponse st)
     {

@@ -66,13 +66,13 @@
                         <i class="bi bi-list-task"></i> Бэклог
                     </button>
                 }
-                @if (!isViewer && (IsScrumMaster))
+                @if (!isViewer && (IsProductOwner || IsScrumMaster))
                 {
                     <button class="btn btn-outline-secondary btn-sm" @onclick="GoToReports">
                         <i class="bi bi-graph-up"></i> Отчёты
                     </button>
                 }
-                @if (!isViewer && (IsProductOwner || IsScrumMaster))
+                @if (!isViewer && (IsScrumMaster))
                 {
                     <button class="btn btn-outline-secondary btn-sm" @onclick="GoToActivityLogs">
                          <i class="bi bi-clock-history"></i> Логи
@@ -130,7 +130,7 @@
                     @foreach (var sprint in sprints)
                     {
                         var progress = GetSprintProgress(sprint.Id);
-                        <div class="sprint-card @(sprint.IsActive ? "active" : "")" @onclick="() => OpenSprint(sprint.Id)">
+                        <div class="sprint-card @(sprint.IsActive ? "active" : "")" @onclick="() => OpenSprint(sprint.Id)" style="display: flex; flex-direction: column;">
                             <div class="sprint-card-header">
                                 <span class="sprint-name">@sprint.Name</span>
                                 <span class="badge @GetSprintStatusBadge(sprint.Status, sprint.IsActive)">
@@ -148,13 +148,26 @@
                                 </div>
                                 <span class="small text-muted mt-1">@((int)progress)%</span>
                             </div>
-                            @if (!isViewer && !project.IsArchived && IsScrumMaster && (sprint.Status == "Planned" || sprint.Status == "Cancelled"))
-                            {
-                                <button class="btn btn-link btn-sm text-danger p-0 mt-2" @onclick:stopPropagation="true"
-                                        @onclick="() => DeleteSprint(sprint.Id, sprint.Name)">
-                                    Удалить
-                                </button>
-                            }
+                            <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center">
+                                @if (!isViewer && !project.IsArchived && IsScrumMaster && (sprint.Status == "Planned" || sprint.Status == "Cancelled"))
+                                {
+                                    <button class="btn btn-link btn-sm text-danger p-0" @onclick:stopPropagation="true"
+                                            @onclick="() => DeleteSprint(sprint.Id, sprint.Name)">
+                                        Удалить
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span></span>
+                                }
+                                @if (sprint.Status == "Completed")
+                                {
+                                    <button class="btn btn-outline-info btn-sm" @onclick:stopPropagation="true"
+                                            @onclick="() => OpenRetrospective(sprint.Id)">
+                                        <i class="bi bi-people me-1"></i> Ретроспектива
+                                    </button>
+                                }
+                            </div>
                         </div>
                     }
                 </div>
@@ -600,6 +613,11 @@
         {
             await ErrorHandling.TriggerError("Ошибка");
         }
+    }
+
+    private void OpenRetrospective(Guid sprintId)
+    {
+        Navigation.NavigateTo($"/retrospective/{sprintId}");
     }
 
     private void ShowCreateSprintModal()

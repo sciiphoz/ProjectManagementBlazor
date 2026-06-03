@@ -41,6 +41,10 @@
                 <span class="dash-metric-value">@myTasks.Count(t => t.Status == "InProgress")</span>
                 <span class="dash-metric-label">В работе</span>
             </div>
+            <div class="dash-metric text-purple">
+                <span class="dash-metric-value">@myTasks.Count(t => t.Status == "Review")</span>
+                <span class="dash-metric-label">На проверке</span>
+            </div>
             <div class="dash-metric text-danger">
                 <span class="dash-metric-value">@myTasks.Count(t => t.Status != "Done" && t.SprintEndDate.HasValue && t.SprintEndDate.Value.Date < DateTime.Now.Date)</span>
                 <span class="dash-metric-label">Просрочено</span>
@@ -143,6 +147,26 @@
                 </div>
             }
 
+            <!-- На проверке -->
+            @if (reviewTasks.Any())
+            {
+                <div class="task-group review">
+                    <div class="task-group-header">
+                        <i class="bi bi-search me-1"></i> На проверке · @reviewTasks.Count
+                    </div>
+                    @foreach (var t in reviewTasks)
+                    {
+                        <div class="task-row review-item" @onclick="() => GoToTask(t.Id, t.ProjectId, t.SprintId)">
+                            <div class="task-row-left">
+                                <span class="task-title">@t.Title</span>
+                                <span class="task-sub">@t.ProjectName · @t.SprintName</span>
+                            </div>
+                            <span class="badge bg-purple text-white">На проверке</span>
+                        </div>
+                    }
+                </div>
+            }
+
             <!-- Выполненные -->
             @if (doneTasks.Any() && statusFilter != "active" && statusFilter != "overdue")
             {
@@ -159,20 +183,6 @@
                     }
                 </div>
             }
-        }
-        else
-        {
-            <div class="text-center py-4 text-muted small">
-                @if (myTasks.Any())
-                {
-                    <p>Нет задач по фильтрам</p>
-                }
-                else
-                {
-                    <p>Нет задач в активных спринтах</p>
-                    <button class="btn btn-primary btn-sm mt-2" @onclick="GoToProjects">Перейти к проектам</button>
-                }
-            </div>
         }
     }
 </div>
@@ -263,6 +273,22 @@
         margin-bottom: 0.25rem;
         cursor: pointer;
         transition: box-shadow 0.1s;
+    }
+
+    .text-purple {
+        color: #8B5CF6 !important;
+    }
+
+    .bg-purple {
+        background-color: #8B5CF6 !important;
+    }
+
+    .task-row.review-item {
+        border-left: 3px solid #8B5CF6;
+    }
+
+    .task-group.review .task-group-header {
+        color: #8B5CF6;
     }
 
         .task-row:hover {
@@ -526,6 +552,14 @@
             "ToDo" => 2,
             _ => 5
         };
+    }
+
+    private List<MyTaskViewModel> reviewTasks
+    {
+        get
+        {
+            return filteredTasks.Where(t => t.Status == "Review").ToList();
+        }
     }
 
     private void ShowActiveFilter()

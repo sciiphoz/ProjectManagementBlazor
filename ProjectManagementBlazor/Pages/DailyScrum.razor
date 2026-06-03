@@ -9,7 +9,7 @@
 @inject IJSRuntime JS
 @inject DialogService DialogService
 
-<PageTitle>Daily Scrum</PageTitle>
+<PageTitle>Командная активность</PageTitle>
 
 <div class="daily-scrum-page">
     @if (isLoading)
@@ -40,7 +40,7 @@
     {
         <div class="dsc-header">
             <div>
-                <h2>Daily Scrum</h2>
+                <h2>Командная активность</h2>
                 <span class="text-muted small">@project.Name · @DateTime.Now.ToString("dddd, dd MMMM yyyy", new System.Globalization.CultureInfo("ru-RU"))</span>
             </div>
             <div class="d-flex gap-2">
@@ -82,7 +82,7 @@
                     <span class="dsc-summary-label">Осталось</span>
                 </div>
                 <div class="dsc-summary-item">
-                    <span class="dsc-summary-value">@developers.Sum(d => d.totalSP) / @sprintProgress.totalSP SP</span>
+                    <span class="dsc-summary-value">@developers.Sum(d => d.tasks.Where(t => t.status == "Done").Sum(t => t.sp)) / @sprintProgress.totalSP SP</span>
                     <span class="dsc-summary-label">Story Points</span>
                 </div>
             </div>
@@ -212,10 +212,15 @@
     .dsc-summary-item {
         flex: 1;
         text-align: center;
-        padding: 0.5rem;
+        padding: 0.75rem 0.5rem;
         border: 1px solid var(--border-color);
         border-radius: 0.5rem;
         background: var(--bg-card, #fff);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        min-height: 65px;
     }
 
     .dsc-summary-value {

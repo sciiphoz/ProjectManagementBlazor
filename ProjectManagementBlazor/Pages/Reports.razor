@@ -33,13 +33,13 @@
         <!-- Табы -->
         <div class="reports-tabs">
             <button class="report-tab @(activeTab == "velocity" ? "active" : "")" @onclick="ShowVelocity">
-                <i class="bi bi-graph-up me-1"></i> Velocity
+                <i class="bi bi-graph-up me-1"></i> Скорость команды
             </button>
             <button class="report-tab @(activeTab == "burndown" ? "active" : "")" @onclick="ShowBurndownTrend">
-                <i class="bi bi-graph-down me-1"></i> Burndown
+                <i class="bi bi-graph-down me-1"></i> Диаграмма сгорания задач
             </button>
             <button class="report-tab @(activeTab == "cycleTime" ? "active" : "")" @onclick="ShowCycleTime">
-                <i class="bi bi-clock me-1"></i> Cycle Time
+                <i class="bi bi-clock me-1"></i> Время цикла
             </button>
         </div>
 
