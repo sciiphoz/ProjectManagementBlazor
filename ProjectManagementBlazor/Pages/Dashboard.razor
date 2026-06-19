@@ -350,6 +350,7 @@
         {
             return filteredTasks.Where(t =>
                 t.Status != "Done" &&
+                t.Status != "Review" &&
                 t.SprintEndDate.HasValue &&
                 t.SprintEndDate.Value.Date < DateTime.Now.Date
             ).ToList();
@@ -362,6 +363,7 @@
         {
             return filteredTasks.Where(t =>
                 t.Status != "Done" &&
+                t.Status != "Review" &&
                 t.SprintEndDate.HasValue &&
                 t.SprintEndDate.Value.Date >= DateTime.Now.Date &&
                 (t.SprintEndDate.Value.Date - DateTime.Now.Date).Days <= 2

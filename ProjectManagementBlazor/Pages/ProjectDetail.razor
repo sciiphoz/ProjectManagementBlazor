@@ -160,7 +160,7 @@
                                 {
                                     <span></span>
                                 }
-                                @if (sprint.Status == "Completed")
+                                @if (sprint.Status == "Completed" && !IsProductOwner)
                                 {
                                     <button class="btn btn-outline-info btn-sm" @onclick:stopPropagation="true"
                                             @onclick="() => OpenRetrospective(sprint.Id)">

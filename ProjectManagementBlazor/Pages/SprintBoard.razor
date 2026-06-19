@@ -52,13 +52,13 @@
             <div class="d-flex gap-1">
                 @if (!isViewer)
                 {
-                    if (!sprint.IsActive && sprint.Status != "Completed" && (IsScrumMaster || IsProductOwner))
+                    if (!sprint.IsActive && sprint.Status != "Completed" && (IsScrumMaster))
                     {
                         <button class="btn btn-success btn-sm" @onclick="StartSprint" disabled="@hasOtherActiveSprint">
                             <i class="bi bi-play-fill me-1"></i> Запустить
                         </button>
                     }
-                    if (sprint.IsActive && (IsScrumMaster || IsProductOwner))
+                    if (sprint.IsActive && (IsScrumMaster))
                     {
                         <button class="btn btn-warning btn-sm" @onclick="ShowCompleteModal">
                             <i class="bi bi-check2 me-1"></i> Завершить
@@ -67,7 +67,7 @@
                             <i class="bi bi-x me-1"></i> Отменить
                         </button>
                     }
-                    @if (sprint.Status == "Completed")
+                    @if (sprint.Status == "Completed" && !IsProductOwner)
                     {
                         <button class="btn btn-outline-info btn-sm" @onclick="GoToRetrospective">
                             <i class="bi bi-people me-1"></i> Ретроспектива

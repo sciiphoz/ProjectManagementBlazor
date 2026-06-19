@@ -3,6 +3,18 @@
   "WorkspaceRootPath": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|c:\\users\\sciiphoz\\source\\repos\\projectmanagementblazor\\projectmanagementblazor\\pages\\sprintboard.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|solutionrelative:projectmanagementblazor\\pages\\sprintboard.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|c:\\users\\sciiphoz\\source\\repos\\projectmanagementblazor\\projectmanagementblazor\\pages\\projectdetail.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|solutionrelative:projectmanagementblazor\\pages\\projectdetail.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|c:\\users\\sciiphoz\\source\\repos\\projectmanagementblazor\\projectmanagementblazor\\pages\\profile.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|solutionrelative:projectmanagementblazor\\pages\\profile.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|c:\\users\\sciiphoz\\source\\repos\\projectmanagementblazor\\projectmanagementblazor\\pages\\dashboard.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
       "RelativeMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|solutionrelative:projectmanagementblazor\\pages\\dashboard.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
@@ -33,10 +45,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|c:\\users\\sciiphoz\\source\\repos\\projectmanagementblazor\\projectmanagementblazor\\pages\\notifications.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
       "RelativeMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|solutionrelative:projectmanagementblazor\\pages\\notifications.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|c:\\users\\sciiphoz\\source\\repos\\projectmanagementblazor\\projectmanagementblazor\\pages\\sprintboard.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|solutionrelative:projectmanagementblazor\\pages\\sprintboard.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|c:\\users\\sciiphoz\\source\\repos\\projectmanagementblazor\\projectmanagementblazor\\wwwroot\\index.html||{40D31677-CBC0-4297-A9EF-89D907823A98}",
@@ -73,10 +81,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|c:\\users\\sciiphoz\\source\\repos\\projectmanagementblazor\\projectmanagementblazor\\pages\\projects.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
       "RelativeMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|solutionrelative:projectmanagementblazor\\pages\\projects.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|c:\\users\\sciiphoz\\source\\repos\\projectmanagementblazor\\projectmanagementblazor\\pages\\projectdetail.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|solutionrelative:projectmanagementblazor\\pages\\projectdetail.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|c:\\users\\sciiphoz\\source\\repos\\projectmanagementblazor\\projectmanagementblazor\\services\\authservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -130,33 +134,19 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
-              "Title": "Notifications.razor",
-              "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\Notifications.razor",
-              "RelativeDocumentMoniker": "ProjectManagementBlazor\\Pages\\Notifications.razor",
-              "ToolTip": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\Notifications.razor",
-              "RelativeToolTip": "ProjectManagementBlazor\\Pages\\Notifications.razor",
-              "ViewState": "AgIAAP8AAAAAAAAAAAAiwBIBAAAnAAAAAAAAAA==",
+              "DocumentIndex": 2,
+              "Title": "Profile.razor",
+              "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\Profile.razor",
+              "RelativeDocumentMoniker": "ProjectManagementBlazor\\Pages\\Profile.razor",
+              "ToolTip": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\Profile.razor",
+              "RelativeToolTip": "ProjectManagementBlazor\\Pages\\Profile.razor",
+              "ViewState": "AgIAAAYAAAAAAAAAAAAAABwAAAA9AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-06-03T11:05:11.322Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-03T11:51:07.046Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "ResetPassword.razor",
-              "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\ResetPassword.razor",
-              "RelativeDocumentMoniker": "ProjectManagementBlazor\\Pages\\ResetPassword.razor",
-              "ToolTip": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\ResetPassword.razor",
-              "RelativeToolTip": "ProjectManagementBlazor\\Pages\\ResetPassword.razor",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAIAAAAOAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-06-03T09:58:41.666Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 11,
+              "DocumentIndex": 13,
               "Title": "AlertDialog.razor",
               "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Layout\\AlertDialog.razor",
               "RelativeDocumentMoniker": "ProjectManagementBlazor\\Layout\\AlertDialog.razor",
@@ -164,12 +154,11 @@
               "RelativeToolTip": "ProjectManagementBlazor\\Layout\\AlertDialog.razor",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-06-03T09:57:42.568Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-03T09:57:42.568Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 5,
               "Title": "NavMenu.razor",
               "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Layout\\NavMenu.razor",
               "RelativeDocumentMoniker": "ProjectManagementBlazor\\Layout\\NavMenu.razor",
@@ -177,12 +166,11 @@
               "RelativeToolTip": "ProjectManagementBlazor\\Layout\\NavMenu.razor",
               "ViewState": "AgIAADAAAAAAAAAAAAAAABYAAAASAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-06-03T08:10:13.555Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-03T08:10:13.555Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 4,
               "Title": "ProjectMembers.razor",
               "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\ProjectMembers.razor",
               "RelativeDocumentMoniker": "ProjectManagementBlazor\\Pages\\ProjectMembers.razor",
@@ -190,25 +178,72 @@
               "RelativeToolTip": "ProjectManagementBlazor\\Pages\\ProjectMembers.razor",
               "ViewState": "AgIAALwAAAAAAAAAAAAQwMYAAAAWAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-06-03T08:11:38.539Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-03T08:11:38.539Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "ProjectDetail.razor",
+              "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\ProjectDetail.razor",
+              "RelativeDocumentMoniker": "ProjectManagementBlazor\\Pages\\ProjectDetail.razor",
+              "ToolTip": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\ProjectDetail.razor",
+              "RelativeToolTip": "ProjectManagementBlazor\\Pages\\ProjectDetail.razor",
+              "ViewState": "AgIAAJMAAAAAAAAAAAAiwKIAAABUAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-06-03T08:11:39.158Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 0,
+              "Title": "SprintBoard.razor",
+              "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\SprintBoard.razor",
+              "RelativeDocumentMoniker": "ProjectManagementBlazor\\Pages\\SprintBoard.razor",
+              "ToolTip": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\SprintBoard.razor",
+              "RelativeToolTip": "ProjectManagementBlazor\\Pages\\SprintBoard.razor",
+              "ViewState": "AgIAABgIAAAAAAAAAAAUwDwIAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-06-03T09:58:58.434Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "ResetPassword.razor",
+              "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\ResetPassword.razor",
+              "RelativeDocumentMoniker": "ProjectManagementBlazor\\Pages\\ResetPassword.razor",
+              "ToolTip": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\ResetPassword.razor",
+              "RelativeToolTip": "ProjectManagementBlazor\\Pages\\ResetPassword.razor",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAIAAAAOAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-06-03T09:58:41.666Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "Notifications.razor",
+              "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\Notifications.razor",
+              "RelativeDocumentMoniker": "ProjectManagementBlazor\\Pages\\Notifications.razor",
+              "ToolTip": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\Notifications.razor",
+              "RelativeToolTip": "ProjectManagementBlazor\\Pages\\Notifications.razor",
+              "ViewState": "AgIAAP8AAAAAAAAAAAAiwBIBAAAnAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-06-03T11:05:11.322Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
               "Title": "Dashboard.razor",
               "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\Dashboard.razor",
               "RelativeDocumentMoniker": "ProjectManagementBlazor\\Pages\\Dashboard.razor",
               "ToolTip": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\Dashboard.razor",
               "RelativeToolTip": "ProjectManagementBlazor\\Pages\\Dashboard.razor",
-              "ViewState": "AgIAAAUBAAAAAAAAAAAawBEBAAAYAAAAAAAAAA==",
+              "ViewState": "AgIAAFMBAAAAAAAAAAAiwFoBAAAuAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-06-03T08:12:21.28Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-03T08:12:21.28Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 6,
               "Title": "ForgotPassword.razor",
               "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\ForgotPassword.razor",
               "RelativeDocumentMoniker": "ProjectManagementBlazor\\Pages\\ForgotPassword.razor",
@@ -216,12 +251,11 @@
               "RelativeToolTip": "ProjectManagementBlazor\\Pages\\ForgotPassword.razor",
               "ViewState": "AgIAAGYAAAAAAAAAAAAiwHkAAAArAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-06-03T11:07:53.444Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-03T11:07:53.444Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
+              "DocumentIndex": 12,
               "Title": "app.css",
               "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\wwwroot\\css\\app.css",
               "RelativeDocumentMoniker": "ProjectManagementBlazor\\wwwroot\\css\\app.css",
@@ -229,12 +263,11 @@
               "RelativeToolTip": "ProjectManagementBlazor\\wwwroot\\css\\app.css",
               "ViewState": "AgIAABsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
-              "WhenOpened": "2026-06-03T09:57:52.12Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-03T09:57:52.12Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 11,
               "Title": "index.html",
               "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\wwwroot\\index.html",
               "RelativeDocumentMoniker": "ProjectManagementBlazor\\wwwroot\\index.html",
@@ -242,12 +275,11 @@
               "RelativeToolTip": "ProjectManagementBlazor\\wwwroot\\index.html",
               "ViewState": "AgIAAJYAAAAAAAAAAAAAAHoAAAA/AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001512|",
-              "WhenOpened": "2026-06-03T09:57:55.972Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-03T09:57:55.972Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 8,
               "Title": "AcceptInvitation.razor",
               "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\AcceptInvitation.razor",
               "RelativeDocumentMoniker": "ProjectManagementBlazor\\Pages\\AcceptInvitation.razor",
@@ -255,12 +287,11 @@
               "RelativeToolTip": "ProjectManagementBlazor\\Pages\\AcceptInvitation.razor",
               "ViewState": "AgIAADIAAAAAAAAAAAAiwEUAAABNAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-06-03T08:09:34.696Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-03T08:09:34.696Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 9,
               "Title": "Login.razor",
               "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\Login.razor",
               "RelativeDocumentMoniker": "ProjectManagementBlazor\\Pages\\Login.razor",
@@ -268,25 +299,11 @@
               "RelativeToolTip": "ProjectManagementBlazor\\Pages\\Login.razor",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAIAAAAOAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-06-03T09:56:14.918Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-03T09:56:14.918Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
-              "Title": "SprintBoard.razor",
-              "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\SprintBoard.razor",
-              "RelativeDocumentMoniker": "ProjectManagementBlazor\\Pages\\SprintBoard.razor",
-              "ToolTip": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\SprintBoard.razor",
-              "RelativeToolTip": "ProjectManagementBlazor\\Pages\\SprintBoard.razor",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-06-03T09:58:58.434Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 12,
+              "DocumentIndex": 14,
               "Title": "ConfirmDialog.razor",
               "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Layout\\ConfirmDialog.razor",
               "RelativeDocumentMoniker": "ProjectManagementBlazor\\Layout\\ConfirmDialog.razor",
@@ -294,12 +311,11 @@
               "RelativeToolTip": "ProjectManagementBlazor\\Layout\\ConfirmDialog.razor",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-06-03T09:57:39.541Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-03T09:57:39.541Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 13,
+              "DocumentIndex": 15,
               "Title": "ErrorDisplay.razor",
               "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Layout\\ErrorDisplay.razor",
               "RelativeDocumentMoniker": "ProjectManagementBlazor\\Layout\\ErrorDisplay.razor",
@@ -307,12 +323,11 @@
               "RelativeToolTip": "ProjectManagementBlazor\\Layout\\ErrorDisplay.razor",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-06-03T09:57:37.6Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-03T09:57:37.6Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 14,
+              "DocumentIndex": 16,
               "Title": "RedirectToLogin.razor",
               "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Layout\\RedirectToLogin.razor",
               "RelativeDocumentMoniker": "ProjectManagementBlazor\\Layout\\RedirectToLogin.razor",
@@ -320,12 +335,11 @@
               "RelativeToolTip": "ProjectManagementBlazor\\Layout\\RedirectToLogin.razor",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-06-03T09:57:28.008Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-03T09:57:28.008Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 15,
+              "DocumentIndex": 17,
               "Title": "MainLayout.razor",
               "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Layout\\MainLayout.razor",
               "RelativeDocumentMoniker": "ProjectManagementBlazor\\Layout\\MainLayout.razor",
@@ -333,12 +347,11 @@
               "RelativeToolTip": "ProjectManagementBlazor\\Layout\\MainLayout.razor",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAQAAAAjAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-06-03T09:56:56.361Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-03T09:56:56.361Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 16,
+              "DocumentIndex": 18,
               "Title": "Register.razor",
               "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\Register.razor",
               "RelativeDocumentMoniker": "ProjectManagementBlazor\\Pages\\Register.razor",
@@ -346,12 +359,11 @@
               "RelativeToolTip": "ProjectManagementBlazor\\Pages\\Register.razor",
               "ViewState": "AgIAAFoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-06-03T09:53:11.014Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-03T09:53:11.014Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 17,
+              "DocumentIndex": 19,
               "Title": "Projects.razor",
               "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\Projects.razor",
               "RelativeDocumentMoniker": "ProjectManagementBlazor\\Pages\\Projects.razor",
@@ -359,12 +371,11 @@
               "RelativeToolTip": "ProjectManagementBlazor\\Pages\\Projects.razor",
               "ViewState": "AgIAAA8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-06-03T09:51:07.007Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-03T09:51:07.007Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 21,
+              "DocumentIndex": 22,
               "Title": "Index.razor",
               "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\Index.razor",
               "RelativeDocumentMoniker": "ProjectManagementBlazor\\Pages\\Index.razor",
@@ -372,12 +383,11 @@
               "RelativeToolTip": "ProjectManagementBlazor\\Pages\\Index.razor",
               "ViewState": "AgIAALYAAAAAAAAAAAAQwPUAAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-06-03T08:12:24.936Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-03T08:12:24.936Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 19,
+              "DocumentIndex": 20,
               "Title": "AuthService.cs",
               "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Services\\AuthService.cs",
               "RelativeDocumentMoniker": "ProjectManagementBlazor\\Services\\AuthService.cs",
@@ -385,12 +395,11 @@
               "RelativeToolTip": "ProjectManagementBlazor\\Services\\AuthService.cs",
               "ViewState": "AgIAAFQAAAAAAAAAAAAlwGYAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-06-03T08:10:03.965Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-03T08:10:03.965Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 20,
+              "DocumentIndex": 21,
               "Title": "CustomAuthStateProvider.cs",
               "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Services\\CustomAuthStateProvider.cs",
               "RelativeDocumentMoniker": "ProjectManagementBlazor\\Services\\CustomAuthStateProvider.cs",
@@ -398,25 +407,11 @@
               "RelativeToolTip": "ProjectManagementBlazor\\Services\\CustomAuthStateProvider.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-06-03T08:07:17.786Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-03T08:07:17.786Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 18,
-              "Title": "ProjectDetail.razor",
-              "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\ProjectDetail.razor",
-              "RelativeDocumentMoniker": "ProjectManagementBlazor\\Pages\\ProjectDetail.razor",
-              "ToolTip": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\ProjectDetail.razor",
-              "RelativeToolTip": "ProjectManagementBlazor\\Pages\\ProjectDetail.razor",
-              "ViewState": "AgIAAKYBAAAAAAAAAAAYwJ4BAAAqAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-06-03T08:11:39.158Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 22,
+              "DocumentIndex": 23,
               "Title": "DailyScrum.razor",
               "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\DailyScrum.razor",
               "RelativeDocumentMoniker": "ProjectManagementBlazor\\Pages\\DailyScrum.razor",
@@ -424,12 +419,11 @@
               "RelativeToolTip": "ProjectManagementBlazor\\Pages\\DailyScrum.razor",
               "ViewState": "AgIAAMEBAAAAAAAAAAAAAMEBAAA6AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-06-03T08:12:19.457Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-03T08:12:19.457Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 23,
+              "DocumentIndex": 24,
               "Title": "bootstrap.min.css",
               "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\wwwroot\\css\\bootstrap\\bootstrap.min.css",
               "RelativeDocumentMoniker": "ProjectManagementBlazor\\wwwroot\\css\\bootstrap\\bootstrap.min.css",
@@ -437,12 +431,11 @@
               "RelativeToolTip": "ProjectManagementBlazor\\wwwroot\\css\\bootstrap\\bootstrap.min.css",
               "ViewState": "AgIAAAUAAAAAAAAAAAAAAAUAAAA9EQAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
-              "WhenOpened": "2026-06-03T08:11:19.256Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-03T08:11:19.256Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 24,
+              "DocumentIndex": 25,
               "Title": "AuthResponses.cs",
               "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\DTO\\Responses\\AuthResponses.cs",
               "RelativeDocumentMoniker": "ProjectManagementBlazor\\DTO\\Responses\\AuthResponses.cs",
@@ -450,12 +443,11 @@
               "RelativeToolTip": "ProjectManagementBlazor\\DTO\\Responses\\AuthResponses.cs",
               "ViewState": "AgIAAAoAAAAAAAAAAAAqwAoAAAAaAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-06-03T08:11:17.747Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-03T08:11:17.747Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 25,
+              "DocumentIndex": 26,
               "Title": "App.razor",
               "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\App.razor",
               "RelativeDocumentMoniker": "ProjectManagementBlazor\\App.razor",
@@ -463,12 +455,11 @@
               "RelativeToolTip": "ProjectManagementBlazor\\App.razor",
               "ViewState": "AgIAAAwAAAAAAAAAAAAAAAwAAABNAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-06-03T08:11:15.544Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-03T08:11:15.544Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 26,
+              "DocumentIndex": 27,
               "Title": "ActivityLogs.razor",
               "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\ActivityLogs.razor",
               "RelativeDocumentMoniker": "ProjectManagementBlazor\\Pages\\ActivityLogs.razor",
@@ -476,12 +467,11 @@
               "RelativeToolTip": "ProjectManagementBlazor\\Pages\\ActivityLogs.razor",
               "ViewState": "AgIAAA0AAAAAAAAAAAAAAA0AAABEAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-06-03T08:11:12.981Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-03T08:11:12.981Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 27,
+              "DocumentIndex": 28,
               "Title": "Program.cs",
               "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Program.cs",
               "RelativeDocumentMoniker": "ProjectManagementBlazor\\Program.cs",
@@ -489,8 +479,7 @@
               "RelativeToolTip": "ProjectManagementBlazor\\Program.cs",
               "ViewState": "AgIAAB4AAAAAAAAAAAAAAB4AAABPAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-06-03T08:10:22.236Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-03T08:10:22.236Z"
             }
           ]
         }
