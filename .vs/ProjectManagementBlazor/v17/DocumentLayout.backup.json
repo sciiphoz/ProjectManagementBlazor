@@ -3,6 +3,10 @@
   "WorkspaceRootPath": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|c:\\users\\sciiphoz\\source\\repos\\projectmanagementblazor\\projectmanagementblazor\\pages\\sprintboard.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|solutionrelative:projectmanagementblazor\\pages\\sprintboard.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|c:\\users\\sciiphoz\\source\\repos\\projectmanagementblazor\\projectmanagementblazor\\wwwroot\\index.html||{40D31677-CBC0-4297-A9EF-89D907823A98}",
       "RelativeMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|solutionrelative:projectmanagementblazor\\wwwroot\\index.html||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
@@ -13,10 +17,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|c:\\users\\sciiphoz\\source\\repos\\projectmanagementblazor\\projectmanagementblazor\\pages\\projectmembers.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
       "RelativeMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|solutionrelative:projectmanagementblazor\\pages\\projectmembers.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|c:\\users\\sciiphoz\\source\\repos\\projectmanagementblazor\\projectmanagementblazor\\pages\\sprintboard.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{AFE7764C-D4B0-4C90-BB9E-4F6A139340AB}|ProjectManagementBlazor\\ProjectManagementBlazor.csproj|solutionrelative:projectmanagementblazor\\pages\\sprintboard.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     }
   ],
   "DocumentGroupContainers": [
@@ -26,7 +26,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 4,
+          "SelectedChildIndex": 3,
           "Children": [
             {
               "$type": "Bookmark",
@@ -34,7 +34,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 2,
               "Title": "DailyScrum.razor",
               "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\DailyScrum.razor",
               "RelativeDocumentMoniker": "ProjectManagementBlazor\\Pages\\DailyScrum.razor",
@@ -42,12 +42,11 @@
               "RelativeToolTip": "ProjectManagementBlazor\\Pages\\DailyScrum.razor",
               "ViewState": "AgIAAHACAAAAAAAAAAAowH8CAAAXAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-06-22T07:18:10.974Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-22T07:18:10.974Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 3,
               "Title": "ProjectMembers.razor",
               "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\ProjectMembers.razor",
               "RelativeDocumentMoniker": "ProjectManagementBlazor\\Pages\\ProjectMembers.razor",
@@ -55,30 +54,30 @@
               "RelativeToolTip": "ProjectManagementBlazor\\Pages\\ProjectMembers.razor",
               "ViewState": "AgIAACMCAAAAAAAAAAAkwDMCAAAFAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-06-21T06:54:33.157Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-21T06:54:33.157Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 0,
               "Title": "SprintBoard.razor",
               "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\SprintBoard.razor",
               "RelativeDocumentMoniker": "ProjectManagementBlazor\\Pages\\SprintBoard.razor",
               "ToolTip": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\Pages\\SprintBoard.razor",
               "RelativeToolTip": "ProjectManagementBlazor\\Pages\\SprintBoard.razor",
-              "ViewState": "AgIAAFkEAAAAAAAAAAAAAFkEAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAAUHAAAAAAAAAAAmwDEHAAA+AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-06-20T05:30:49.559Z"
+              "WhenOpened": "2026-06-20T05:30:49.559Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 1,
               "Title": "index.html",
               "DocumentMoniker": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\wwwroot\\index.html",
               "RelativeDocumentMoniker": "ProjectManagementBlazor\\wwwroot\\index.html",
               "ToolTip": "C:\\Users\\sciiphoz\\source\\repos\\ProjectManagementBlazor\\ProjectManagementBlazor\\wwwroot\\index.html",
               "RelativeToolTip": "ProjectManagementBlazor\\wwwroot\\index.html",
-              "ViewState": "AgIAAJwAAAAAAAAAAAAAAK4AAAAYAAAAAAAAAA==",
+              "ViewState": "AgIAACQCAAAAAAAAAAAYwDICAAAkAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001512|",
               "WhenOpened": "2026-06-03T09:57:55.972Z",
               "EditorCaption": ""

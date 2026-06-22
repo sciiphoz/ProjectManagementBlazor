@@ -519,70 +519,111 @@
 </script>
 
 <script>
-    let ganttDrawAttempt = 0;
     window.drawGanttChart = (tasks, sprintStartDate, sprintEndDate) => {
         try {
             const canvas = document.getElementById('ganttChart');
             if (!canvas) {
-                if (++ganttDrawAttempt < 5) setTimeout(() => window.drawGanttChart(tasks, sprintStartDate, sprintEndDate), 200);
+                setTimeout(() => window.drawGanttChart(tasks, sprintStartDate, sprintEndDate), 200);
                 return;
             }
+
             if (window.ganttChartInstance) {
                 window.ganttChartInstance.destroy();
                 window.ganttChartInstance = null;
             }
+
             if (!tasks || tasks.length === 0) {
-                ganttDrawAttempt = 0;
+                console.warn('Нет задач для диаграммы Ганта');
                 return;
             }
 
-            const taskCount = tasks.length;
-            const rowHeight = 44;
-            const minHeight = Math.max(400, taskCount * rowHeight + 100);
-            canvas.style.height = minHeight + 'px';
-            if (canvas.parentElement) canvas.parentElement.style.height = minHeight + 'px';
-
-            const getColor = s => ({
-                'Done': { bg: 'rgba(34, 197, 94, 0.9)', border: 'rgb(22, 163, 74)' },
-                'InProgress': { bg: 'rgba(234, 179, 8, 0.9)', border: 'rgb(202, 138, 4)' },
-                'ToDo': { bg: 'rgba(148, 163, 184, 0.85)', border: 'rgb(100, 116, 139)' }
-            }[s] || { bg: 'rgba(203, 213, 225, 0.85)', border: 'rgb(148, 163, 184)' });
-
-            const getStatusText = s => ({
-                'Done': 'Выполнено',
-                'InProgress': 'В работе',
-                'ToDo': 'К выполнению'
-            }[s] || s);
-
-            const sortedTasks = [...tasks].sort((a, b) => {
-                const order = { 'Done': 0, 'InProgress': 1, 'ToDo': 2 };
-                return (order[a.status] || 3) - (order[b.status] || 3);
-            });
-
-            const labels = sortedTasks.map(t => t.title.length > 30 ? t.title.substring(0, 28) + '…' : t.title);
             const sprintStart = new Date(sprintStartDate).getTime();
             const sprintEnd = new Date(sprintEndDate).getTime();
+            const today = new Date().getTime();
 
-            // Один датасет с плавающими барами — классический подход для Ганта
-            const datasets = [{
-                label: 'Задачи',
-                data: sortedTasks.map((t, i) => ({
-                    x: [new Date(t.startDate).getTime(), new Date(t.endDate).getTime()],
-                    y: labels[i]
-                })),
-                backgroundColor: sortedTasks.map(t => getColor(t.status).bg),
-                borderColor: sortedTasks.map(t => getColor(t.status).border),
-                borderWidth: 2,
-                borderRadius: 8,
-                borderSkipped: false,
-                barPercentage: 0.85,
-                categoryPercentage: 0.9,
-                taskInfo: sortedTasks
-            }];
+            const sortedTasks = [...tasks].sort((a, b) => {
+                const aStart = a.startedAt ? new Date(a.startedAt).getTime() : Infinity;
+                const bStart = b.startedAt ? new Date(b.startedAt).getTime() : Infinity;
+                return aStart - bStart;
+            });
 
-            window.ganttChartInstance = new Chart(canvas, {
+            const labels = [];
+            const startDates = [];
+            const endDates = [];
+            const colors = [];
+            const taskInfo = [];
+
+            sortedTasks.forEach(task => {
+                let start = sprintStart;
+                if (task.startedAt) {
+                    const parsed = new Date(task.startedAt).getTime();
+                    start = Math.max(parsed, sprintStart);
+                }
+
+                let end = sprintEnd;
+                if (task.completedAt) {
+                    const parsed = new Date(task.completedAt).getTime();
+                    end = Math.min(parsed, sprintEnd);
+                    if (end < start) end = start;
+                } else if (task.status === 'InProgress' || task.status === 'Review') {
+                    end = Math.min(today, sprintEnd);
+                    if (end < start) end = start; // На случай если "сегодня" меньше старта спринта в логах
+                } else if (task.status === 'ToDo' && task.estimatedHours) {
+                    const days = Math.ceil(task.estimatedHours / 8);
+                    end = start + days * 24 * 60 * 60 * 1000;
+                    end = Math.min(end, sprintEnd);
+                }
+
+                if (start > end) return;
+
+                // Красивое усечение длинных названий для оси Y
+                labels.push(task.title.length > 30 ? task.title.substring(0, 28) + '…' : task.title);
+                startDates.push(start);
+                endDates.push(end);
+
+                const statusColors = {
+                    'Done': { bg: 'rgba(34, 197, 94, 0.85)' },
+                    'InProgress': { bg: 'rgba(234, 179, 8, 0.85)' },
+                    'Review': { bg: 'rgba(139, 92, 246, 0.85)' },
+                    'ToDo': { bg: 'rgba(148, 163, 184, 0.75)' }
+                };
+                const color = statusColors[task.status] || statusColors['ToDo'];
+                colors.push(color.bg);
+
+                taskInfo.push({
+                    title: task.title,
+                    assignee: task.assignee ? task.assignee.fullName : 'Не назначен',
+                    status: task.status,
+                    storyPoints: task.storyPoints,
+                    estimatedHours: task.estimatedHours
+                });
+            });
+
+            if (labels.length === 0) {
+                console.warn('Нет задач для отображения на временной шкале');
+                return;
+            }
+
+            const ctx = canvas.getContext('2d');
+            window.ganttChartInstance = new Chart(ctx, {
                 type: 'bar',
-                data: { labels, datasets },
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Задачи',
+                        data: startDates.map((start, i) => ({
+                            x: [start, endDates[i]],
+                            y: labels[i]
+                        })),
+                        backgroundColor: colors,
+                        borderColor: colors.map(c => c.replace('0.85', '1.0').replace('0.75', '1.0')),
+                        borderWidth: 1,
+                        borderRadius: 4, // Небольшое скругление плашек выглядит современно
+                        borderSkipped: false,
+                        barPercentage: 0.7,
+                        categoryPercentage: 0.8
+                    }]
+                },
                 options: {
                     indexAxis: 'y',
                     responsive: true,
@@ -592,38 +633,67 @@
                         yAxisKey: 'y'
                     },
                     plugins: {
-                        legend: { display: false },
+                        legend: {
+                            display: true,
+                            labels: {
+                                generateLabels: function () {
+                                    return [
+                                        { text: 'Выполнено', fillStyle: 'rgba(34, 197, 94, 0.85)', strokeStyle: 'rgb(34, 197, 94)', lineWidth: 1, pointStyle: 'rectRounded' },
+                                        { text: 'В работе', fillStyle: 'rgba(234, 179, 8, 0.85)', strokeStyle: 'rgb(234, 179, 8)', lineWidth: 1, pointStyle: 'rectRounded' },
+                                        { text: 'На проверке', fillStyle: 'rgba(139, 92, 246, 0.85)', strokeStyle: 'rgb(139, 92, 246)', lineWidth: 1, pointStyle: 'rectRounded' },
+                                        { text: 'К выполнению', fillStyle: 'rgba(148, 163, 184, 0.75)', strokeStyle: 'rgb(148, 163, 184)', lineWidth: 1, pointStyle: 'rectRounded' }
+                                    ];
+                                },
+                                usePointStyle: true,
+                                boxWidth: 12,
+                                padding: 15,
+                                font: { size: 12, weight: '500' }
+                            }
+                        },
                         tooltip: {
                             backgroundColor: 'rgba(30, 41, 59, 0.95)',
                             titleColor: '#F8FAFC',
                             bodyColor: '#CBD5E1',
-                            titleFont: { size: 14, weight: 'bold' },
-                            bodyFont: { size: 13 },
-                            padding: 14,
-                            cornerRadius: 8,
+                            titleFont: { size: 13, weight: 'bold' },
+                            bodyFont: { size: 12 },
+                            padding: 12,
+                            cornerRadius: 6,
                             displayColors: false,
                             callbacks: {
-                                title: (items) => {
+                                title: function (items) {
                                     if (!items.length) return '';
-                                    const idx = items[0].dataIndex;
-                                    return sortedTasks[idx]?.title || '';
+                                    return taskInfo[items[0].dataIndex]?.title || '';
                                 },
-                                label: (context) => {
-                                    const t = sortedTasks[context.dataIndex];
+                                label: function (context) {
+                                    const idx = context.dataIndex;
+                                    const info = taskInfo[idx];
+                                    const startDateText = new Date(startDates[idx]).toLocaleDateString('ru-RU');
+                                    const endDateText = new Date(endDates[idx]).toLocaleDateString('ru-RU');
+                                    const days = Math.round((endDates[idx] - startDates[idx]) / (1000 * 60 * 60 * 24));
+
+                                    const statusMap = {
+                                        'Done': 'Выполнено',
+                                        'InProgress': 'В работе',
+                                        'Review': 'На проверке',
+                                        'ToDo': 'К выполнению'
+                                    };
+
                                     return [
-                                        `Статус: ${getStatusText(t.status)}`,
-                                        `SP: ${t.storyPoints} | ${t.estimatedHours} ч.`,
-                                        `Исполнитель: ${t.assignee}`
+                                        `Статус: ${statusMap[info.status] || info.status}`,
+                                        `Исполнитель: ${info.assignee}`,
+                                        `Story Points: ${info.storyPoints || 0}`,
+                                        `Оценка: ${info.estimatedHours || 0} ч.`,
+                                        `Период: ${startDateText} – ${endDateText} (${days} дн.)`
                                     ];
                                 }
                             }
                         },
                         title: {
                             display: true,
-                            text: 'Диаграмма Ганта',
-                            font: { size: 18, weight: 'bold' },
-                            color: '#475569',
-                            padding: { bottom: 20 }
+                            text: 'Временная шкала спринта (Диаграмма Ганта)',
+                            font: { size: 16, weight: 'bold' },
+                            color: '#334155',
+                            padding: { bottom: 15 }
                         }
                     },
                     scales: {
@@ -631,29 +701,30 @@
                             type: 'linear',
                             min: sprintStart,
                             max: sprintEnd,
-                            grid: { color: 'rgba(148, 163, 184, 0.12)' },
+                            grid: { color: 'rgba(148, 163, 184, 0.1)' },
                             ticks: {
-                                callback: v => new Date(v).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
-                                maxTicksLimit: 8,
-                                font: { size: 12, weight: '500' },
+                                callback: function (value) {
+                                    return new Date(value).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+                                },
+                                maxTicksLimit: 12,
+                                font: { size: 11 },
                                 color: '#64748B'
                             }
                         },
                         y: {
                             grid: { display: false },
                             ticks: {
-                                font: { size: 13, weight: '500' },
-                                color: '#475569',
-                                padding: 10
+                                font: { size: 12 },
+                                color: '#334155',
+                                padding: 8
                             }
                         }
                     }
                 }
             });
-            ganttDrawAttempt = 0;
+
         } catch (error) {
-            console.error('Ошибка Ганта:', error.message);
-            ganttDrawAttempt = 0;
+            console.error('Ошибка отрисовки диаграммы Ганта:', error);
         }
     };
 </script>

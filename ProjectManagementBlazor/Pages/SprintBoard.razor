@@ -1805,25 +1805,30 @@
         {
             return;
         }
+
         isGanttLoading = true;
         StateHasChanged();
+
         var tasks = sprint.Tasks
             .Where(t => t.Status != "Backlog")
-            .OrderBy(t => t.Status == "Done" ? 2 : t.Status == "InProgress" ? 1 : 0)
-            .ThenBy(t => t.Title)
             .Select(t => new
             {
                 id = t.Id.ToString(),
-                title = t.Title.Length > 50 ? t.Title[..47] + "..." : t.Title,
-                fullTitle = t.Title,
+                title = t.Title, // Обрезать здесь не нужно, JS сам усечет строку для лейблов
                 status = t.Status,
                 storyPoints = t.StoryPoints,
                 estimatedHours = t.EstimatedHours,
-                assignee = t.Assignee?.FullName ?? "Не назначен",
-                startDate = GetTaskStartDate(t),
-                endDate = GetTaskEndDate(t)
+                assignee = new { fullName = t.Assignee?.FullName ?? "Не назначен" },
+                startedAt = GetTaskStartDate(t).ToString("yyyy-MM-ddTHH:mm:ss"),
+                completedAt = GetTaskEndDate(t).ToString("yyyy-MM-ddTHH:mm:ss")
             }).ToList();
-        await JS.InvokeVoidAsync("drawGanttChart", tasks, sprint.StartDate.ToString("yyyy-MM-dd"), sprint.EndDate.ToString("yyyy-MM-dd"));
+
+        await JS.InvokeVoidAsync("drawGanttChart",
+            tasks,
+            sprint.StartDate.ToString("yyyy-MM-ddTHH:mm:ss"),
+            sprint.EndDate.ToString("yyyy-MM-ddTHH:mm:ss")
+        );
+
         isGanttLoading = false;
         StateHasChanged();
     }
