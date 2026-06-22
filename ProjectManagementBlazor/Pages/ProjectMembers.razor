@@ -60,7 +60,7 @@
                         }
                         else if (canChangeRoles && member.Role != "ScrumMaster")
                         {
-                            <select class="form-select form-select-sm role-select"
+                            <select class="form-select form-select-sm role-select" style="height: 40px;"
                                     value="@member.Role"
                                     @onchange="(ChangeEventArgs e) => ChangeRole(member.UserId, e.Value?.ToString())">
                                 @foreach (var role in editableRoles)
@@ -97,7 +97,6 @@
                     </div>
                     <div class="modal-body p-0">
                         <div class="row g-0" style="min-height: 380px;">
-                            <!-- Левая колонка — ручной ввод email -->
                             <div class="col-5 border-end p-3 d-flex flex-column">
                                 <label class="form-label small fw-medium">Пригласить по email</label>
                                 <div class="mb-2">
@@ -125,7 +124,6 @@
                                     <i class="bi bi-info-circle me-1"></i> Приглашение придёт на почту. Пользователь примет его по ссылке.
                                 </div>
                             </div>
-                            <!-- Правая колонка — предложенные -->
                             <div class="col-7 p-3">
                                 <label class="form-label small fw-medium">Предложенные участники</label>
                                 @if (isLoadingSuggestions)
@@ -434,13 +432,27 @@
         try
         {
             var p = await ProjectService.GetProjectByIdAsync(ProjectId);
+
             if (p.Success && p.Data != null) project = p.Data;
-            else { Navigation.NavigateTo("/projects"); return; }
+            
+            else 
+            { 
+                Navigation.NavigateTo("/projects"); 
+                return; 
+            }
+            
             var m = await ProjectService.GetProjectMembersAsync(ProjectId);
+            
             if (m.Success && m.Data != null) members = m.Data;
         }
-        catch { await ErrorHandling.TriggerError("Ошибка загрузки"); }
-        finally { isLoading = false; }
+        catch 
+        { 
+            await ErrorHandling.TriggerError("Ошибка загрузки"); 
+        }
+        finally 
+        { 
+            isLoading = false; 
+        }
     }
 
     private async Task ChangeRole(Guid userId, string? newRole)
@@ -450,11 +462,20 @@
 
         try
         {
-            var r = await ProjectService.UpdateMemberRoleAsync(ProjectId, new UpdateMemberRoleRequest { UserId = userId, NewRole = newRole });
+            var r = await ProjectService.UpdateMemberRoleAsync(ProjectId, new UpdateMemberRoleRequest 
+                { 
+                    UserId = userId, 
+                    NewRole = newRole 
+                });
+            
             if (r.Success) await LoadData();
+            
             else await ErrorHandling.TriggerError(r.Message);
         }
-        catch { await ErrorHandling.TriggerError("Ошибка"); }
+        catch 
+        { 
+            await ErrorHandling.TriggerError("Ошибка"); 
+        }
     }
 
     private async Task RemoveMember(Guid userId, string userName)

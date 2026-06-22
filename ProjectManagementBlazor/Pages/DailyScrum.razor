@@ -150,9 +150,14 @@
                         @if (dev.tasks.Any())
                         {
                             <div class="dsc-dev-tasks">
-                                @foreach (var task in dev.tasks.OrderBy(t => t.status == "InProgress" ? 0 : 1))
+                                @{
+                                    var orderedTasks = dev.tasks
+                                    .OrderBy(t => t.status == "InProgress" ? 0 : t.status == "Review" ? 1 : 2)
+                                    .ToList();
+                                }
+                                @foreach (var task in orderedTasks)
                                 {
-                                    <div class="dsc-task-row @(task.status == "Done" ? "done" : task.status == "InProgress" ? "in-progress" : "")">
+                                    <div class="dsc-task-row @GetTaskStatusClass(task.status)">
                                         <div class="dsc-task-info">
                                             <span class="dsc-task-title">@task.title</span>
                                             <span class="dsc-task-meta">@task.type · @task.sp SP · @task.hours ч.</span>
@@ -322,6 +327,10 @@
             border-left: 3px solid #F59E0B;
         }
 
+        .dsc-task-row.review {
+            border-left: 3px solid #8B5CF6;
+        }
+
     .dsc-task-title {
         font-weight: 500;
     }
@@ -401,7 +410,7 @@
     private bool isAuthorized = false;
 
     private (int total, int completed, double percent, int daysLeft, decimal totalSP) sprintProgress;
-    
+
     private List<DevSummary> developers = new();
     private List<(string description, string severity)> teamBlockers = new();
 
@@ -436,7 +445,10 @@
         public string severity { get; set; } = "";
     }
 
-    protected override async Task OnInitializedAsync() => await LoadAll();
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAll();
+    }
 
     private async Task LoadAll()
     {
@@ -444,11 +456,18 @@
         try
         {
             var pr = await ProjectService.GetProjectByIdAsync(ProjectId);
-            if (!pr.Success || pr.Data == null) { isLoading = false; return; }
+            if (!pr.Success || pr.Data == null)
+            {
+                isLoading = false;
+                return;
+            }
             project = pr.Data;
 
             var ur = await AuthService.GetCurrentUserAsync();
-            if (ur.Success && ur.Data != null) currentUser = ur.Data;
+            if (ur.Success && ur.Data != null)
+            {
+                currentUser = ur.Data;
+            }
 
             var mr = await ProjectService.GetProjectMembersAsync(ProjectId);
             if (mr.Success && mr.Data != null)
@@ -457,7 +476,11 @@
                 isAuthorized = cm?.Role is "ScrumMaster" or "ProductOwner" || project.Owner?.Id == currentUser?.Id;
             }
 
-            if (!isAuthorized) { isLoading = false; return; }
+            if (!isAuthorized)
+            {
+                isLoading = false;
+                return;
+            }
 
             var sr = await SprintService.GetProjectSprintsAsync(ProjectId);
             if (sr.Success && sr.Data != null)
@@ -504,7 +527,11 @@
                                 sp = t.StoryPoints ?? 0,
                                 hours = t.EstimatedHours ?? 0
                             }).ToList(),
-                            blockers = devBlockers.Select(b => new BlockerInfo { description = b.Description, severity = b.Severity }).ToList()
+                            blockers = devBlockers.Select(b => new BlockerInfo
+                            {
+                                description = b.Description,
+                                severity = b.Severity
+                            }).ToList()
                         });
                     }
 
@@ -517,11 +544,23 @@
                 }
             }
         }
-        catch (Exception ex) { Console.WriteLine($"Ошибка: {ex.Message}"); }
-        finally { isLoading = false; }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 
-    private async Task RefreshData() => await LoadAll();
+    private async Task RefreshData()
+    {
+        developers.Clear();
+        teamBlockers.Clear();
+        await LoadAll();
+        StateHasChanged();
+    }
 
     private async Task CopyToClipboard()
     {
@@ -535,19 +574,81 @@
         {
             sb.AppendLine($"{dev.fullName} ({dev.role}) — {dev.completedTasks}/{dev.totalTasks} задач, {dev.totalSP} SP, {dev.totalHours:F0} ч., {dev.completedPercent:F0}%");
             foreach (var t in dev.tasks)
+            {
                 sb.AppendLine($"  [{t.status}] {t.title} ({t.type}, {t.sp} SP, {t.hours} ч.)");
+            }
             if (dev.blockers.Any())
+            {
                 foreach (var b in dev.blockers)
+                {
                     sb.AppendLine($"  ⚠ {b.description}");
+                }
+            }
             sb.AppendLine();
         }
         await JS.InvokeVoidAsync("navigator.clipboard.writeText", sb.ToString());
         await DialogService.AlertAsync("Сводка скопирована", "", "", "success");
     }
 
-    private string GetTaskStatusBadge(string s) => s switch { "Done" => "bg-success", "InProgress" => "bg-warning text-dark", _ => "bg-secondary" };
-    private string GetTaskStatusText(string s) => s switch { "Done" => "Готово", "InProgress" => "В работе", _ => "К выполнению" };
-    private string GetSeverityBadge(string s) => s switch { "Critical" => "bg-danger", "High" => "bg-warning text-dark", _ => "bg-info" };
-    private string GetInitials(string n) => string.IsNullOrEmpty(n) ? "?" : n.Split(' ')[0][..Math.Min(2, n.Split(' ')[0].Length)].ToUpper();
-    private void GoBack() => Navigation.NavigateTo($"/projects/{ProjectId}");
+    private string GetTaskStatusClass(string status)
+    {
+        return status switch
+        {
+            "Done" => "done",
+            "InProgress" => "in-progress",
+            "Review" => "review",
+            _ => ""
+        };
+    }
+
+    private string GetTaskStatusBadge(string status)
+    {
+        return status switch
+        {
+            "Done" => "bg-success",
+            "InProgress" => "bg-warning text-dark",
+            "Review" => "bg-purple text-white",
+            _ => "bg-secondary"
+        };
+    }
+
+    private string GetTaskStatusText(string status)
+    {
+        return status switch
+        {
+            "Done" => "Готово",
+            "InProgress" => "В работе",
+            "Review" => "На проверке",
+            _ => "К выполнению"
+        };
+    }
+
+    private string GetSeverityBadge(string severity)
+    {
+        return severity switch
+        {
+            "Critical" => "bg-danger",
+            "High" => "bg-warning text-dark",
+            _ => "bg-info"
+        };
+    }
+
+    private string GetInitials(string fullName)
+    {
+        if (string.IsNullOrEmpty(fullName))
+        {
+            return "?";
+        }
+        var parts = fullName.Split(' ');
+        if (parts.Length == 0 || string.IsNullOrEmpty(parts[0]))
+        {
+            return "?";
+        }
+        return parts[0][..Math.Min(2, parts[0].Length)].ToUpper();
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo($"/projects/{ProjectId}");
+    }
 }

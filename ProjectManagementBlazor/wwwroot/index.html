@@ -170,11 +170,25 @@
                 window.burndownChartInstance.destroy();
             }
 
-            if (!burndownData || burndownData.length === 0) return;
+            if (!burndownData || burndownData.length === 0) {
+                console.warn('Нет данных для бёрндаун-чарта');
+                return; 
+            }
 
             const dates = burndownData.map(d => new Date(d.date).toLocaleDateString('ru-RU'));
-            const remainingHours = burndownData.map(d => d.remainingHours);
-            const idealRemaining = burndownData.map(d => d.idealRemainingHours);
+            const remaining = burndownData.map(d => d.remainingHours ?? 0);
+            const ideal = burndownData.map(d => d.idealRemainingHours ?? 0);
+
+            const allValues = [...remaining, ...ideal];
+            let maxVal = Math.max(...allValues, 0);
+
+            if (maxVal === 0) {
+                maxVal = 1;
+            }
+
+            console.log('Burndown data received:', JSON.stringify(burndownData, null, 2));
+
+            maxVal = Math.ceil(maxVal * 1.1);
 
             window.burndownChartInstance = new Chart(canvas, {
                 type: 'line',
@@ -183,32 +197,60 @@
                     datasets: [
                         {
                             label: 'Оставшиеся часы',
-                            data: remainingHours,
+                            data: remaining,
                             borderColor: 'rgb(255, 99, 132)',
                             backgroundColor: 'rgba(255, 99, 132, 0.1)',
-                            borderWidth: 2, tension: 0.1, fill: true,
-                            pointRadius: 4, pointHoverRadius: 6
+                            borderWidth: 2,
+                            tension: 0.1,
+                            fill: true,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
                         },
                         {
                             label: 'Идеальный график',
-                            data: idealRemaining,
+                            data: ideal,
                             borderColor: 'rgb(54, 162, 235)',
                             backgroundColor: 'rgba(54, 162, 235, 0.05)',
-                            borderWidth: 2, borderDash: [5, 5],
-                            tension: 0.1, fill: false,
-                            pointRadius: 2, pointHoverRadius: 4
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            tension: 0.1,
+                            fill: false,
+                            pointRadius: 2,
+                            pointHoverRadius: 4
                         }
                     ]
                 },
                 options: {
-                    responsive: true, maintainAspectRatio: true,
+                    responsive: true,
+                    maintainAspectRatio: true,
                     plugins: {
-                        legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 10 } },
-                        title: { display: true, text: 'График сгорания задач', font: { size: 14, weight: 'bold' } }
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                boxWidth: 10
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'График сгорания задач',
+                            font: { size: 14, weight: 'bold' }
+                        }
                     },
                     scales: {
-                        y: { beginAtZero: true },
-                        x: { grid: { display: false } }
+                        y: {
+                            beginAtZero: true,
+                            max: maxVal,          
+                            ticks: {
+                                stepSize: Math.max(1, Math.floor(maxVal / 6)),
+                                callback: function (value) {
+                                    return value + ' ч.';
+                                }
+                            }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
                     }
                 }
             });
